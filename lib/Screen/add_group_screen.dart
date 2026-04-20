@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
-import 'dart:math'; // 랜덤 ID 생성용
+import 'dart:math';
 
 class AddGroupScreen extends StatefulWidget {
   const AddGroupScreen({super.key});

@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
 
 class AddGroupMenu extends StatelessWidget {
-  const AddGroupMenu({super.key});
+  final VoidCallback onCreatePressed;
+
+  const AddGroupMenu({super.key, required this.onCreatePressed});
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      // Dialog의 바깥 여백을 없애기 위해 사용
       child: Material(
         color: Colors.transparent,
         child: Container(
-          width: 240, // 미니뷰 가로폭
+          width: 240,
           decoration: BoxDecoration(
-            color: const Color(0xFF1E1E1E), // 진한 그레이
+            color: const Color(0xFF1E1E1E),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white10), // 아주 미세한 테두리
+            border: Border.all(color: Colors.white10),
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min, // 내용물 크기에 맞게 세로 길이 조절
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildMenuButton(context, '로그 만들기', Icons.add_circle_outline),
-              const Divider(color: Colors.white10, height: 1), // 구분선
-              _buildMenuButton(context, '로그 참여하기', Icons.group_add_outlined),
+              _buildMenuButton(
+                context,
+                '그룹 만들기',
+                Icons.add_circle_outline,
+                onCreatePressed,
+              ),
+              const Divider(color: Colors.white10, height: 1),
+              _buildMenuButton(
+                context,
+                '그룹 참여하기',
+                Icons.group_add_outlined,
+                () => print('아직 미구현'),
+              ),
             ],
           ),
         ),
@@ -29,13 +40,19 @@ class AddGroupMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuButton(BuildContext context, String title, IconData icon) {
+  Widget _buildMenuButton(
+    BuildContext context,
+    String title,
+    IconData icon,
+    VoidCallback onTapAction,
+  ) {
     return InkWell(
       onTap: () {
-        Navigator.pop(context); // 메뉴 닫기 (Swift의 dismiss)
+        Navigator.pop(context);
         print('$title 클릭됨');
+        onTapAction();
       },
-      borderRadius: BorderRadius.circular(20), // 클릭 피드백 범위
+      borderRadius: BorderRadius.circular(20),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         child: Row(

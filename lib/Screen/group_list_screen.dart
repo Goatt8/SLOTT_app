@@ -43,7 +43,8 @@ class _GroupListScreenState extends State<GroupListScreen> {
               showDialog(
                 context: context,
                 barrierColor: Colors.black.withValues(alpha: 0.6),
-                builder: (context) => const AddGroupMenu(),
+                builder: (context) =>
+                    AddGroupMenu(onCreatePressed: _navigateAndAddGroup),
               );
             },
           ),
