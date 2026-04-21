@@ -16,6 +16,8 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
 
   int _memberCount = 2;
 
+  bool _isCopied = false;
+
   @override
   void initState() {
     super.initState();
@@ -99,62 +101,66 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 80),
-
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 40),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('공유 ID', style: TextStyle(color: Colors.grey)),
-                  const SizedBox(width: 16),
-                  Text(
-                    _randomId,
-                    style: const TextStyle(
-                      color: Colors.blueAccent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+            const SizedBox(height: 50),
+            Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-
-                  IconButton(
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.copy,
-                      color: Colors.white54,
-                      size: 18,
-                    ),
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: _randomId));
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text(
-                            'ID가 복사되었습니다',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white, fontSize: 13),
-                          ),
-                          backgroundColor: Colors.white.withValues(alpha: 0.05),
-                          behavior:
-                              SnackBarBehavior.floating, // 하단에 붙지 않고 떠 있게 함
-                          width: 180,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          duration: const Duration(milliseconds: 1500),
-                          elevation: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('공유 ID', style: TextStyle(color: Colors.grey)),
+                      const SizedBox(width: 16),
+                      Text(
+                        _randomId,
+                        style: const TextStyle(
+                          color: Colors.blueAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
-                      );
-                    },
+                      ),
+
+                      IconButton(
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(
+                          Icons.copy,
+                          color: Colors.white54,
+                          size: 18,
+                        ),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: _randomId));
+                          setState(() => _isCopied = true);
+
+                          Future.delayed(
+                            const Duration(milliseconds: 1500),
+                            () {
+                              if (mounted) setState(() => _isCopied = false);
+                            },
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: _isCopied ? 1.0 : 0.0,
+                  child: const Padding(
+                    padding: EdgeInsets.only(top: 12.0),
+                    child: Text(
+                      '클립보드에 복사되었습니다',
+                      style: TextStyle(color: Colors.white60, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
