@@ -31,17 +31,10 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
       appBar: AppBar(
         title: const Text('Bababam'),
         actions: [
+          // create Complete Button
           IconButton(
             icon: const Icon(Icons.check, color: Color(0xFF7C3AED)),
-            onPressed: () {
-              final newGroup = Group(
-                name: _nameController.text.isEmpty
-                    ? '새 그룹'
-                    : _nameController.text,
-                members: List.generate(_memberCount, (i) => '유저${i + 1}'),
-              );
-              Navigator.pop(context, newGroup);
-            },
+            onPressed: _showConfirmDialog,
           ),
         ],
       ),
@@ -192,5 +185,36 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
     String numbers = random.nextInt(1000000).toString().padLeft(6, '0');
 
     return '$char$numbers';
+  }
+
+  void _showConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('그룹 생성'),
+        content: const Text('그룹을 생성하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: _completeGroupCreation,
+            child: const Text('확인', style: TextStyle(color: Color(0xFF7C3AED))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _completeGroupCreation() {
+    final newGroup = Group(
+      name: _nameController.text.isEmpty ? '새 그룹' : _nameController.text,
+      members: List.generate(_memberCount, (i) => '유저${i + 1}'),
+    );
+
+    Navigator.pop(context);
+    Navigator.pop(context, newGroup);
   }
 }
