@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Widget/group_list.dart';
 import 'package:bababam_app/Widget/add_group_menu.dart';
-import 'package:bababam_app/Screen/add_group_screen.dart';
+import 'package:bababam_app/Screen/create_group_screen.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -13,14 +13,14 @@ class GroupListScreen extends StatefulWidget {
 
 class _GroupListScreenState extends State<GroupListScreen> {
   final List<Group> groups = [
-    Group(name: 'group1', members: ['유저1', '유저2']),
-    Group(name: 'group2', members: ['유저2', '유저3', '유저5']),
+    Group(id: "", name: 'group1', members: ['유저1', '유저2']),
+    Group(id: "", name: 'group2', members: ['유저2', '유저3', '유저5']),
   ];
 
   void _navigateAndAddGroup() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AddGroupScreen()),
+      MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
     );
 
     if (result != null && result is Group) {

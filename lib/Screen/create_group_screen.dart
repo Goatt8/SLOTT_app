@@ -4,14 +4,14 @@ import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'dart:math';
 import 'package:flutter/services.dart';
 
-class AddGroupScreen extends StatefulWidget {
-  const AddGroupScreen({super.key});
+class CreateGroupScreen extends StatefulWidget {
+  const CreateGroupScreen({super.key});
 
   @override
-  State<AddGroupScreen> createState() => _AddGroupScreenState();
+  State<CreateGroupScreen> createState() => _CreateGroupScreenState();
 }
 
-class _AddGroupScreenState extends State<AddGroupScreen> {
+class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final _nameController = TextEditingController();
   late String _randomId;
 
@@ -194,18 +194,17 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
       builder: (context) => ConfirmDialog(
         title: '그룹 생성',
         message: '그룹을 생성하시겠습니까?',
-        onConfirm: _completeGroupCreation, // 로직 함수만 전달
+        onConfirm: _completeGroupCreation,
       ),
     );
   }
 
   void _completeGroupCreation() {
     final newGroup = Group(
-      name: _nameController.text.isEmpty ? '새 그룹' : _nameController.text,
+      id: _randomId,
+      name: _nameController.text.isEmpty ? 'new Group' : _nameController.text,
       members: List.generate(_memberCount, (i) => '유저${i + 1}'),
     );
-
-    Navigator.pop(context);
     Navigator.pop(context, newGroup);
   }
 }
