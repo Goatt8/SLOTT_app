@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
+import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'dart:math';
 import 'package:flutter/services.dart';
 
@@ -190,20 +191,10 @@ class _AddGroupScreenState extends State<AddGroupScreen> {
   void _showConfirmDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('그룹 생성'),
-        content: const Text('그룹을 생성하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: _completeGroupCreation,
-            child: const Text('확인', style: TextStyle(color: Color(0xFF7C3AED))),
-          ),
-        ],
+      builder: (context) => ConfirmDialog(
+        title: '그룹 생성',
+        message: '그룹을 생성하시겠습니까?',
+        onConfirm: _completeGroupCreation, // 로직 함수만 전달
       ),
     );
   }
