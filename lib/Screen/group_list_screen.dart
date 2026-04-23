@@ -60,7 +60,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                CupertinoPageRoute(
+                MaterialPageRoute(
                   builder: (context) => SocialGroupScreen(group: groups[index]),
                 ),
               );
