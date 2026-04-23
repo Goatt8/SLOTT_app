@@ -26,18 +26,18 @@ class GroupListItem extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Text(
-              group.name.toString(),
+              group.title.toString(),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: 8),
             Text(
-              '${(group.members as List).length}명',
+              '${(group.members).length}명',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
         subtitle: Text(
-          (group.members as List).join(', '),
+          (group.members).join(', '),
           style: TextStyle(
             fontSize: 12,
             color: Colors.white.withValues(alpha: 0.4),

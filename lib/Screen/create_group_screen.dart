@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
+import 'package:bababam_app/Model/user.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'dart:math';
 import 'package:flutter/services.dart';
@@ -189,27 +190,26 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   }
 
   void _showConfirmDialog() async {
-    // 1. 다이얼로그를 띄우고 결과를 기다림
     final isConfirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => const ConfirmDialog(
-        // onConfirm 인자를 지워도 됩니다.
-        title: '그룹 생성',
-        message: '그룹을 생성하시겠습니까?',
-      ),
+      builder: (context) =>
+          const ConfirmDialog(title: '그룹 생성', message: '그룹을 생성하시겠습니까?'),
     );
-
-    // 2. 사용자가 '확인'을 눌렀을 때만 실제 생성 로직 실행
     if (isConfirmed == true) {
       _completeGroupCreation();
     }
   }
 
+  // test Function
   void _completeGroupCreation() {
     final newGroup = Group(
       id: _randomId,
-      name: _nameController.text.isEmpty ? 'new Group' : _nameController.text,
-      members: List.generate(_memberCount, (i) => '유저${i + 1}'),
+      title: _nameController.text.isEmpty ? 'new Group' : _nameController.text,
+      members: List.generate(
+        _memberCount,
+        (i) =>
+            User(id: 'user_id_$i', name: '유저${i + 1}', profileImageUrl: null),
+      ),
     );
     Navigator.pop(context, newGroup);
   }

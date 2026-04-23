@@ -1,3 +1,4 @@
+import 'package:bababam_app/Model/user.dart';
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Widget/group_list.dart';
@@ -14,12 +15,15 @@ class GroupListScreen extends StatefulWidget {
   State<GroupListScreen> createState() => _GroupListScreenState();
 }
 
-class _GroupListScreenState extends State<GroupListScreen> {
-  final List<Group> groups = [
-    Group(id: "", name: 'group1', members: ['유저1', '유저2']),
-    Group(id: "", name: 'group2', members: ['유저2', '유저3', '유저5']),
-  ];
+// Test
+final user1 = User(id: '', name: 'user1');
+final user2 = User(id: '', name: 'user2');
 
+final List<Group> groups = [
+  Group(id: "g1", title: 'group1', members: [user1, user2]),
+];
+
+class _GroupListScreenState extends State<GroupListScreen> {
   void _navigateAndAddGroup() async {
     final result = await Navigator.push(
       context,
@@ -61,7 +65,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
           return Dismissible(
             key: Key(
-              group.id.isNotEmpty ? group.id : group.name + index.toString(),
+              group.id.isNotEmpty ? group.id : group.title + index.toString(),
             ),
 
             confirmDismiss: (direction) async {
@@ -69,12 +73,10 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     context: context,
                     builder: (context) => ConfirmDialog(
                       title: '그룹 삭제',
-                      message: '${group.name} 그룹을 삭제하시겠습니까?',
-                      // 여기서 중요한 점!
-                      // 다이얼로그의 확인을 누르면 true를, 취소를 누르면 false를 리턴하게 해야 합니다.
+                      message: '${group.title} 그룹을 삭제하시겠습니까?',
                     ),
                   ) ??
-                  false; // 다이얼로그 바깥을 눌러 닫히면 false로 처리
+                  false;
             },
             direction: DismissDirection.endToStart,
             background: Container(
@@ -88,7 +90,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
                 groups.removeAt(index);
               });
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${group.name} 그룹이 삭제되었습니다.')),
+                SnackBar(content: Text('${group.title} 그룹이 삭제되었습니다.')),
               );
             },
             child: InkWell(

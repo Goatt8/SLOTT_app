@@ -14,7 +14,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.group.name)),
+      appBar: AppBar(title: Text(widget.group.title)),
       body: Center(child: Text('그룹 ID: ${widget.group.id}')),
     );
   }
