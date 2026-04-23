@@ -3,6 +3,8 @@ import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Widget/group_list.dart';
 import 'package:bababam_app/Widget/add_group_menu.dart';
 import 'package:bababam_app/Screen/create_group_screen.dart';
+import 'package:bababam_app/Screen/social_group_screen.dart';
+import 'package:flutter/cupertino.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -54,7 +56,17 @@ class _GroupListScreenState extends State<GroupListScreen> {
         itemCount: groups.length,
         padding: const EdgeInsets.all(12),
         itemBuilder: (context, index) {
-          return GroupListItem(group: groups[index]);
+          return InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => SocialGroupScreen(group: groups[index]),
+                ),
+              );
+            },
+            child: GroupListItem(group: groups[index]),
+          );
         },
       ),
     );
