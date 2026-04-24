@@ -6,7 +6,6 @@ import 'package:bababam_app/Widget/add_group_menu.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Screen/create_group_screen.dart';
 import 'package:bababam_app/Screen/social_group_screen.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:bababam_app/Model/mock_data.dart';
 
 class GroupListScreen extends StatefulWidget {
