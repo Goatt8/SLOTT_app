@@ -4,6 +4,7 @@ import 'package:bababam_app/Model/user.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'dart:math';
 import 'package:flutter/services.dart';
+import 'package:bababam_app/Model/mock_data.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});
@@ -202,14 +203,14 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   // test Function
   void _completeGroupCreation() {
+    final selectedMembers = allTestUsers.sublist(
+      0,
+      _memberCount > allTestUsers.length ? allTestUsers.length : _memberCount,
+    );
     final newGroup = Group(
       id: _randomId,
       title: _nameController.text.isEmpty ? 'new Group' : _nameController.text,
-      members: List.generate(
-        _memberCount,
-        (i) =>
-            User(id: 'user_id_$i', name: '유저${i + 1}', profileImageUrl: null),
-      ),
+      members: selectedMembers,
     );
     Navigator.pop(context, newGroup);
   }

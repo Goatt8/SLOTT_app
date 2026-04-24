@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
 
-class GroupListItem extends StatelessWidget {
+class GroupListCell extends StatelessWidget {
   final Group group;
 
-  const GroupListItem({super.key, required this.group});
+  const GroupListCell({super.key, required this.group});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,7 @@ class GroupListItem extends StatelessWidget {
           ],
         ),
         subtitle: Text(
-          (group.members).join(', '),
+          group.members.map((user) => user.name).join(', '),
           style: TextStyle(
             fontSize: 12,
             color: Colors.white.withValues(alpha: 0.4),

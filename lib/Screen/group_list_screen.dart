@@ -1,12 +1,13 @@
 import 'package:bababam_app/Model/user.dart';
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
-import 'package:bababam_app/Widget/group_list.dart';
+import 'package:bababam_app/Widget/group_list_cell.dart';
 import 'package:bababam_app/Widget/add_group_menu.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Screen/create_group_screen.dart';
 import 'package:bababam_app/Screen/social_group_screen.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:bababam_app/Model/mock_data.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -14,14 +15,6 @@ class GroupListScreen extends StatefulWidget {
   @override
   State<GroupListScreen> createState() => _GroupListScreenState();
 }
-
-// Test
-final user1 = User(id: '', name: 'user1');
-final user2 = User(id: '', name: 'user2');
-
-final List<Group> groups = [
-  Group(id: "g1", title: 'group1', members: [user1, user2]),
-];
 
 class _GroupListScreenState extends State<GroupListScreen> {
   void _navigateAndAddGroup() async {
@@ -32,7 +25,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
     if (result != null && result is Group) {
       setState(() {
-        groups.add(result);
+        testGroups.add(result);
       });
     }
   }
@@ -58,10 +51,10 @@ class _GroupListScreenState extends State<GroupListScreen> {
         ],
       ),
       body: ListView.builder(
-        itemCount: groups.length,
+        itemCount: testGroups.length,
         padding: const EdgeInsets.all(12),
         itemBuilder: (context, index) {
-          final group = groups[index];
+          final group = testGroups[index];
 
           return Dismissible(
             key: Key(
@@ -87,7 +80,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
             ),
             onDismissed: (direction) {
               setState(() {
-                groups.removeAt(index);
+                testGroups.removeAt(index);
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('${group.title} 그룹이 삭제되었습니다.')),
@@ -102,7 +95,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
                   ),
                 );
               },
-              child: GroupListItem(group: group),
+              child: GroupListCell(group: group),
             ),
           );
         },
