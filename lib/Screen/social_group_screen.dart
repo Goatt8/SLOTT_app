@@ -16,13 +16,12 @@ class SocialGroupScreen extends StatefulWidget {
 class _SocialGroupScreenState extends State<SocialGroupScreen> {
   @override
   Widget build(BuildContext context) {
-    //test
-    final Group selectedGroup = testGroups[0];
-    final List<User> members = selectedGroup.members;
+    final Group currentGroup = widget.group;
+    final List<User> members = currentGroup.members;
     final int count = members.length;
 
     return Scaffold(
-      appBar: AppBar(title: Text(selectedGroup.title)),
+      appBar: AppBar(title: Text(currentGroup.title)),
       body: SafeArea(
         child: count <= 6
             ? _buildVerticalLayout(members)

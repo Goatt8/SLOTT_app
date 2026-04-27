@@ -13,8 +13,14 @@ final List<User> allTestUsers = [
 final testUser1 = User(id: '', name: 'user1');
 final testUser2 = User(id: '', name: 'user2');
 final testUser3 = User(id: '', name: 'user3');
+final testUser4 = User(id: '', name: 'user4');
+final testUser5 = User(id: '', name: 'user5');
 
 final List<Group> testGroups = [
-  Group(id: "g1", title: 'group1', members: [testUser1, testUser2]),
+  Group(
+    id: "g1",
+    title: 'group1',
+    members: [testUser1, testUser2, testUser3, testUser4],
+  ),
   Group(id: "g1", title: 'group1', members: [testUser1, testUser3]),
 ];
