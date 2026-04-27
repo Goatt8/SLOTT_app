@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "657057182695",
+    "project_id": "bababam-935c8",
+    "storage_bucket": "bababam-935c8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:657057182695:android:e7934658346f845b14c342",
+        "android_client_info": {
+          "package_name": "com.example.bababam_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWHc-kzDa5oxIoFcMNGCd3QNK5szp0mNI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
