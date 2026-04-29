@@ -16,7 +16,7 @@ class _MemberPostCardState extends State<MemberPostCard> {
     return Container(
       width: double.infinity,
       height: 450,
-      margin: const EdgeInsets.all(6),
+      margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.grey[900],
         borderRadius: BorderRadius.circular(10),

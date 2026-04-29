@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/post.dart';
+import 'package:bababam_app/Model/current_post_preview.dart';
 
 class User {
   final String id;
   final String name;
-  final String? profileImageUrl;
-  final Post? currentPost;
-  final List<Post> history;
+  final String? profileUrl;
+  final CurrentPostPreview? currentPost;
 
   User({
     required this.id,
     required this.name,
-    this.profileImageUrl,
+    this.profileUrl,
     this.currentPost,
-    this.history = const [],
   });
 
   bool get shouldShowUploadForm {
