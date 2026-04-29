@@ -31,13 +31,13 @@ class GroupListCell extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '${(group.members).length}명',
+              '${(group.memberIds).length}명',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
         subtitle: Text(
-          group.members.map((user) => user.name).join(', '),
+          group.memberIds.join(', '),
           style: TextStyle(
             fontSize: 12,
             color: Colors.white.withValues(alpha: 0.4),

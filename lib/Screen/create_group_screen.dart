@@ -210,7 +210,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     final newGroup = Group(
       id: _randomId,
       title: _nameController.text.isEmpty ? 'new Group' : _nameController.text,
-      members: selectedMembers,
+      memberIds: selectedMembers.map((user) => user.id).toList(),
     );
     Navigator.pop(context, newGroup);
   }

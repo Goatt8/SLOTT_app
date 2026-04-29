@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/user.dart';
 import 'package:bababam_app/Model/group.dart';
@@ -17,7 +19,9 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   @override
   Widget build(BuildContext context) {
     final Group currentGroup = widget.group;
-    final List<User> members = currentGroup.members;
+    final List<User> members = allTestUsers
+        .where((user) => currentGroup.memberIds.contains(user.id))
+        .toList();
     final int count = members.length;
 
     return Scaffold(

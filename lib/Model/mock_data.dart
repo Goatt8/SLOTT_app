@@ -20,7 +20,7 @@ final List<Group> testGroups = [
   Group(
     id: "g1",
     title: 'group1',
-    members: [testUser1, testUser2, testUser3, testUser4],
+    memberIds: ['testUser1', 'testUser2', 'testUser3', 'testUser4'],
   ),
-  Group(id: "g1", title: 'group1', members: [testUser1, testUser3]),
+  Group(id: "g1", title: 'group1', memberIds: ['testUser1', 'testUser']),
 ];
