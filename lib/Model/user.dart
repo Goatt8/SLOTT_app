@@ -15,6 +15,27 @@ class User {
     this.currentPost,
   });
 
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'profileUrl': profileUrl,
+      'currentPost': currentPost?.toMap(),
+    };
+  }
+
+  factory User.fromMap(String id, Map<String, dynamic> map) {
+    return User(
+      id: id,
+      name: map['name'] as String,
+      profileUrl: map['profileUrl'] as String?,
+      currentPost: map['currentPost'] != null
+          ? CurrentPostPreview.fromMap(
+              map['currentPost'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+
   bool get shouldShowUploadForm {
     if (currentPost == null) return true;
 
