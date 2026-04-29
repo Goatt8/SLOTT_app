@@ -1,14 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/current_post_preview.dart';
 
-class String {
+class User {
   final String id;
   final String name;
   final String? profileUrl;
   final CurrentPostPreview? currentPost;
 
-  String({
+  User({
     required this.id,
     required this.name,
     this.profileUrl,
@@ -23,8 +21,8 @@ class String {
     };
   }
 
-  factory String.fromMap(String id, Map<String, dynamic> map) {
-    return String(
+  factory User.fromMap(String id, Map<String, dynamic> map) {
+    return User(
       id: id,
       name: map['name'] as String,
       profileUrl: map['profileUrl'] as String?,

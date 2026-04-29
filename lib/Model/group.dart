@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/post.dart';
-import 'package:bababam_app/Model/user.dart';
 
 class Group {
   final String id;
@@ -22,8 +20,8 @@ class Group {
   factory Group.fromMap(String id, Map<String, dynamic> map) {
     return Group(
       id: id,
-      title: map['title'] as String,
-      memberIds: List<String>.from(map['memberIds'] as List),
+      title: map['title'] as String? ?? '',
+      memberIds: List<String>.from(map['memberIds'] ?? const []),
     );
   }
 }

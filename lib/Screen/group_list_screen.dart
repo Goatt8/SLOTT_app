@@ -1,4 +1,3 @@
-import 'package:bababam_app/Model/user.dart';
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Widget/group_list_cell.dart';
@@ -54,7 +53,6 @@ class _GroupListScreenState extends State<GroupListScreen> {
         padding: const EdgeInsets.all(12),
         itemBuilder: (context, index) {
           final group = testGroups[index];
-
           return Dismissible(
             key: Key(
               group.id.isNotEmpty ? group.id : group.title + index.toString(),
