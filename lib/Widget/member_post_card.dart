@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/user.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class MemberPostCard extends StatefulWidget {
   final User member;
@@ -22,6 +23,7 @@ class _MemberPostCardState extends State<MemberPostCard> {
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final Color timeTextColor = post == null ? Colors.white10 : Colors.white;
 
     return Container(
       width: double.infinity,
@@ -39,24 +41,29 @@ class _MemberPostCardState extends State<MemberPostCard> {
               children: [
                 Text(
                   '${widget.hourSlot}:00',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 36,
+                  style: GoogleFonts.londrinaSolid(
+                    color: timeTextColor,
+                    fontSize: 40,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  post?.comment ?? '아직 이 시간대 포스트가 없어요',
-                  style: TextStyle(
-                    color: post == null ? Colors.white54 : Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 4),
+                if (post != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      post.comment ?? '', // 코멘트가 있으면 보여줌
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
+                ],
               ],
             ),
           ),
