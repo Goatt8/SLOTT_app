@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/user.dart';
 
 class MemberPostCard extends StatefulWidget {
   final User member;
+  final Post? post;
 
-  const MemberPostCard({super.key, required this.member});
+  const MemberPostCard({super.key, required this.member, this.post});
 
   @override
   State<MemberPostCard> createState() => _MemberPostCardState();
@@ -13,6 +15,8 @@ class MemberPostCard extends StatefulWidget {
 class _MemberPostCardState extends State<MemberPostCard> {
   @override
   Widget build(BuildContext context) {
+    final post = widget.post;
+
     return Container(
       width: double.infinity,
       height: 450,
@@ -23,12 +27,18 @@ class _MemberPostCardState extends State<MemberPostCard> {
       ),
       child: Stack(
         children: [
-          const Center(
-            child: Icon(
-              Icons.play_circle_outline,
-              color: Colors.white,
-              size: 50,
-            ),
+          Center(
+            child: post == null
+                ? const Icon(
+                    Icons.hourglass_empty,
+                    color: Colors.white54,
+                    size: 50,
+                  )
+                : const Icon(
+                    Icons.play_circle_outline,
+                    color: Colors.white,
+                    size: 50,
+                  ),
           ),
 
           Positioned(
@@ -46,6 +56,22 @@ class _MemberPostCardState extends State<MemberPostCard> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          Positioned(
+            left: 15,
+            right: 15,
+            bottom: 18,
+            child: Text(
+              post?.comment ?? '아직 이 시간대 포스트가 없어요',
+              style: TextStyle(
+                color: post == null ? Colors.white54 : Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
