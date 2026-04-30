@@ -5,8 +5,14 @@ import 'package:bababam_app/Model/user.dart';
 class MemberPostCard extends StatefulWidget {
   final User member;
   final Post? post;
+  final int hourSlot;
 
-  const MemberPostCard({super.key, required this.member, this.post});
+  const MemberPostCard({
+    super.key,
+    required this.member,
+    required this.hourSlot,
+    this.post,
+  });
 
   @override
   State<MemberPostCard> createState() => _MemberPostCardState();
@@ -28,17 +34,31 @@ class _MemberPostCardState extends State<MemberPostCard> {
       child: Stack(
         children: [
           Center(
-            child: post == null
-                ? const Icon(
-                    Icons.hourglass_empty,
-                    color: Colors.white54,
-                    size: 50,
-                  )
-                : const Icon(
-                    Icons.play_circle_outline,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${widget.hourSlot}:00',
+                  style: const TextStyle(
                     color: Colors.white,
-                    size: 50,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
                   ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  post?.comment ?? '아직 이 시간대 포스트가 없어요',
+                  style: TextStyle(
+                    color: post == null ? Colors.white54 : Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
 
           Positioned(
@@ -56,22 +76,6 @@ class _MemberPostCardState extends State<MemberPostCard> {
                   ),
                 ),
               ],
-            ),
-          ),
-
-          Positioned(
-            left: 15,
-            right: 15,
-            bottom: 18,
-            child: Text(
-              post?.comment ?? '아직 이 시간대 포스트가 없어요',
-              style: TextStyle(
-                color: post == null ? Colors.white54 : Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

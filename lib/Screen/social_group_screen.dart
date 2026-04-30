@@ -15,7 +15,7 @@ class SocialGroupScreen extends StatefulWidget {
 }
 
 class _SocialGroupScreenState extends State<SocialGroupScreen> {
-  int? _selectedHour;
+  int _currentPage = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -26,88 +26,144 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     final List<Post> groupPosts = testPosts
         .where((post) => post.groupId == currentGroup.id)
         .toList();
-    final List<int> availableHours = groupPosts
-        .map((post) => post.hourSlot)
-        .toSet()
-        .toList()
-      ..sort();
-    final int? selectedHour = _resolveSelectedHour(availableHours);
-    final List<Post> selectedPosts = selectedHour == null
-        ? const []
-        : groupPosts
-              .where((post) => post.hourSlot == selectedHour)
-              .toList();
+    final List<int> availableHours =
+        groupPosts.map((post) => post.hourSlot).toSet().toList()..sort();
+    final int currentPage = _resolveCurrentPage(availableHours);
+    final int selectedHour = availableHours[currentPage];
+    final List<Post> selectedPosts = groupPosts
+        .where((post) => post.hourSlot == selectedHour)
+        .toList();
     final int count = members.length;
 
     return Scaffold(
       appBar: AppBar(title: Text(currentGroup.title)),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHourSelector(availableHours),
-            Expanded(
-              child: count <= 6
-                  ? _buildVerticalLayout(members, selectedPosts)
-                  : _buildGridLayout(members, selectedPosts),
-            ),
-          ],
-        ),
+        child: availableHours.isEmpty
+            ? _buildEmptyState()
+            : Column(
+                children: [
+                  _buildDotIndicator(
+                    availableHours: availableHours,
+                    currentIndex: currentPage,
+                    groupPosts: groupPosts,
+                    memberCount: members.length,
+                  ),
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      child: count <= 6
+                          ? _buildVerticalLayout(
+                              members,
+                              selectedPosts,
+                              selectedHour,
+                            )
+                          : _buildGridLayout(
+                              members,
+                              selectedPosts,
+                              selectedHour,
+                            ),
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
 
-  int? _resolveSelectedHour(List<int> availableHours) {
+  int _resolveCurrentPage(List<int> availableHours) {
     if (availableHours.isEmpty) {
-      return null;
+      _currentPage = 0;
+      return 0;
     }
 
-    if (_selectedHour == null || !availableHours.contains(_selectedHour)) {
-      _selectedHour = availableHours.first;
+    if (_currentPage >= availableHours.length) {
+      _currentPage = 0;
     }
 
-    return _selectedHour;
+    return _currentPage;
   }
 
-  Widget _buildHourSelector(List<int> availableHours) {
-    if (availableHours.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '아직 올라온 시간대가 없어요',
-            style: TextStyle(color: Colors.white54, fontSize: 13),
-          ),
-        ),
-      );
+  Post? _findPostForUser(List<Post> posts, String userId) {
+    for (final post in posts) {
+      if (post.authorId == userId) {
+        return post;
+      }
     }
+    return null;
+  }
 
-    return SizedBox(
-      height: 56,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        scrollDirection: Axis.horizontal,
-        itemCount: availableHours.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Text(
+        '아직 올라온 시간대가 없어요',
+        style: TextStyle(color: Colors.white54, fontSize: 13),
+      ),
+    );
+  }
+
+  Widget _buildDotIndicator({
+    required List<int> availableHours,
+    required int currentIndex,
+    required List<Post> groupPosts,
+    required int memberCount,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(availableHours.length, (index) {
           final hour = availableHours[index];
-          final bool isSelected = hour == _selectedHour;
+          final int postCount = groupPosts
+              .where((post) => post.hourSlot == hour)
+              .length;
+          final bool hasAnyPost = postCount > 0;
+          final bool isComplete = postCount == memberCount;
+          final bool isSelected = index == currentIndex;
 
-          return ChoiceChip(
-            label: Text('${hour.toString().padLeft(2, '0')}:00'),
-            selected: isSelected,
-            onSelected: (_) {
-              setState(() {
-                _selectedHour = hour;
-              });
-            },
+          final Color indicatorColor;
+          if (isSelected && isComplete) {
+            indicatorColor = const Color(0xFF7C3AED);
+          } else if (isSelected) {
+            indicatorColor = Colors.white;
+          } else if (isComplete) {
+            indicatorColor = const Color(0xFF7C3AED);
+          } else if (hasAnyPost) {
+            indicatorColor = Colors.white70;
+          } else {
+            indicatorColor = Colors.white24;
+          }
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: isSelected ? 16 : 8,
+            height: 8,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: indicatorColor,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+              ),
+            ),
           );
-        },
+        }),
       ),
     );
   }
 
-  Widget _buildVerticalLayout(List<User> members, List<Post> selectedPosts) {
+  Widget _buildVerticalLayout(
+    List<User> members,
+    List<Post> selectedPosts,
+    int selectedHour,
+  ) {
     return Column(
       children: members
           .map(
@@ -115,6 +171,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
               child: MemberPostCard(
                 member: user,
                 post: _findPostForUser(selectedPosts, user.id),
+                hourSlot: selectedHour,
               ),
             ),
           )
@@ -122,7 +179,11 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     );
   }
 
-  Widget _buildGridLayout(List<User> members, List<Post> selectedPosts) {
+  Widget _buildGridLayout(
+    List<User> members,
+    List<Post> selectedPosts,
+    int selectedHour,
+  ) {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -135,17 +196,9 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
         return MemberPostCard(
           member: user,
           post: _findPostForUser(selectedPosts, user.id),
+          hourSlot: selectedHour,
         );
       },
     );
-  }
-
-  Post? _findPostForUser(List<Post> posts, String userId) {
-    for (final post in posts) {
-      if (post.authorId == userId) {
-        return post;
-      }
-    }
-    return null;
   }
 }
