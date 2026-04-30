@@ -10,23 +10,24 @@ class FirestoreService {
 
   final FirebaseFirestore _firestore;
 
-  static const String _usersCollection = 'User';
-  static const String _groupsCollection = 'group';
-  static const String _postsCollection = 'Post';
+  static const String _userCollection = 'user';
+  static const String _groupCollection = 'group';
+  static const String _postCollection = 'post';
 
   CollectionReference<Map<String, dynamic>> get _users =>
-      _firestore.collection(_usersCollection);
+      _firestore.collection(_userCollection);
 
   CollectionReference<Map<String, dynamic>> get _groups =>
-      _firestore.collection(_groupsCollection);
+      _firestore.collection(_groupCollection);
 
   CollectionReference<Map<String, dynamic>> get _posts =>
-      _firestore.collection(_postsCollection);
+      _firestore.collection(_postCollection);
 
   Future<void> createUser(User user) async {
     await _users.doc(user.id).set(user.toMap());
   }
 
+  // MARK: - User
   Future<User?> getUser(String userId) async {
     final snapshot = await _users.doc(userId).get();
     final data = snapshot.data();
@@ -59,15 +60,14 @@ class FirestoreService {
     required String userId,
     required CurrentPostPreview? currentPost,
   }) async {
-    await _users.doc(userId).update({
-      'currentPost': currentPost?.toMap(),
-    });
+    await _users.doc(userId).update({'currentPost': currentPost?.toMap()});
   }
 
   Future<void> clearUserCurrentPost(String userId) async {
     await updateUserCurrentPost(userId: userId, currentPost: null);
   }
 
+  // MARK: - Group
   Future<void> createGroup(Group group) async {
     await _groups.doc(group.id).set(group.toMap());
   }
@@ -91,6 +91,7 @@ class FirestoreService {
         .toList();
   }
 
+  // MARK: - Post
   Future<void> createPost(Post post) async {
     final postRef = _posts.doc(post.id);
     final userRef = _users.doc(post.authorId);
