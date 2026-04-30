@@ -6,6 +6,7 @@ import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Screen/create_group_screen.dart';
 import 'package:bababam_app/Screen/social_group_screen.dart';
 import 'package:bababam_app/Model/mock_data.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -34,23 +35,45 @@ class _GroupListScreenState extends State<GroupListScreen> {
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
         title: const Text('Bababam'),
+        titleTextStyle: GoogleFonts.londrinaSolid(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+        ),
+
         actions: [
           // MARK: - Top Icon
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              showDialog(
+              showGeneralDialog(
                 context: context,
-                barrierColor: Colors.black.withValues(alpha: 0.6),
-                builder: (context) =>
-                    AddGroupMenu(onCreatePressed: _navigateAndAddGroup),
+                barrierDismissible: true,
+                barrierLabel: '',
+                barrierColor: Colors.transparent,
+                transitionDuration: const Duration(milliseconds: 500),
+                pageBuilder: (context, anim1, anim2) {
+                  return Align(
+                    alignment: const Alignment(0.9, -0.75),
+                    child: AddGroupMenu(onCreatePressed: _navigateAndAddGroup),
+                  );
+                },
+                transitionBuilder: (context, anim1, anim2, child) {
+                  return ScaleTransition(
+                    alignment: const Alignment(0.9, -1.0),
+                    scale: CurvedAnimation(
+                      parent: anim1,
+                      curve: Curves.elasticOut,
+                    ),
+                    child: FadeTransition(opacity: anim1, child: child),
+                  );
+                },
               );
             },
           ),
           IconButton(
             icon: const Icon(Icons.person_outline),
             onPressed: () {
-              // Navigator.push(context, MaterialPageRoute(builder: (context) => MyProfileScreen()));
+              // Navigate
             },
           ),
         ],

@@ -41,6 +41,7 @@ dependencies:
   firebase_storage: ^13.3.0
   image_picker: ^1.2.1
   google_fonts: ^6.2.1
+  glass_kit: ^4.0.2
 
 dev_dependencies:
   flutter_test:
