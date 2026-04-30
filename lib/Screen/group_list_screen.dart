@@ -35,6 +35,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
       appBar: AppBar(
         title: const Text('Bababam'),
         actions: [
+          // MARK: - Top Icon
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
@@ -44,6 +45,12 @@ class _GroupListScreenState extends State<GroupListScreen> {
                 builder: (context) =>
                     AddGroupMenu(onCreatePressed: _navigateAndAddGroup),
               );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              // Navigator.push(context, MaterialPageRoute(builder: (context) => MyProfileScreen()));
             },
           ),
         ],
@@ -57,7 +64,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
             key: Key(
               group.id.isNotEmpty ? group.id : group.title + index.toString(),
             ),
-
+            // MARK: - Group Delete slide
             confirmDismiss: (direction) async {
               return await showDialog<bool>(
                     context: context,
