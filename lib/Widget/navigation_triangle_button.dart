@@ -61,7 +61,7 @@ class _NavigationTriangleButtonState extends State<NavigationTriangleButton> {
         child: Center(
           child: AnimatedScale(
             scale: _isPressed ? 1.2 : 1.0,
-            duration: const Duration(milliseconds: 600),
+            duration: const Duration(milliseconds: 400),
             curve: Curves.easeOutBack,
             child: CustomPaint(
               size: const Size(20, 20),
@@ -106,7 +106,6 @@ class _TriangleOutlinePainter extends CustomPainter {
         ..lineTo(size.width * 0.22, size.height * 0.84)
         ..close();
     }
-
     canvas.drawPath(path, paint);
   }
 
