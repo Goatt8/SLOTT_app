@@ -116,7 +116,6 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
           final int postCount = groupPosts
               .where((post) => post.hourSlot == hour)
               .length;
-          final bool hasAnyPost = postCount > 0;
           final bool isComplete = postCount == memberCount;
           final bool isSelected = index == currentIndex;
 
@@ -127,8 +126,6 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
             indicatorColor = Colors.white;
           } else if (isComplete) {
             indicatorColor = const Color(0xFF7C3AED);
-          } else if (hasAnyPost) {
-            indicatorColor = Colors.white70;
           } else {
             indicatorColor = Colors.white24;
           }
