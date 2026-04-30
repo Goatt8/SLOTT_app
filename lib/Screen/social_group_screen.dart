@@ -4,6 +4,7 @@ import 'package:bababam_app/Model/user.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/mock_data.dart';
 import 'package:bababam_app/Widget/member_post_card.dart';
+import 'package:bababam_app/Widget/navigation_triangle_button.dart';
 
 class SocialGroupScreen extends StatefulWidget {
   final Group group;
@@ -110,48 +111,76 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(availableHours.length, (index) {
-          final hour = availableHours[index];
-          final int postCount = groupPosts
-              .where((post) => post.hourSlot == hour)
-              .length;
-          final bool isComplete = postCount == memberCount;
-          final bool isSelected = index == currentIndex;
+        children: [
+          NavigationTriangleButton(
+            isLeft: true,
+            enabled: currentIndex > 0,
+            onTap: currentIndex > 0
+                ? () {
+                    setState(() {
+                      _currentPage -= 1;
+                    });
+                  }
+                : null,
+          ),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(availableHours.length, (index) {
+                final hour = availableHours[index];
+                final int postCount = groupPosts
+                    .where((post) => post.hourSlot == hour)
+                    .length;
+                final bool isComplete = postCount == memberCount;
+                final bool isSelected = index == currentIndex;
 
-          final Color indicatorColor;
-          if (isSelected && isComplete) {
-            indicatorColor = const Color(0xFF7C3AED);
-          } else if (isSelected) {
-            indicatorColor = Colors.white;
-          } else if (isComplete) {
-            indicatorColor = const Color(0xFF7C3AED);
-          } else {
-            indicatorColor = Colors.white24;
-          }
+                final Color indicatorColor;
+                if (isSelected && isComplete) {
+                  indicatorColor = const Color(0xFF7C3AED);
+                } else if (isSelected) {
+                  indicatorColor = Colors.white;
+                } else if (isComplete) {
+                  indicatorColor = const Color(0xFF7C3AED);
+                } else {
+                  indicatorColor = Colors.white24;
+                }
 
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: isSelected ? 16 : 8,
-            height: 8,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: indicatorColor,
-              borderRadius: BorderRadius.circular(999),
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: isSelected ? 16 : 8,
+                  height: 8,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: indicatorColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                    ),
+                  ),
+                );
+              }),
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: () {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
-              ),
-            ),
-          );
-        }),
+          ),
+          NavigationTriangleButton(
+            isLeft: false,
+            enabled: currentIndex < availableHours.length - 1,
+            onTap: currentIndex < availableHours.length - 1
+                ? () {
+                    setState(() {
+                      _currentPage += 1;
+                    });
+                  }
+                : null,
+          ),
+        ],
       ),
     );
   }

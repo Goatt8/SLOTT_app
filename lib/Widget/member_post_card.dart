@@ -29,7 +29,7 @@ class _MemberPostCardState extends State<MemberPostCard> {
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Stack(
         children: [
