@@ -52,7 +52,7 @@ class _MemberPostCardState extends State<MemberPostCard> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      post.comment ?? '', // 코멘트가 있으면 보여줌
+                      post.comment ?? '',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,

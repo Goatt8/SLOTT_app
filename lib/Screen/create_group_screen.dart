@@ -34,7 +34,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       appBar: AppBar(
         title: const Text('Bababam'),
         actions: [
-          // create Complete Button
+          //MARK: create Complete Button
           IconButton(
             icon: const Icon(Icons.check, color: Color(0xFF7C3AED)),
             onPressed: _showConfirmDialog,
