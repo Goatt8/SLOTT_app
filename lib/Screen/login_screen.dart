@@ -12,7 +12,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  bool _isAuthCompleted = false;
+  bool _isCompletePage = false;
+  bool _isCodeSent = falsel;
 
   void _nextPage() {
     _pageController.nextPage(
@@ -49,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPageChanged: (i) => setState(() => _currentPage = i),
                     children: [
                       _buildStepCard(
-                        "본인 인증",
+                        "휴대폰 번호 인증",
                         "서비스 시작을 위해\n번호를 입력해주세요",
                         _buildAuthInput(),
                       ),
@@ -166,9 +167,9 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: _isAuthCompleted ? _nextPage : null,
+                onPressed: _isCompletePage ? _nextPage : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isAuthCompleted
+                  backgroundColor: _isCompletePage
                       ? Colors.white
                       : Colors.white12,
                   disabledBackgroundColor: Colors.white12,
