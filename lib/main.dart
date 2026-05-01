@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Screen/group_list_screen.dart';
+import 'package:bababam_app/Screen/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -24,7 +25,7 @@ class BababamApp extends StatelessWidget {
           secondary: Color(0xFFFF2D55),
         ),
       ),
-      home: const GroupListScreen(),
+      home: const LoginScreen(),
     );
   }
 }
