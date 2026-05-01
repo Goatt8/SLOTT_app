@@ -1,8 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
-import 'package:bababam_app/Model/user.dart';
+import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
-import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:bababam_app/Model/mock_data.dart';
 
@@ -20,6 +21,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   int _memberCount = 2;
 
   bool _isCopied = false;
+  bool _isCreating = false;
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void initState() {
@@ -34,10 +37,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       appBar: AppBar(
         title: const Text('Bababam'),
         actions: [
-          //MARK: create Complete Button
+          //MARK: Create Complete Button
           IconButton(
             icon: const Icon(Icons.check, color: Color(0xFF7C3AED)),
-            onPressed: _showConfirmDialog,
+            onPressed: _isCreating ? null : _showConfirmDialog,
           ),
         ],
       ),
@@ -182,14 +185,19 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     );
   }
 
+  //MARK: Generate Id Key
   static String _generateGroupId() {
     final random = Random();
-    String char = String.fromCharCode(random.nextInt(26) + 65);
-    String numbers = random.nextInt(1000000).toString().padLeft(6, '0');
+    final letters = List.generate(
+      2,
+      (_) => String.fromCharCode(random.nextInt(26) + 65),
+    ).join();
+    final numbers = random.nextInt(10000).toString().padLeft(4, '0');
 
-    return '$char$numbers';
+    return '$letters$numbers';
   }
 
+  //MARK: ShowDialog
   void _showConfirmDialog() async {
     final isConfirmed = await showDialog<bool>(
       context: context,
@@ -201,8 +209,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     }
   }
 
-  // test Function
-  void _completeGroupCreation() {
+  //MARK: GroupCreation
+  Future<void> _completeGroupCreation() async {
     final selectedMembers = allTestUsers.sublist(
       0,
       _memberCount > allTestUsers.length ? allTestUsers.length : _memberCount,
@@ -212,6 +220,24 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       title: _nameController.text.isEmpty ? 'new Group' : _nameController.text,
       memberIds: selectedMembers.map((user) => user.id).toList(),
     );
-    Navigator.pop(context, newGroup);
+    setState(() => _isCreating = true);
+    try {
+      await _firestoreService.createGroup(newGroup);
+      if (!mounted) {
+        return;
+      }
+      Navigator.pop(context, newGroup);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('그룹 생성에 실패했습니다: $error')));
+    } finally {
+      if (mounted) {
+        setState(() => _isCreating = false);
+      }
+    }
   }
 }
