@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:bababam_app/Model/group.dart';
+import 'package:bababam_app/Model/mock_data.dart';
+import 'package:bababam_app/Screen/create_group_screen.dart';
+import 'package:bababam_app/Screen/social_group_screen.dart';
 import 'package:bababam_app/Widget/group_list_cell.dart';
 import 'package:bababam_app/Widget/glass_popup_menu.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
-import 'package:bababam_app/Screen/create_group_screen.dart';
-import 'package:bababam_app/Screen/social_group_screen.dart';
-import 'package:bababam_app/Model/mock_data.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:bababam_app/Widget/code_input_dialog.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -58,7 +59,21 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     GlassMenuItem(
                       title: '그룹 참여하기',
                       icon: Icons.group_add_outlined,
-                      onTap: () => print('참여하기 클릭'),
+                      onTap: () async {
+                        // 1. 먼저 열려있는 GlassPopupMenu를 닫습니다.
+
+                        // 2. 다이얼로그를 띄우고 결과값을 'code' 변수에 받습니다.
+                        final String? code = await showDialog<String>(
+                          context: context,
+                          builder: (context) => const CodeInputDialog(),
+                        );
+
+                        // 3. 변수명을 맞췄으므로 에러가 사라집니다.
+                        if (code != null && code.isNotEmpty) {
+                          print('서버로 보낼 그룹 코드: $code');
+                          // 여기서 서버 통신 함수 호출
+                        }
+                      },
                     ),
                   ],
                 ),
