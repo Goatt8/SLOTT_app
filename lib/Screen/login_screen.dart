@@ -12,6 +12,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isAuthCompleted = false;
 
   void _nextPage() {
     _pageController.nextPage(
@@ -157,22 +158,26 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+          //MARK: NextButton
           const SizedBox(height: 24),
-          // 2. 버튼에도 그림자 위젯 적용
           ContainerShadow(
             borderRadius: 20,
             child: SizedBox(
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: _nextPage,
+                onPressed: _isAuthCompleted ? _nextPage : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: _isAuthCompleted
+                      ? Colors.white
+                      : Colors.white12,
+                  disabledBackgroundColor: Colors.white12,
+                  disabledForegroundColor: Colors.white30,
                   foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  elevation: 0, // 버튼 자체 그림자 제거
+                  elevation: 0,
                 ),
                 child: Text(
                   _currentPage == 2 ? "시작하기" : "다음으로",
