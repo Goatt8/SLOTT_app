@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Widget/container_shadow.dart';
+import 'package:bababam_app/Service/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,9 +12,17 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final PageController _pageController = PageController();
+  final AuthService _authService = AuthService();
+
+  static const double _fieldHeight = 54.0;
+  static const double _radius = 16.0;
+  static const Color _glassColor = Colors.white12;
+
   int _currentPage = 0;
   bool _isCompletePage = false;
-  bool _isCodeSent = falsel;
+  bool _isCodeSent = false;
+  String _phoneNumber = "";
+  String _smsCode = "";
 
   void _nextPage() {
     _pageController.nextPage(
@@ -159,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          //MARK: NextButton
+          //MARK: NextPageButton
           const SizedBox(height: 24),
           ContainerShadow(
             borderRadius: 20,
@@ -167,14 +176,18 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: _isCompletePage ? _nextPage : null,
+                onPressed: _isCompletePage
+                    ? () {
+                        _nextPage();
+                      }
+                    : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isCompletePage
-                      ? Colors.white
-                      : Colors.white12,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+
                   disabledBackgroundColor: Colors.white12,
                   disabledForegroundColor: Colors.white30,
-                  foregroundColor: Colors.black,
+
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -195,21 +208,92 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  //MARK: Pages
-  Widget _buildAuthInput() => _customField("휴대폰 번호 입력");
+  //MARK: buildAuthInput()
+  Widget _buildAuthInput() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _customTextField("휴대폰 번호 입력", onChanged: (val) {}),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: _fieldHeight,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() => _isCodeSent = true);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.15),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(_radius),
+                    ),
+                  ),
+                  child: Text(_isCodeSent ? "재전송" : "인증요청"),
+                ),
+              ),
+            ],
+          ),
+
+          if (_isCodeSent) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _customTextField("인증번호 6자리")),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: _fieldHeight,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() => _isCompletePage = true);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isCompletePage
+                          ? Colors.green
+                          : Colors.white,
+                      foregroundColor: _isCompletePage
+                          ? Colors.white
+                          : Colors.black,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                      ),
+                    ),
+                    child: Text(_isCompletePage ? "성공" : "확인"),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  //MARK: buildPermissonList
   Widget _buildPermissionList() =>
       Column(children: [_checkRow("카메라 권한 필수"), _checkRow("이용약관 동의")]);
-  Widget _buildProfileInput() => _customField("닉네임 입력");
-
-  Widget _customField(String hint) {
+  //MARK: buildProfileInput
+  Widget _buildProfileInput() => _customTextField("닉네임 입력");
+  //MARK: customTextField
+  Widget _customTextField(String hint, {Function(String)? onChanged}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(_radius),
       ),
       child: TextField(
+        onChanged: onChanged,
         style: const TextStyle(color: Colors.white),
+        keyboardType: TextInputType.number,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.white24),
