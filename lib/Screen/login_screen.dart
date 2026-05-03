@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Widget/container_shadow.dart';
 import 'package:bababam_app/Service/auth_service.dart';
+import 'package:bababam_app/Helper/phone_validator.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -60,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       _buildStepCard(
                         "휴대폰 번호 인증",
-                        "서비스 시작을 위해\n번호를 입력해주세요",
+                        "인증번호를 받기 위해\n번호를 입력해주세요\n(-없이 010xxxxxxxx)",
                         _buildAuthInput(),
                       ),
                       _buildStepCard(
@@ -219,14 +221,40 @@ class _LoginScreenState extends State<LoginScreen> {
           Row(
             children: [
               Expanded(
-                child: _customTextField("휴대폰 번호 입력", onChanged: (val) {}),
+                child: _customTextField(
+                  "휴대폰 번호 입력",
+                  onChanged: (val) {
+                    _phoneNumber = val;
+                  },
+                ),
               ),
+              //MARK: codeSendButton
               const SizedBox(width: 8),
               SizedBox(
                 height: _fieldHeight,
                 child: ElevatedButton(
-                  onPressed: () {
-                    setState(() => _isCodeSent = true);
+                  onPressed: () async {
+                    if (!PhoneValidator.isValidKoreanNumber(_phoneNumber)) {
+                      WarningSnackBar.showWarning(
+                        context,
+                        "휴대폰 번호 형식을 다시 입력해주세요.",
+                      );
+                      return;
+                    }
+                    String formatted = PhoneValidator.formatToFirebase(
+                      _phoneNumber,
+                    );
+
+                    try {
+                      await _authService.sendCode(formatted, (verificationId) {
+                        setState(() {
+                          _isCodeSent = true;
+                        });
+                        print("인증번호 발송 성공!");
+                      });
+                    } catch (e) {
+                      WarningSnackBar.showWarning(context, "인증번호 전송 실패");
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white.withValues(alpha: 0.15),
