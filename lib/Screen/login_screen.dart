@@ -15,6 +15,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final PageController _pageController = PageController();
   final AuthService _authService = AuthService();
+  final TextEditingController _phoneNumController = TextEditingController();
+  final TextEditingController _verifyCodeController = TextEditingController();
 
   static const double _fieldHeight = 54.0;
   static const double _radius = 16.0;
@@ -223,6 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Expanded(
                 child: _customTextField(
                   "휴대폰 번호 입력",
+                  _phoneNumController,
                   onChanged: (val) {
                     _phoneNumber = val;
                   },
@@ -274,13 +277,43 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _customTextField("인증번호 6자리")),
+                Expanded(
+                  child: _customTextField(
+                    "인증번호 6자리 입력",
+                    _verifyCodeController,
+                    onChanged: (val) {
+                      _phoneNumber = val;
+                    },
+                  ),
+                ),
                 const SizedBox(width: 8),
                 SizedBox(
                   height: _fieldHeight,
                   child: ElevatedButton(
-                    onPressed: () {
-                      setState(() => _isCompletePage = true);
+                    onPressed: () async {
+                      String userOTP = _verifyCodeController.text.trim();
+                      if (userOTP.length != 6) {
+                        print("인증번호 6자리 형식이 아닙니다.");
+                        WarningSnackBar.showWarning(
+                          context,
+                          "인증번호 6자리 형식이 아닙니다.",
+                        );
+                        return;
+                      }
+                      try {
+                        final verifiedResult = await _authService.verifyCode(
+                          userOTP,
+                        );
+                        if (verifiedResult != null) {
+                          setState(() {
+                            _isCompletePage = true;
+                          });
+                          print("인증 성공!");
+                        }
+                      } catch (e) {
+                        print("인증 실패: $e");
+                        WarningSnackBar.showWarning(context, "인증에 실패했습니다");
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isCompletePage
@@ -309,9 +342,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildPermissionList() =>
       Column(children: [_checkRow("카메라 권한 필수"), _checkRow("이용약관 동의")]);
   //MARK: buildProfileInput
-  Widget _buildProfileInput() => _customTextField("닉네임 입력");
+  Widget _buildProfileInput() =>
+      _customTextField("닉네임 입력", _verifyCodeController);
   //MARK: customTextField
-  Widget _customTextField(String hint, {Function(String)? onChanged}) {
+  Widget _customTextField(
+    String hint,
+    TextEditingController controller, {
+    Function(String)? onChanged,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -319,6 +357,7 @@ class _LoginScreenState extends State<LoginScreen> {
         borderRadius: BorderRadius.circular(_radius),
       ),
       child: TextField(
+        controller: controller,
         onChanged: onChanged,
         style: const TextStyle(color: Colors.white),
         keyboardType: TextInputType.number,
