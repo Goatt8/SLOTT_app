@@ -28,6 +28,14 @@ class _LoginScreenState extends State<LoginScreen> {
   String _phoneNumber = "";
   String _smsCode = "";
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _phoneNumController.dispose();
+    _verifyCodeController.dispose();
+    super.dispose();
+  }
+
   void _nextPage() {
     _pageController.nextPage(
       duration: const Duration(milliseconds: 500),
@@ -46,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Opacity(
               opacity: 0.8,
               child: Image.network(
-                'https://i.pinimg.com/1200x/b9/82/41/b9824142d3db284b59756c5893cebf54.jpg', // 임시 배경 사진
+                'https://i.pinimg.com/1200x/b9/82/41/b9824142d3db284b59756c5893cebf54.jpg',
                 fit: BoxFit.cover,
               ),
             ),
