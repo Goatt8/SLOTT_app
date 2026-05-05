@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Opacity(
               opacity: 0.8,
               child: Image.network(
-                'https://i.pinimg.com/1200x/b9/82/41/b9824142d3db284b59756c5893cebf54.jpg',
+                'https://i.pinimg.com/736x/dc/af/1d/dcaf1da24d63cefd2204ae13960536d4.jpg',
                 fit: BoxFit.cover,
               ),
             ),
@@ -79,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       _buildStepCard(
                         "프로필 설정",
-                        "함께 사용할\n이름과 사진을 정해주세요",
+                        "프로필 사진과\n사용할 닉네임을 정해주세요",
                         ProfileSection(
                           onProfileChanged: (isCompleted) {
                             setState(() => _pageCompleted[2] = isCompleted);
