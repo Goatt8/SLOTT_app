@@ -1,0 +1,148 @@
+import 'package:bababam_app/Helper/phone_validator.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
+import 'package:bababam_app/Service/auth_service.dart';
+import 'package:bababam_app/Widget/custom_text_field.dart';
+import 'package:flutter/material.dart';
+
+class AuthSection extends StatefulWidget {
+  const AuthSection({
+    super.key,
+    required this.authService,
+    required this.onVerificationChanged,
+  });
+
+  final AuthService authService;
+  final ValueChanged<bool> onVerificationChanged;
+
+  @override
+  State<AuthSection> createState() => _AuthSectionState();
+}
+
+class _AuthSectionState extends State<AuthSection> {
+  static const double _fieldHeight = 54.0;
+  static const double _radius = 16.0;
+
+  final TextEditingController _phoneNumController = TextEditingController();
+  final TextEditingController _verifyCodeController = TextEditingController();
+
+  bool _isCodeSent = false;
+  bool _isVerified = false;
+  String _phoneNumber = "";
+
+  @override
+  void dispose() {
+    _phoneNumController.dispose();
+    _verifyCodeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: CustomTextField(
+                  hint: "휴대폰 번호 입력",
+                  controller: _phoneNumController,
+                  keyboardType: TextInputType.number,
+                  radius: _radius,
+                  onChanged: (val) => _phoneNumber = val,
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: _fieldHeight,
+                child: ElevatedButton(
+                  onPressed: _requestCode,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.15),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(_radius),
+                    ),
+                  ),
+                  child: Text(_isCodeSent ? "재전송" : "인증요청"),
+                ),
+              ),
+            ],
+          ),
+          if (_isCodeSent) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomTextField(
+                    hint: "인증번호 6자리 입력",
+                    controller: _verifyCodeController,
+                    keyboardType: TextInputType.number,
+                    radius: _radius,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: _fieldHeight,
+                  child: ElevatedButton(
+                    onPressed: _verifyCode,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isVerified ? Colors.green : Colors.white,
+                      foregroundColor: _isVerified ? Colors.white : Colors.black,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                      ),
+                    ),
+                    child: Text(_isVerified ? "성공" : "확인"),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _requestCode() async {
+    if (!PhoneValidator.isValidKoreanNumber(_phoneNumber)) {
+      WarningSnackBar.showWarning(context, "휴대폰 번호 형식을 다시 입력해주세요.");
+      return;
+    }
+
+    final formatted = PhoneValidator.formatToFirebase(_phoneNumber);
+    try {
+      await widget.authService.sendCode(formatted, (_) {
+        setState(() => _isCodeSent = true);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, "인증번호 전송 실패");
+    }
+  }
+
+  Future<void> _verifyCode() async {
+    final userOTP = _verifyCodeController.text.trim();
+    if (userOTP.length != 6) {
+      WarningSnackBar.showWarning(context, "인증번호 6자리 형식이 아닙니다.");
+      return;
+    }
+
+    try {
+      final verifiedResult = await widget.authService.verifyCode(userOTP);
+      if (verifiedResult != null) {
+        setState(() => _isVerified = true);
+        widget.onVerificationChanged(true);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, "인증에 실패했습니다");
+    }
+  }
+
+}
