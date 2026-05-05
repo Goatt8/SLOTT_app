@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:bababam_app/Model/app_user.dart';
+import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Widget/custom_text_field.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfileSection extends StatefulWidget {
   const ProfileSection({super.key, required this.onProfileChanged});
@@ -9,10 +12,10 @@ class ProfileSection extends StatefulWidget {
   final ValueChanged<bool> onProfileChanged;
 
   @override
-  State<ProfileSection> createState() => _ProfileSectionState();
+  State<ProfileSection> createState() => ProfileSectionState();
 }
 
-class _ProfileSectionState extends State<ProfileSection> {
+class ProfileSectionState extends State<ProfileSection> {
   final TextEditingController _nicknameController = TextEditingController();
   File? _pickedImage;
 
@@ -32,6 +35,22 @@ class _ProfileSectionState extends State<ProfileSection> {
       });
       widget.onProfileChanged(true);
     }
+  }
+
+  Future<void> createUserInProfileSection() async {
+    final authUser = FirebaseAuth.instance.currentUser;
+    if (authUser == null) return;
+
+    String? imageUrl;
+
+    final newUser = AppUser(
+      id: authUser.uid,
+      name: _nicknameController.text,
+      phoneNumber: authUser.phoneNumber ?? "",
+      profileUrl: imageUrl,
+    );
+
+    await FirestoreService().createUser(newUser);
   }
 
   @override
@@ -65,7 +84,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                 bottom: 0,
                 right: 0,
                 child: GestureDetector(
-                  onTap: _pickImage, // 클릭 시 이미지 피커 실행
+                  onTap: _pickImage,
                   child: const CircleAvatar(
                     radius: 18,
                     backgroundColor: Colors.blue,

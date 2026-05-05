@@ -1,13 +1,13 @@
 import 'package:bababam_app/Model/current_post_preview.dart';
 
-class User {
+class AppUser {
   final String id;
   final String name;
   final String phoneNumber;
   final String? profileUrl;
   final CurrentPostPreview? currentPost;
 
-  User({
+  AppUser({
     required this.id,
     required this.name,
     required this.phoneNumber,
@@ -24,8 +24,8 @@ class User {
     };
   }
 
-  factory User.fromMap(String id, Map<String, dynamic> map) {
-    return User(
+  factory AppUser.fromMap(String id, Map<String, dynamic> map) {
+    return AppUser(
       id: id,
       name: map['name'] as String? ?? '',
       phoneNumber: map['phoneNumber'] as String? ?? '',

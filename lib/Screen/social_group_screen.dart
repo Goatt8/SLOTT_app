@@ -21,7 +21,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   @override
   Widget build(BuildContext context) {
     final Group currentGroup = widget.group;
-    final List<User> members = allTestUsers
+    final List<AppUser> members = allTestUsers
         .where((user) => currentGroup.memberIds.contains(user.id))
         .toList();
     final List<Post> groupPosts = testPosts
@@ -186,7 +186,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   }
 
   Widget _buildVerticalLayout(
-    List<User> members,
+    List<AppUser> members,
     List<Post> selectedPosts,
     int selectedHour,
   ) {
@@ -206,7 +206,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   }
 
   Widget _buildGridLayout(
-    List<User> members,
+    List<AppUser> members,
     List<Post> selectedPosts,
     int selectedHour,
   ) {

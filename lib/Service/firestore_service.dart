@@ -23,12 +23,12 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> get _posts =>
       _firestore.collection(_postCollection);
 
-  Future<void> createUser(User user) async {
+  // MARK: - User
+  Future<void> createUser(AppUser user) async {
     await _users.doc(user.id).set(user.toMap());
   }
 
-  // MARK: - User
-  Future<User?> getUser(String userId) async {
+  Future<AppUser?> getUser(String userId) async {
     final snapshot = await _users.doc(userId).get();
     final data = snapshot.data();
 
@@ -36,15 +36,15 @@ class FirestoreService {
       return null;
     }
 
-    return User.fromMap(snapshot.id, data);
+    return AppUser.fromMap(snapshot.id, data);
   }
 
-  Future<List<User>> getUsersByIds(List<String> userIds) async {
+  Future<List<AppUser>> getUsersByIds(List<String> userIds) async {
     if (userIds.isEmpty) {
       return [];
     }
 
-    final users = <User>[];
+    final users = <AppUser>[];
 
     for (final userId in userIds) {
       final user = await getUser(userId);

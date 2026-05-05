@@ -4,7 +4,7 @@ import 'package:bababam_app/Model/user.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class MemberPostCard extends StatefulWidget {
-  final User member;
+  final AppUser member;
   final Post? post;
   final int hourSlot;
 
