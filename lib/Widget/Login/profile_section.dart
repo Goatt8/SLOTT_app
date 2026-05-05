@@ -1,5 +1,7 @@
-import 'package:bababam_app/Widget/custom_text_field.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:bababam_app/Widget/custom_text_field.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileSection extends StatefulWidget {
   const ProfileSection({super.key, required this.onProfileChanged});
@@ -12,6 +14,7 @@ class ProfileSection extends StatefulWidget {
 
 class _ProfileSectionState extends State<ProfileSection> {
   final TextEditingController _nicknameController = TextEditingController();
+  File? _pickedImage;
 
   @override
   void dispose() {
@@ -19,7 +22,18 @@ class _ProfileSectionState extends State<ProfileSection> {
     super.dispose();
   }
 
-  @override
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _pickedImage = File(pickedFile.path);
+      });
+      widget.onProfileChanged(true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -35,24 +49,39 @@ class _ProfileSectionState extends State<ProfileSection> {
                   shape: BoxShape.circle,
                   color: Colors.white.withValues(alpha: 0.1),
                   border: Border.all(color: Colors.white24),
+                  image: _pickedImage != null
+                      ? DecorationImage(
+                          image: FileImage(_pickedImage!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
                 ),
-                child: const Icon(Icons.person, size: 50, color: Colors.white),
+                child: _pickedImage == null
+                    ? const Icon(Icons.person, size: 50, color: Colors.white)
+                    : null,
               ),
               //MARK: Camera Button
               Positioned(
                 bottom: 0,
                 right: 0,
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.blue,
-                  child: Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                child: GestureDetector(
+                  onTap: _pickImage, // 클릭 시 이미지 피커 실행
+                  child: const CircleAvatar(
+                    radius: 18,
+                    backgroundColor: Colors.blue,
+                    child: Icon(
+                      Icons.camera_alt,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 32),
-        CustomTextField(hint: '닉네임', controller: _nicknameController),
+        CustomTextField(hint: '닉네임을 입력해주세요', controller: _nicknameController),
       ],
     );
   }
