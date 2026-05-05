@@ -5,43 +5,18 @@ import 'package:bababam_app/Model/group.dart';
 final DateTime _now = DateTime.now();
 
 final List<User> allTestUsers = [
-  User(id: 'u1', name: '윤경', phoneNumber: '01011112222', createdAt: _now),
-  User(id: 'u2', name: '종화', phoneNumber: '01022223333', createdAt: _now),
-  User(id: 'u3', name: '민수', phoneNumber: '01033334444', createdAt: _now),
-  User(id: 'u4', name: '지혜', phoneNumber: '01044445555', createdAt: _now),
-  User(id: 'u5', name: '성민', phoneNumber: '01055556666', createdAt: _now),
+  User(id: 'u1', name: '윤경', phoneNumber: '01011112222'),
+  User(id: 'u2', name: '종화', phoneNumber: '01022223333'),
+  User(id: 'u3', name: '민수', phoneNumber: '01033334444'),
+  User(id: 'u4', name: '지혜', phoneNumber: '01044445555'),
+  User(id: 'u5', name: '성민', phoneNumber: '01055556666'),
 ];
 
-final testUser1 = User(
-  id: '12',
-  name: 'user1',
-  phoneNumber: '01000000001',
-  createdAt: _now,
-);
-final testUser2 = User(
-  id: '43',
-  name: 'user2',
-  phoneNumber: '01000000002',
-  createdAt: _now,
-);
-final testUser3 = User(
-  id: '42',
-  name: 'user3',
-  phoneNumber: '01000000003',
-  createdAt: _now,
-);
-final testUser4 = User(
-  id: '13',
-  name: 'user4',
-  phoneNumber: '01000000004',
-  createdAt: _now,
-);
-final testUser5 = User(
-  id: '41',
-  name: 'user5',
-  phoneNumber: '01000000005',
-  createdAt: _now,
-);
+final testUser1 = User(id: '12', name: 'user1', phoneNumber: '01000000001');
+final testUser2 = User(id: '43', name: 'user2', phoneNumber: '01000000002');
+final testUser3 = User(id: '42', name: 'user3', phoneNumber: '01000000003');
+final testUser4 = User(id: '13', name: 'user4', phoneNumber: '01000000004');
+final testUser5 = User(id: '41', name: 'user5', phoneNumber: '01000000005');
 
 final List<Group> testGroups = [
   Group(id: 'g1', title: 'group1', memberIds: ['u1', 'u2', 'u3', 'u4']),
