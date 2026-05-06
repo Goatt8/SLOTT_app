@@ -19,13 +19,17 @@ class BababamApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Bababam',
+      initialRoute: '/login',
       theme: ThemeData.dark().copyWith(
         colorScheme: ColorScheme.dark(
           primary: Color(0xFF7C3AED),
           secondary: Color(0xFFFF2D55),
         ),
       ),
-      home: const LoginScreen(),
+      routes: {
+        '/home': (context) => const GroupListScreen(),
+        '/login': (context) => const LoginScreen(),
+      },
     );
   }
 }

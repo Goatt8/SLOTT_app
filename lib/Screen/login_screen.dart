@@ -18,6 +18,8 @@ class _LoginScreenState extends State<LoginScreen> {
   int _currentPage = 0;
   final List<bool> _pageCompleted = [false, false, false];
 
+  final GlobalKey<ProfileSectionState> _profileKey = GlobalKey();
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -189,11 +191,28 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: _pageCompleted[_currentPage]
-                    ? () {
-                        _nextPage();
+                // LoginScreen.dart 내의 버튼 부분
+                onPressed: () async {
+                  if (_currentPage == 2) {
+                    // 1. 마지막 페이지(프로필 설정)일 때: 유저 생성 및 가입 로직
+                    try {
+                      // ProfileSection의 GlobalKey를 사용하여 저장 함수 호출
+                      await _profileKey.currentState
+                          ?.createUserInProfileSection();
+
+                      // 저장 성공 후 홈 화면으로 이동
+                      if (mounted) {
+                        Navigator.of(context).pushReplacementNamed('/home');
                       }
-                    : null,
+                    } catch (e) {
+                      // 에러 알림 등 처리
+                      print("Error: $e");
+                    }
+                  } else {
+                    // 2. 그 외의 페이지일 때: 단순히 다음으로 이동
+                    _nextPage();
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.black,
