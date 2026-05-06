@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/mock_data.dart';
+import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Screen/create_group_screen.dart';
 import 'package:bababam_app/Screen/social_group_screen.dart';
 import 'package:bababam_app/Widget/group_list_cell.dart';
 import 'package:bababam_app/Widget/glass_popup_menu.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Widget/code_input_dialog.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -17,6 +19,8 @@ class GroupListScreen extends StatefulWidget {
 }
 
 class _GroupListScreenState extends State<GroupListScreen> {
+  final AuthService _authService = AuthService();
+
   void _navigateAndAddGroup() async {
     final result = await Navigator.push(
       context,
@@ -60,18 +64,13 @@ class _GroupListScreenState extends State<GroupListScreen> {
                       title: '그룹 참여하기',
                       icon: Icons.group_add_outlined,
                       onTap: () async {
-                        // 1. 먼저 열려있는 GlassPopupMenu를 닫습니다.
-
-                        // 2. 다이얼로그를 띄우고 결과값을 'code' 변수에 받습니다.
                         final String? code = await showDialog<String>(
                           context: context,
                           builder: (context) => const CodeInputDialog(),
                         );
 
-                        // 3. 변수명을 맞췄으므로 에러가 사라집니다.
                         if (code != null && code.isNotEmpty) {
                           print('서버로 보낼 그룹 코드: $code');
-                          // 여기서 서버 통신 함수 호출
                         }
                       },
                     ),
@@ -81,7 +80,6 @@ class _GroupListScreenState extends State<GroupListScreen> {
             },
           ),
 
-          //MARK: Profile Button
           IconButton(
             icon: const Icon(Icons.person_outline),
             onPressed: () {
@@ -91,15 +89,43 @@ class _GroupListScreenState extends State<GroupListScreen> {
                 menu: GlassPopupMenu(
                   width: 180,
                   items: [
+                    //MARK: Profile Button
                     GlassMenuItem(
                       title: '내 프로필',
                       icon: Icons.account_circle_outlined,
                       onTap: () => print('프로필 이동'),
                     ),
+                    //MARK: Logout Button
                     GlassMenuItem(
                       title: '로그아웃',
                       icon: Icons.logout,
-                      onTap: () => print('로그아웃 실행'),
+                      onTap: () async {
+                        final bool? isConfirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => const ConfirmDialog(
+                            title: '로그아웃',
+                            message: '정말 로그아웃 하시겠습니까?',
+                          ),
+                        );
+                        if (isConfirmed == true) {
+                          try {
+                            await _authService.signOut();
+                            if (mounted) {
+                              Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/login',
+                                (route) => false,
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              WarningSnackBar.showWarning(
+                                context,
+                                "로그아웃에 실패했습니다.",
+                              );
+                            }
+                          }
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -139,9 +165,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
               setState(() {
                 testGroups.removeAt(index);
               });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${group.title} 그룹이 삭제되었습니다.')),
-              );
+              WarningSnackBar.showWarning(context, "그룹삭제에 실패했습니다.");
             },
             child: InkWell(
               onTap: () {

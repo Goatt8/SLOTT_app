@@ -26,7 +26,7 @@ class AuthService {
     );
   }
 
-  // MARK: Verify Code (수정됨)
+  // MARK: Verify Code
   Future<Map<String, dynamic>?> verifyCode(String smsCode) async {
     if (_verificationId == null) return null;
 
@@ -53,5 +53,15 @@ class AuthService {
       print("인증 또는 Firestore 조회 오류: $e");
     }
     return null;
+  }
+
+  //Mark: Logout
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+    } catch (e) {
+      print("로그아웃 오류: $e");
+      rethrow;
+    }
   }
 }
