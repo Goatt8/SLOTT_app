@@ -19,6 +19,7 @@ class BababamApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Bababam',
+      debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       theme: ThemeData.dark().copyWith(
         colorScheme: ColorScheme.dark(

@@ -20,6 +20,18 @@ class ProfileSectionState extends State<ProfileSection> {
   final TextEditingController _nicknameController = TextEditingController();
   File? _pickedImage;
 
+  bool get isReadyToSubmit {
+    return _nicknameController.text.trim().isNotEmpty && _pickedImage != null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _nicknameController.addListener(() {
+      widget.onProfileChanged(isReadyToSubmit);
+    });
+  }
+
   @override
   void dispose() {
     _nicknameController.dispose();
@@ -34,7 +46,7 @@ class ProfileSectionState extends State<ProfileSection> {
       setState(() {
         _pickedImage = File(pickedFile.path);
       });
-      widget.onProfileChanged(true);
+      widget.onProfileChanged(isReadyToSubmit);
     }
   }
 
