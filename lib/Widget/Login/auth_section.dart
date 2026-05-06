@@ -5,14 +5,14 @@ import 'package:bababam_app/Widget/custom_text_field.dart';
 import 'package:flutter/material.dart';
 
 class AuthSection extends StatefulWidget {
+  final AuthService authService;
+  final Function(Map<String, dynamic>?) onVerificationChanged;
+
   const AuthSection({
     super.key,
     required this.authService,
     required this.onVerificationChanged,
   });
-
-  final AuthService authService;
-  final ValueChanged<bool> onVerificationChanged;
 
   @override
   State<AuthSection> createState() => _AuthSectionState();
@@ -91,8 +91,12 @@ class _AuthSectionState extends State<AuthSection> {
                   child: ElevatedButton(
                     onPressed: _verifyCode,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isVerified ? Colors.green : Colors.white,
-                      foregroundColor: _isVerified ? Colors.white : Colors.black,
+                      backgroundColor: _isVerified
+                          ? Colors.green
+                          : Colors.white,
+                      foregroundColor: _isVerified
+                          ? Colors.white
+                          : Colors.black,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(_radius),
@@ -137,12 +141,11 @@ class _AuthSectionState extends State<AuthSection> {
       final verifiedResult = await widget.authService.verifyCode(userOTP);
       if (verifiedResult != null) {
         setState(() => _isVerified = true);
-        widget.onVerificationChanged(true);
+        widget.onVerificationChanged(verifiedResult);
       }
     } catch (_) {
       if (!mounted) return;
       WarningSnackBar.showWarning(context, "인증에 실패했습니다");
     }
   }
-
 }

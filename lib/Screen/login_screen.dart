@@ -17,7 +17,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   int _currentPage = 0;
   final List<bool> _pageCompleted = [false, false, false];
-
   final GlobalKey<ProfileSectionState> _profileKey = GlobalKey();
 
   @override
@@ -50,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          //MARK: Main
+          //MARK: PageView Clouum
           SafeArea(
             child: Column(
               children: [
@@ -65,9 +64,26 @@ class _LoginScreenState extends State<LoginScreen> {
                         "인증번호를 받기 위해\n번호를 입력해주세요\n(-없이 010xxxxxxxx)",
                         AuthSection(
                           authService: _authService,
-                          onVerificationChanged: (isVerified) {
-                            setState(() => _pageCompleted[0] = isVerified);
-                          },
+                          onVerificationChanged:
+                              (Map<String, dynamic>? result) {
+                                if (result != null) {
+                                  // 명시적으로 bool 타입임을 알려줘야 에러가 안 납니다.
+                                  final bool isExistingUser =
+                                      (result['isExistingUser'] as bool?) ??
+                                      false;
+
+                                  if (isExistingUser) {
+                                    if (mounted) {
+                                      Navigator.of(
+                                        context,
+                                      ).pushReplacementNamed('/home');
+                                    }
+                                  } else {
+                                    setState(() => _pageCompleted[0] = true);
+                                    _nextPage();
+                                  }
+                                }
+                              },
                         ),
                       ),
                       _buildStepCard(
@@ -192,21 +208,25 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: () async {
-                  if (_currentPage == 2) {
-                    try {
-                      await _profileKey.currentState
-                          ?.createUserInProfileSection();
-                      if (mounted) {
-                        Navigator.of(context).pushReplacementNamed('/home');
+                onPressed: _pageCompleted[_currentPage]
+                    ? () async {
+                        if (_currentPage == 2) {
+                          try {
+                            await _profileKey.currentState
+                                ?.createUserInProfileSection();
+                            if (mounted) {
+                              Navigator.of(
+                                context,
+                              ).pushReplacementNamed('/home');
+                            }
+                          } catch (e) {
+                            print("Error: $e");
+                          }
+                        } else {
+                          _nextPage();
+                        }
                       }
-                    } catch (e) {
-                      print("Error: $e");
-                    }
-                  } else {
-                    _nextPage();
-                  }
-                },
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.black,

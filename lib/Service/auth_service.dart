@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
   String? _verificationId;
 
   //MARK: Send Code
@@ -24,15 +26,32 @@ class AuthService {
     );
   }
 
-  //MARK: Verify Code
-  Future<UserCredential?> verifyCode(String smsCode) async {
+  // MARK: Verify Code (수정됨)
+  Future<Map<String, dynamic>?> verifyCode(String smsCode) async {
     if (_verificationId == null) return null;
 
-    PhoneAuthCredential credential = PhoneAuthProvider.credential(
-      verificationId: _verificationId!,
-      smsCode: smsCode,
-    );
+    try {
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: smsCode,
+      );
 
-    return await _auth.signInWithCredential(credential);
+      UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
+      User? user = userCredential.user;
+
+      if (user != null) {
+        DocumentSnapshot userDoc = await _db
+            .collection('user')
+            .doc(user.uid)
+            .get();
+
+        return {"user": user, "isExistingUser": userDoc.exists};
+      }
+    } catch (e) {
+      print("인증 또는 Firestore 조회 오류: $e");
+    }
+    return null;
   }
 }
