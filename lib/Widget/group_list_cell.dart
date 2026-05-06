@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/group.dart';
+import 'package:bababam_app/Screen/camera_screen.dart';
 
 class GroupListCell extends StatelessWidget {
   final Group group;
@@ -45,6 +46,17 @@ class GroupListCell extends StatelessWidget {
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.camera_alt_outlined, color: Colors.white70),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CameraScreen(groupName: group.title),
+              ),
+            );
+          },
         ),
       ),
     );
