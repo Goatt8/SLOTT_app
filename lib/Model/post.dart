@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:bababam_app/Model/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Post {

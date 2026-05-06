@@ -2,10 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bababam_app/Model/current_post_preview.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
-import 'package:bababam_app/Model/user.dart';
+import 'package:bababam_app/Model/app_user.dart';
 
-class FirestoreService {
-  FirestoreService({FirebaseFirestore? firestore})
+class FireStoreService {
+  FireStoreService({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;

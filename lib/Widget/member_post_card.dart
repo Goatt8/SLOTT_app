@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/post.dart';
-import 'package:bababam_app/Model/user.dart';
+import 'package:bababam_app/Model/app_user.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class MemberPostCard extends StatefulWidget {

@@ -22,7 +22,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   bool _isCopied = false;
   bool _isCreating = false;
-  final FirestoreService _firestoreService = FirestoreService();
+  final FireStoreService _firestoreService = FireStoreService();
 
   @override
   void initState() {

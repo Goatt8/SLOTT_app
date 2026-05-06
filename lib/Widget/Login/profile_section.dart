@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
+import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Widget/custom_text_field.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -43,6 +44,12 @@ class ProfileSectionState extends State<ProfileSection> {
 
     String? imageUrl;
 
+    if (_pickedImage != null) {
+      imageUrl = await FireStorageService().uploadProfileImage(
+        uid: authUser.uid,
+        imageFile: _pickedImage!,
+      );
+    }
     final newUser = AppUser(
       id: authUser.uid,
       name: _nicknameController.text,
@@ -50,7 +57,7 @@ class ProfileSectionState extends State<ProfileSection> {
       profileUrl: imageUrl,
     );
 
-    await FirestoreService().createUser(newUser);
+    await FireStoreService().createUser(newUser);
   }
 
   @override
