@@ -1,10 +1,9 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
-import 'package:flutter/services.dart';
 import 'package:bababam_app/Model/mock_data.dart';
 
 class CreateGroupScreen extends StatefulWidget {
