@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
+import 'package:bababam_app/Screen/video_preview_screen.dart';
 
 class CameraScreen extends StatefulWidget {
   final String groupName;
@@ -22,20 +23,39 @@ class _CameraScreenState extends State<CameraScreen> {
     _initializeCamera();
   }
 
+  //MARK: Initialize
   Future<void> _initializeCamera() async {
-    _cameras = await availableCameras();
+    try {
+      _cameras = await availableCameras();
 
-    if (_cameras != null && _cameras!.isNotEmpty) {
-      _controller = CameraController(_cameras![0], ResolutionPreset.high);
-
-      try {
+      if (_cameras != null && _cameras!.isNotEmpty) {
+        _controller = CameraController(_cameras![0], ResolutionPreset.high);
         await _controller!.initialize();
+
         if (!mounted) return;
         setState(() {
           _isInitialized = true;
         });
-      } catch (e) {}
+      } else {
+        print("카메라 리스트가 비어있음");
+        _moveToPreviewScreen();
+      }
+    } catch (e) {
+      print("카메라 초기화 중 예외 발생 (시뮬레이터 예상): $e");
+      _moveToPreviewScreen();
     }
+  }
+
+  //MARK: moveToPreview
+  void _moveToPreviewScreen() {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const VideoPreviewScreen(videoPath: 'assets/video/test_video.mp4'),
+      ),
+    );
   }
 
   //MARK: Camera dispose
