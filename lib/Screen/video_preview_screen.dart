@@ -12,6 +12,7 @@ class VideoPreviewScreen extends StatefulWidget {
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   late VideoPlayerController _controller;
+  final Set<int> _selectedGroupIndices = {};
 
   @override
   void initState() {
@@ -43,7 +44,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
       body: Column(
         children: [
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Center(
               child: _controller.value.isInitialized
                   ? AspectRatio(
@@ -55,7 +56,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
           ),
           //MARK: Selct GrouppList
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Container(
               decoration: const BoxDecoration(
                 color: Color(0xFF1E1E1E),
@@ -77,6 +78,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                     child: ListView.builder(
                       itemCount: 5,
                       itemBuilder: (context, index) {
+                        final isSelected = _selectedGroupIndices.contains(
+                          index,
+                        );
                         return ListTile(
                           leading: const CircleAvatar(
                             backgroundColor: Colors.blueGrey,
@@ -85,10 +89,30 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                             "그룹 $index",
                             style: const TextStyle(color: Colors.white),
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.send, color: Colors.blue),
-                            onPressed: () => _uploadAndSend(index),
+                          trailing: Checkbox(
+                            value: isSelected,
+                            activeColor: Colors.blue,
+                            checkColor: Colors.white,
+                            side: const BorderSide(color: Colors.white54),
+                            onChanged: (bool? value) {
+                              setState(() {
+                                if (value == true) {
+                                  _selectedGroupIndices.add(index);
+                                } else {
+                                  _selectedGroupIndices.remove(index);
+                                }
+                              });
+                            },
                           ),
+                          onTap: () {
+                            setState(() {
+                              if (isSelected) {
+                                _selectedGroupIndices.remove(index);
+                              } else {
+                                _selectedGroupIndices.add(index);
+                              }
+                            });
+                          },
                         );
                       },
                     ),

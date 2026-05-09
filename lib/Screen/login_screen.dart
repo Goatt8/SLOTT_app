@@ -15,9 +15,17 @@ class _LoginScreenState extends State<LoginScreen> {
   final PageController _pageController = PageController();
   final AuthService _authService = AuthService();
 
-  int _currentPage = 0;
   final List<bool> _pageCompleted = [false, false, false];
   final GlobalKey<ProfileSectionState> _profileKey = GlobalKey();
+
+  int _currentPage = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _authService.checkCurrentUserStatus().then(_handleUserRouting);
+  }
 
   @override
   void dispose() {
@@ -32,9 +40,45 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _handleUserRouting(Map<String, dynamic>? authData) async {
+    // logout state, no user data
+    if (authData == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final bool isExistingUser = (authData['isExistingUser'] as bool?) ?? false;
+    // login state, if user exist
+    if (isExistingUser) {
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+    } else {
+      // login state, user no exist
+      setState(() {
+        _pageCompleted[0] = true;
+        _isLoading = false;
+      });
+
+      if (_pageController.hasClients) {
+        if (_currentPage == 0) {
+          _nextPage();
+        } else {
+          _pageController.jumpToPage(1);
+        }
+      }
+    }
+  }
+
   //MARK: Background
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -64,26 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         "인증번호를 받기 위해\n번호를 입력해주세요\n(-없이 010xxxxxxxx)",
                         AuthSection(
                           authService: _authService,
-                          onVerificationChanged:
-                              (Map<String, dynamic>? result) {
-                                if (result != null) {
-                                  // 명시적으로 bool 타입임을 알려줘야 에러가 안 납니다.
-                                  final bool isExistingUser =
-                                      (result['isExistingUser'] as bool?) ??
-                                      false;
-
-                                  if (isExistingUser) {
-                                    if (mounted) {
-                                      Navigator.of(
-                                        context,
-                                      ).pushReplacementNamed('/home');
-                                    }
-                                  } else {
-                                    setState(() => _pageCompleted[0] = true);
-                                    _nextPage();
-                                  }
-                                }
-                              },
+                          onVerificationChanged: (result) =>
+                              _handleUserRouting(result),
                         ),
                       ),
                       _buildStepCard(

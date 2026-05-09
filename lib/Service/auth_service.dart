@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  User? get currentUser => _auth.currentUser;
   String? _verificationId;
 
   //MARK: Send Code
@@ -51,6 +52,19 @@ class AuthService {
       }
     } catch (e) {
       print("인증 또는 Firestore 조회 오류: $e");
+    }
+    return null;
+  }
+
+  //MARK: CurrentUser Check
+  Future<Map<String, dynamic>?> checkCurrentUserStatus() async {
+    User? user = currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await _db
+          .collection('user')
+          .doc(user.uid)
+          .get();
+      return {"user": user, "isExistingUser": userDoc.exists};
     }
     return null;
   }
