@@ -184,13 +184,21 @@ class FireStoreService {
     final snapshot = await _posts
         .where('groupId', isEqualTo: groupId)
         .where('dayKey', isEqualTo: dayKey)
-        .orderBy('hourSlot')
-        .orderBy('createdAt')
         .get();
 
-    return snapshot.docs
+    final posts = snapshot.docs
         .map((doc) => Post.fromMap(doc.id, doc.data()))
         .toList();
+
+    posts.sort((a, b) {
+      final hourCompare = a.hourSlot.compareTo(b.hourSlot);
+      if (hourCompare != 0) {
+        return hourCompare;
+      }
+      return a.createdAt.compareTo(b.createdAt);
+    });
+
+    return posts;
   }
 
   Future<void> deletePost(String postId) async {

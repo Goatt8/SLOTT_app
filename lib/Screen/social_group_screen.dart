@@ -75,12 +75,20 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     final members = await _firestoreService.getUsersByIds(
       widget.group.memberIds,
     );
-    final posts = await _firestoreService.getPostsByDay(
-      groupId: widget.group.id,
-      dayKey: _buildDayKey(DateTime.now()),
-    );
+    final posts = await _loadPosts();
 
     return _SocialGroupData(members: members, posts: posts);
+  }
+
+  Future<List<Post>> _loadPosts() async {
+    try {
+      return await _firestoreService.getPostsByDay(
+        groupId: widget.group.id,
+        dayKey: _buildDayKey(DateTime.now()),
+      );
+    } catch (_) {
+      return [];
+    }
   }
 
   Widget _buildGroupContent(List<AppUser> members, List<Post> groupPosts) {
@@ -89,7 +97,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     final int currentPage = _resolveCurrentPage(availableHours);
 
     if (availableHours.isEmpty) {
-      return _buildEmptyState();
+      return _buildMembersWithoutPosts(members);
     }
 
     final int selectedHour = availableHours[currentPage];
@@ -146,6 +154,22 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
         '아직 올라온 시간대가 없어요',
         style: TextStyle(color: Colors.white54, fontSize: 13),
       ),
+    );
+  }
+
+  Widget _buildMembersWithoutPosts(List<AppUser> members) {
+    if (members.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return Column(
+      children: members
+          .map(
+            (user) => Expanded(
+              child: MemberPostCard(member: user, post: null, hourSlot: 0),
+            ),
+          )
+          .toList(),
     );
   }
 
