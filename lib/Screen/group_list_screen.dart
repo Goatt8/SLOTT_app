@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bababam_app/Model/group.dart';
-import 'package:bababam_app/Model/mock_data.dart';
 import 'package:bababam_app/Service/auth_service.dart';
+import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Screen/create_group_screen.dart';
 import 'package:bababam_app/Screen/social_group_screen.dart';
 import 'package:bababam_app/Widget/group_list_cell.dart';
@@ -10,6 +10,7 @@ import 'package:bababam_app/Widget/glass_popup_menu.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Widget/code_input_dialog.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -20,18 +21,13 @@ class GroupListScreen extends StatefulWidget {
 
 class _GroupListScreenState extends State<GroupListScreen> {
   final AuthService _authService = AuthService();
+  final FireStoreService _firestoreService = FireStoreService();
 
   void _navigateAndAddGroup() async {
-    final result = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
     );
-
-    if (result != null && result is Group) {
-      setState(() {
-        testGroups.add(result);
-      });
-    }
   }
 
   @override
@@ -69,9 +65,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
                           builder: (context) => const CodeInputDialog(),
                         );
 
-                        if (code != null && code.isNotEmpty) {
-                          print('서버로 보낼 그룹 코드: $code');
-                        }
+                        await _joinGroup(code);
                       },
                     ),
                   ],
@@ -93,7 +87,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     GlassMenuItem(
                       title: '내 프로필',
                       icon: Icons.account_circle_outlined,
-                      onTap: () => print('프로필 이동'),
+                      onTap: () {},
                     ),
                     //MARK: Logout Button
                     GlassMenuItem(
@@ -110,19 +104,17 @@ class _GroupListScreenState extends State<GroupListScreen> {
                         if (isConfirmed == true) {
                           try {
                             await _authService.signOut();
-                            if (mounted) {
-                              Navigator.of(context).pushNamedAndRemoveUntil(
-                                '/login',
-                                (route) => false,
-                              );
-                            }
+                            if (!context.mounted) return;
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/login',
+                              (route) => false,
+                            );
                           } catch (e) {
-                            if (mounted) {
-                              WarningSnackBar.showWarning(
-                                context,
-                                "로그아웃에 실패했습니다.",
-                              );
-                            }
+                            if (!context.mounted) return;
+                            WarningSnackBar.showWarning(
+                              context,
+                              "로그아웃에 실패했습니다.",
+                            );
                           }
                         }
                       },
@@ -134,54 +126,140 @@ class _GroupListScreenState extends State<GroupListScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: testGroups.length,
-        padding: const EdgeInsets.all(12),
-        itemBuilder: (context, index) {
-          final group = testGroups[index];
-          return Dismissible(
-            key: Key(
-              group.id.isNotEmpty ? group.id : group.title + index.toString(),
-            ),
-            // MARK: - Group Delete slide
-            confirmDismiss: (direction) async {
-              return await showDialog<bool>(
-                    context: context,
-                    builder: (context) => ConfirmDialog(
-                      title: '그룹 삭제',
-                      message: '${group.title} 그룹을 삭제하시겠습니까?',
-                    ),
-                  ) ??
-                  false;
-            },
-            direction: DismissDirection.endToStart,
-            background: Container(
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
-              color: Colors.redAccent,
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            onDismissed: (direction) {
-              setState(() {
-                testGroups.removeAt(index);
-              });
-              WarningSnackBar.showWarning(context, "그룹삭제에 실패했습니다.");
-            },
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SocialGroupScreen(group: group),
-                  ),
-                );
-              },
-              child: GroupListCell(group: group),
+      body: _buildGroupList(),
+    );
+  }
+
+  Widget _buildGroupList() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      return const Center(
+        child: Text('로그인이 필요합니다.', style: TextStyle(color: Colors.white54)),
+      );
+    }
+
+    return StreamBuilder<List<Group>>(
+      stream: _firestoreService.watchGroupsForUser(currentUser.uid),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Center(
+            child: Text(
+              '그룹을 불러오지 못했습니다.',
+              style: TextStyle(color: Colors.white54),
             ),
           );
-        },
-      ),
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final groups = snapshot.data ?? [];
+        if (groups.isEmpty) {
+          return const Center(
+            child: Text(
+              '아직 생성된 그룹이 없습니다',
+              style: TextStyle(color: Colors.white54),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: groups.length,
+          padding: const EdgeInsets.all(12),
+          itemBuilder: (context, index) {
+            final group = groups[index];
+            return Dismissible(
+              key: Key(group.id),
+              confirmDismiss: (direction) async {
+                return await showDialog<bool>(
+                      context: context,
+                      builder: (context) => ConfirmDialog(
+                        title: group.ownerId == currentUser.uid
+                            ? '그룹 삭제'
+                            : '그룹 나가기',
+                        message: group.ownerId == currentUser.uid
+                            ? '${group.title} 그룹을 삭제하시겠습니까?'
+                            : '${group.title} 그룹에서 나가시겠습니까?',
+                      ),
+                    ) ??
+                    false;
+              },
+              direction: DismissDirection.endToStart,
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 20),
+                color: Colors.redAccent,
+                child: const Icon(Icons.delete, color: Colors.white),
+              ),
+              onDismissed: (direction) {
+                _removeGroup(group, currentUser.uid);
+              },
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SocialGroupScreen(group: group),
+                    ),
+                  );
+                },
+                child: FutureBuilder<List<String>>(
+                  future: _loadMemberNames(group.memberIds),
+                  builder: (context, snapshot) {
+                    return GroupListCell(
+                      group: group,
+                      memberNames: snapshot.data ?? const [],
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
+  }
+
+  Future<List<String>> _loadMemberNames(List<String> memberIds) async {
+    final users = await _firestoreService.getUsersByIds(memberIds);
+    return users
+        .map((user) => user.name)
+        .where((name) => name.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _joinGroup(String? code) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final groupId = code?.trim();
+
+    if (currentUser == null || groupId == null || groupId.isEmpty) {
+      return;
+    }
+
+    try {
+      await _firestoreService.joinGroup(
+        groupId: groupId,
+        userId: currentUser.uid,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, '그룹 참여에 실패했습니다.');
+    }
+  }
+
+  Future<void> _removeGroup(Group group, String userId) async {
+    try {
+      if (group.ownerId == userId) {
+        await _firestoreService.deleteGroup(group.id);
+      } else {
+        await _firestoreService.leaveGroup(groupId: group.id, userId: userId);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, '그룹 변경에 실패했습니다.');
+    }
   }
 
   void _showGlassMenu(

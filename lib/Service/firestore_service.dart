@@ -91,6 +91,45 @@ class FireStoreService {
         .toList();
   }
 
+  Stream<List<Group>> watchGroupsForUser(String userId) {
+    return _groups.where('memberIds', arrayContains: userId).snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs
+          .map((doc) => Group.fromMap(doc.id, doc.data()))
+          .toList();
+    });
+  }
+
+  Future<void> joinGroup({
+    required String groupId,
+    required String userId,
+  }) async {
+    final groupRef = _groups.doc(groupId);
+    final snapshot = await groupRef.get();
+
+    if (!snapshot.exists) {
+      throw Exception('Group not found');
+    }
+
+    await groupRef.update({
+      'memberIds': FieldValue.arrayUnion([userId]),
+    });
+  }
+
+  Future<void> leaveGroup({
+    required String groupId,
+    required String userId,
+  }) async {
+    await _groups.doc(groupId).update({
+      'memberIds': FieldValue.arrayRemove([userId]),
+    });
+  }
+
+  Future<void> deleteGroup(String groupId) async {
+    await _groups.doc(groupId).delete();
+  }
+
   // MARK: - Post
   Future<void> createPost(Post post) async {
     final postRef = _posts.doc(post.id);

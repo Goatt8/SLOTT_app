@@ -3,9 +3,14 @@ import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Screen/camera_screen.dart';
 
 class GroupListCell extends StatelessWidget {
-  final Group group;
+  const GroupListCell({
+    super.key,
+    required this.group,
+    required this.memberNames,
+  });
 
-  const GroupListCell({super.key, required this.group});
+  final Group group;
+  final List<String> memberNames;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +43,7 @@ class GroupListCell extends StatelessWidget {
           ],
         ),
         subtitle: Text(
-          group.memberIds.join(', '),
+          memberNames.isEmpty ? '멤버 정보를 불러오는 중입니다' : memberNames.join(', '),
           style: TextStyle(
             fontSize: 12,
             color: Colors.white.withValues(alpha: 0.4),

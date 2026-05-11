@@ -1,10 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
-import 'package:bababam_app/Model/mock_data.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});
@@ -208,35 +209,30 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     }
   }
 
-  //MARK: GroupCreation
+  //MARK: Create Group
   Future<void> _completeGroupCreation() async {
-    final selectedMembers = allTestUsers.sublist(
-      0,
-      _memberCount > allTestUsers.length ? allTestUsers.length : _memberCount,
-    );
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
     final newGroup = Group(
       id: _randomId,
-      title: _nameController.text.isEmpty ? 'new Group' : _nameController.text,
-      memberIds: selectedMembers.map((user) => user.id).toList(),
+      title: _nameController.text.isEmpty ? '새 그룹' : _nameController.text,
+      memberIds: [currentUser.uid],
+      ownerId: currentUser.uid,
     );
+
     setState(() => _isCreating = true);
+
     try {
       await _firestoreService.createGroup(newGroup);
-      if (!mounted) {
-        return;
-      }
+
+      if (!mounted) return;
       Navigator.pop(context, newGroup);
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('그룹 생성에 실패했습니다: $error')));
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, "그룹생성에 실패했습니다.");
     } finally {
-      if (mounted) {
-        setState(() => _isCreating = false);
-      }
+      if (mounted) setState(() => _isCreating = false);
     }
   }
 }

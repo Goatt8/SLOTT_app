@@ -1,8 +1,10 @@
 import 'package:bababam_app/Model/post.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Group {
   final String id;
   final String title;
+  final String ownerId;
   final List<String> memberIds;
   final List<Post>? post;
 
@@ -10,18 +12,26 @@ class Group {
     required this.id,
     required this.title,
     required this.memberIds,
+    required this.ownerId,
     this.post,
   });
 
   Map<String, dynamic> toMap() {
-    return {'title': title, 'memberIds': memberIds};
+    return {
+      'id': id,
+      'title': title,
+      'ownerId': ownerId,
+      'memberIds': memberIds,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
   }
 
-  factory Group.fromMap(String id, Map<String, dynamic> map) {
+  factory Group.fromMap(String docId, Map<String, dynamic> map) {
     return Group(
-      id: id,
-      title: map['title'] as String? ?? '',
-      memberIds: List<String>.from(map['memberIds'] ?? const []),
+      id: docId,
+      title: map['title'] ?? '',
+      ownerId: map['ownerId'] ?? '',
+      memberIds: List<String>.from(map['memberIds'] ?? []),
     );
   }
 }
