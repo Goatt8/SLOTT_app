@@ -91,6 +91,16 @@ class FireStoreService {
         .toList();
   }
 
+  Future<List<Group>> getGroupsByUser(String userId) async {
+    final snapshot = await _groups
+        .where('memberIds', arrayContains: userId)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => Group.fromMap(doc.id, doc.data()))
+        .toList();
+  }
+
   Stream<List<Group>> watchGroupsForUser(String userId) {
     return _groups.where('memberIds', arrayContains: userId).snapshots().map((
       snapshot,

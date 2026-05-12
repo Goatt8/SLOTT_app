@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:bababam_app/Model/group.dart';
+import 'package:bababam_app/Service/firestore_service.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
   final String videoPath;
@@ -12,7 +15,8 @@ class VideoPreviewScreen extends StatefulWidget {
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   late VideoPlayerController _controller;
-  final Set<int> _selectedGroupIndices = {};
+  final Set<String> _selectedGroupIds = {};
+  final FireStoreService _firestoreService = FireStoreService();
 
   @override
   void initState() {
@@ -34,27 +38,79 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text("보낼 그룹 선택"),
-        backgroundColor: Colors.transparent,
-      ),
       body: Column(
         children: [
           Expanded(
             flex: 2,
-            child: Center(
-              child: _controller.value.isInitialized
-                  ? AspectRatio(
-                      aspectRatio: _controller.value.aspectRatio,
-                      child: VideoPlayer(_controller),
-                    )
-                  : const CircularProgressIndicator(),
+            child: Stack(
+              children: [
+                //MARK: Video
+                Center(
+                  child: _controller.value.isInitialized
+                      ? AspectRatio(
+                          aspectRatio: _controller.value.aspectRatio,
+                          child: VideoPlayer(_controller),
+                        )
+                      : const CircularProgressIndicator(),
+                ),
+
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 10,
+                  left: 16,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 10,
+                  right: 16,
+                  child: GestureDetector(
+                    onTap: _sendPost,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_upward,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // [위] 중앙 시간 표시 (필요시)
+                const Center(
+                  child: Text(
+                    "15:00",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          //MARK: Selct GrouppList
+
           Expanded(
             flex: 3,
             child: Container(
@@ -67,56 +123,14 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                   const Padding(
                     padding: EdgeInsets.all(16.0),
                     child: Text(
-                      "전송할 그룹을 선택하세요",
+                      "보낼 로그방:",
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.white70,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: 5,
-                      itemBuilder: (context, index) {
-                        final isSelected = _selectedGroupIndices.contains(
-                          index,
-                        );
-                        return ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Colors.blueGrey,
-                          ),
-                          title: Text(
-                            "그룹 $index",
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          trailing: Checkbox(
-                            value: isSelected,
-                            activeColor: Colors.blue,
-                            checkColor: Colors.white,
-                            side: const BorderSide(color: Colors.white54),
-                            onChanged: (bool? value) {
-                              setState(() {
-                                if (value == true) {
-                                  _selectedGroupIndices.add(index);
-                                } else {
-                                  _selectedGroupIndices.remove(index);
-                                }
-                              });
-                            },
-                          ),
-                          onTap: () {
-                            setState(() {
-                              if (isSelected) {
-                                _selectedGroupIndices.remove(index);
-                              } else {
-                                _selectedGroupIndices.add(index);
-                              }
-                            });
-                          },
-                        );
-                      },
-                    ),
-                  ),
+                  Expanded(child: _buildGroupListView()),
                 ],
               ),
             ),
@@ -126,13 +140,98 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     );
   }
 
-  void _uploadAndSend(int groupIndex) {
-    print("그룹 $groupIndex로 영상 전송 시작!");
+  void _sendPost() {
+    if (_selectedGroupIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("전송할 그룹을 하나 이상 선택해주세요!"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    print("전송 시작 ,선택된 그룹 수: ${_selectedGroupIds.length}");
+
+    for (String groupId in _selectedGroupIds) {
+      print("그룹 ID: $groupId 에 영상 전송 시도 중...");
+    }
+    //snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("${_selectedGroupIds.length}개의 그룹에 전송되었습니다!"),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    // Navigator.pop(context);
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void _toggleGroup(String groupId) {
+    setState(() {
+      if (_selectedGroupIds.contains(groupId)) {
+        _selectedGroupIds.remove(groupId);
+      } else {
+        _selectedGroupIds.add(groupId);
+      }
+    });
+  }
+
+  //MARK: ListView
+  Widget _buildGroupListView() {
+    return FutureBuilder<List<Group>>(
+      future: _firestoreService.getGroupsByUser(
+        FirebaseAuth.instance.currentUser!.uid,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return const Center(
+            child: Text("에러가 발생했습니다.", style: TextStyle(color: Colors.white)),
+          );
+        }
+
+        final groups = snapshot.data ?? [];
+
+        if (groups.isEmpty) {
+          return const Center(
+            child: Text(
+              "참여 중인 그룹이 없습니다.",
+              style: TextStyle(color: Colors.white54),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          itemCount: groups.length,
+          itemBuilder: (context, index) {
+            final group = groups[index];
+            final isSelected = _selectedGroupIds.contains(group.id);
+
+            return ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.blueGrey,
+                child: Icon(Icons.group, color: Colors.white),
+              ),
+              title: Text(
+                group.title,
+                style: const TextStyle(color: Colors.white),
+              ),
+              trailing: Checkbox(
+                value: isSelected,
+                activeColor: Colors.blue,
+                checkColor: Colors.white,
+                side: const BorderSide(color: Colors.white54),
+                onChanged: (bool? value) => _toggleGroup(group.id),
+              ),
+              onTap: () => _toggleGroup(group.id),
+            );
+          },
+        );
+      },
+    );
   }
 }
