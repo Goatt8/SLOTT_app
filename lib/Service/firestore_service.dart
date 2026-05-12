@@ -190,8 +190,11 @@ class FireStoreService {
     required String dayKey,
     required int hourSlot,
   }) async {
-    final snapshot = await _posts
-        .where('groupId', isEqualTo: groupId)
+    // 1. 최상위 '_posts'가 아니라 'group -> groupId -> posts' 경로로 직접 접근합니다.
+    final snapshot = await _firestore
+        .collection('group')
+        .doc(groupId)
+        .collection('posts') // 이 그룹의 보관함만 엽니다.
         .where('dayKey', isEqualTo: dayKey)
         .where('hourSlot', isEqualTo: hourSlot)
         .orderBy('createdAt')
