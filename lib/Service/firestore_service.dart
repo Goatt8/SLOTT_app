@@ -159,6 +159,21 @@ class FireStoreService {
     await batch.commit();
   }
 
+  Future<void> uploadPost(Post post) async {
+    try {
+      await _firestore
+          .collection('group')
+          .doc(post.groupId)
+          .collection('posts')
+          .add(post.toMap());
+
+      print("전송 성공: 그룹 ${post.groupId}에 포스트가 추가되었습니다.");
+    } catch (e) {
+      print("전송 에러: $e");
+      rethrow;
+    }
+  }
+
   Future<Post?> getPost(String postId) async {
     final snapshot = await _posts.doc(postId).get();
     final data = snapshot.data();

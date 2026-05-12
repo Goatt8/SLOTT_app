@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 import 'package:bababam_app/Model/group.dart';
+import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
@@ -53,7 +55,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
             flex: 2,
             child: Stack(
               children: [
-                //MARK: Video
                 Center(
                   child: _controller.value.isInitialized
                       ? AspectRatio(
@@ -62,7 +63,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                         )
                       : const CircularProgressIndicator(),
                 ),
-
+                //MARK: Close Button
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 10,
                   left: 16,
@@ -75,7 +76,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-
+                //MARK: Send Button
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 10,
                   right: 16,
@@ -96,7 +97,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                   ),
                 ),
 
-                // [위] 중앙 시간 표시 (필요시)
+                //MARK: test time
                 const Center(
                   child: Text(
                     "15:00",
@@ -140,30 +141,37 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     );
   }
 
-  void _sendPost() {
-    if (_selectedGroupIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("전송할 그룹을 하나 이상 선택해주세요!"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
+  //MARK: SendPost
+  void _sendPost() async {
+    if (_selectedGroupIds.isEmpty) return;
 
-    print("전송 시작 ,선택된 그룹 수: ${_selectedGroupIds.length}");
+    final now = DateTime.now();
+    final String dayKey = _generateDayKey(now);
 
-    for (String groupId in _selectedGroupIds) {
-      print("그룹 ID: $groupId 에 영상 전송 시도 중...");
+    const String testVideoPath = 'assets/video/test_video.mp4';
+
+    try {
+      for (String groupId in _selectedGroupIds) {
+        final newPost = Post(
+          id: '',
+          groupId: groupId,
+          authorId: FirebaseAuth.instance.currentUser!.uid,
+          videoUrl: testVideoPath, //testPath
+          comment: "", // 미구현
+          createdAt: now,
+          dayKey: dayKey,
+          hourSlot: now.hour,
+        );
+
+        await _firestoreService.uploadPost(newPost);
+      }
+
+      if (!mounted) return;
+
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (e) {
+      print("전송 실패: $e");
     }
-    //snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("${_selectedGroupIds.length}개의 그룹에 전송되었습니다!"),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    // Navigator.pop(context);
   }
 
   void _toggleGroup(String groupId) {
@@ -174,6 +182,11 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
         _selectedGroupIds.add(groupId);
       }
     });
+  }
+
+  //MARK: Daykey
+  String _generateDayKey(DateTime date) {
+    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
 
   //MARK: ListView
