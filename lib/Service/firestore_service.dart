@@ -185,48 +185,44 @@ class FireStoreService {
     return Post.fromMap(snapshot.id, data);
   }
 
-  Future<List<Post>> getPostsByHour({
+  Stream<List<Post>> getPostsByHourStream({
     required String groupId,
     required String dayKey,
     required int hourSlot,
-  }) async {
-    // 1. 최상위 '_posts'가 아니라 'group -> groupId -> posts' 경로로 직접 접근합니다.
-    final snapshot = await _firestore
+  }) {
+    return _firestore
         .collection('group')
         .doc(groupId)
-        .collection('posts') // 이 그룹의 보관함만 엽니다.
+        .collection('posts')
         .where('dayKey', isEqualTo: dayKey)
         .where('hourSlot', isEqualTo: hourSlot)
-        .orderBy('createdAt')
-        .get();
-
-    return snapshot.docs
-        .map((doc) => Post.fromMap(doc.id, doc.data()))
-        .toList();
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Post.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
   }
 
-  Future<List<Post>> getPostsByDay({
+  Stream<List<Post>> getPostsByDayStream({
     required String groupId,
     required String dayKey,
-  }) async {
-    final snapshot = await _posts
-        .where('groupId', isEqualTo: groupId)
+  }) {
+    return _firestore
+        .collection('group')
+        .doc(groupId)
+        .collection('posts')
         .where('dayKey', isEqualTo: dayKey)
-        .get();
-
-    final posts = snapshot.docs
-        .map((doc) => Post.fromMap(doc.id, doc.data()))
-        .toList();
-
-    posts.sort((a, b) {
-      final hourCompare = a.hourSlot.compareTo(b.hourSlot);
-      if (hourCompare != 0) {
-        return hourCompare;
-      }
-      return a.createdAt.compareTo(b.createdAt);
-    });
-
-    return posts;
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) =>
+                    Post.fromMap(doc.id, doc.data() as Map<String, dynamic>),
+              )
+              .toList(),
+        );
   }
 
   Future<void> deletePost(String postId) async {

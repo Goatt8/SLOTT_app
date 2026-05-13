@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
@@ -10,7 +11,6 @@ import 'package:bababam_app/Widget/glass_popup_menu.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Widget/code_input_dialog.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -164,7 +164,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
             ),
           );
         }
-
+        //MARK: ListView
         return ListView.builder(
           itemCount: groups.length,
           padding: const EdgeInsets.all(12),
@@ -201,7 +201,10 @@ class _GroupListScreenState extends State<GroupListScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SocialGroupScreen(group: group),
+                      builder: (context) => SocialGroupScreen(
+                        group: group, // 전체 그룹 객체
+                        groupId: group.id, // 그룹의 ID 값 (String)
+                      ),
                     ),
                   );
                 },

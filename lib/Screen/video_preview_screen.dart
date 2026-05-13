@@ -156,8 +156,8 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
           id: '',
           groupId: groupId,
           authorId: FirebaseAuth.instance.currentUser!.uid,
-          videoUrl: testVideoPath, //testPath
-          comment: "", // 미구현
+          videoUrl: testVideoPath,
+          comment: "", //MARK: 미구현
           createdAt: now,
           dayKey: dayKey,
           hourSlot: now.hour,

@@ -1,15 +1,22 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Widget/member_post_card.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 import 'package:bababam_app/Widget/navigation_triangle_button.dart';
 
 class SocialGroupScreen extends StatefulWidget {
   final Group group;
+  final String groupId;
 
-  const SocialGroupScreen({super.key, required this.group});
+  const SocialGroupScreen({
+    super.key,
+    required this.group,
+    required this.groupId,
+  });
 
   @override
   State<SocialGroupScreen> createState() => _SocialGroupScreenState();
@@ -21,74 +28,118 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   int _currentPage = 0;
   late Future<_SocialGroupData> _groupDataFuture;
 
+  late Stream<List<Post>> _postsStream;
+  late Future<List<AppUser>> _membersFuture;
+  late int _currentHour;
+  late String _todayKey;
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
-    _groupDataFuture = _loadGroupData();
+    _updateTime();
+    _initData();
+
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      final now = DateTime.now();
+      if (now.hour != _currentHour) {
+        setState(() {
+          _updateTime();
+          _initData();
+        });
+      }
+    });
+  }
+
+  void _updateTime() {
+    final now = DateTime.now();
+    _currentHour = now.hour;
+    _todayKey = _generateDayKey(now);
+  }
+
+  //MARK: Data Stream - init
+  void _initData() {
+    _membersFuture = _firestoreService.getUsersByIds(widget.group.memberIds);
+    _postsStream = _firestoreService.getPostsByDayStream(
+      groupId: widget.groupId,
+      dayKey: _todayKey,
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant SocialGroupScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+
     if (oldWidget.group.id != widget.group.id) {
-      _currentPage = 0;
-      _groupDataFuture = _loadGroupData();
+      setState(() {
+        _currentPage = 0;
+        _updateTime();
+        _membersFuture = _firestoreService.getUsersByIds(
+          widget.group.memberIds,
+        );
+        _postsStream = _firestoreService.getPostsByDayStream(
+          groupId: widget.groupId,
+          dayKey: _todayKey,
+        );
+      });
     }
+  }
+
+  String _generateDayKey(DateTime dateTime) {
+    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<List<AppUser>> _loadMembers() async {
+    return await _firestoreService.getUsersByIds(widget.group.memberIds);
   }
 
   @override
   Widget build(BuildContext context) {
-    final Group currentGroup = widget.group;
-
     return Scaffold(
-      appBar: AppBar(title: Text(currentGroup.title)),
+      appBar: AppBar(
+        title: Text("${widget.group.title} ($_currentHour시)"),
+        centerTitle: true,
+      ),
       body: SafeArea(
-        child: FutureBuilder<_SocialGroupData>(
-          future: _groupDataFuture,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return const Center(
-                child: Text(
-                  '그룹 데이터를 불러오지 못했습니다.',
-                  style: TextStyle(color: Colors.white54, fontSize: 13),
-                ),
-              );
-            }
-
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        child: FutureBuilder<List<AppUser>>(
+          future: _membersFuture,
+          builder: (context, memberSnapshot) {
+            if (memberSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final data = snapshot.data;
-            if (data == null) {
-              return _buildEmptyState();
-            }
+            return StreamBuilder<List<Post>>(
+              stream: _postsStream,
+              builder: (context, postSnapshot) {
+                if (postSnapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      "데이터 로드 중 오류가 발생했습니다.",
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  );
+                }
 
-            return _buildGroupContent(data.members, data.posts);
+                if (postSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final members = memberSnapshot.data ?? [];
+                final allDayPosts = postSnapshot.data ?? [];
+
+                return _buildGroupContent(members, allDayPosts);
+              },
+            );
           },
         ),
       ),
     );
-  }
-
-  Future<_SocialGroupData> _loadGroupData() async {
-    final members = await _firestoreService.getUsersByIds(
-      widget.group.memberIds,
-    );
-    final posts = await _loadPosts();
-
-    return _SocialGroupData(members: members, posts: posts);
-  }
-
-  Future<List<Post>> _loadPosts() async {
-    try {
-      return await _firestoreService.getPostsByDay(
-        groupId: widget.group.id,
-        dayKey: _buildDayKey(DateTime.now()),
-      );
-    } catch (_) {
-      return [];
-    }
   }
 
   Widget _buildGroupContent(List<AppUser> members, List<Post> groupPosts) {
