@@ -44,10 +44,10 @@ class _MemberPostCardState extends State<MemberPostCard> {
                   color: Colors.black,
                   child: Stack(
                     children: [
+                      //MARK: Video Url
                       Positioned.fill(
                         child: VideoPlayerWidget(videoUrl: post.videoUrl),
                       ),
-
                       const Center(
                         child: Icon(
                           Icons.play_circle_fill,
@@ -92,14 +92,27 @@ class _MemberPostCardState extends State<MemberPostCard> {
                 ],
               ),
             ),
-
+            //MARK: Profil image
             Positioned(
               top: 15,
               left: 15,
               child: Row(
                 children: [
-                  CircleAvatar(backgroundColor: Colors.grey[700], radius: 15),
+                  CircleAvatar(
+                    backgroundColor: Colors.grey[700],
+                    radius: 15,
+                    backgroundImage: widget.member.profileUrl != null
+                        ? NetworkImage(widget.member.profileUrl!)
+                        : null,
+                    child: widget.member.profileUrl == null
+                        ? Text(
+                            widget.member.name[0],
+                            style: TextStyle(fontSize: 10),
+                          )
+                        : null,
+                  ),
                   const SizedBox(width: 8),
+                  //MARK: MemberName
                   Text(
                     widget.member.name,
                     style: const TextStyle(

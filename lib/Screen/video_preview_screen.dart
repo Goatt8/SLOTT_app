@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
+import 'package:bababam_app/Widget/video_player.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
   final String videoPath;
@@ -15,34 +15,8 @@ class VideoPreviewScreen extends StatefulWidget {
 }
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
-  late VideoPlayerController _controller;
   final Set<String> _selectedGroupIds = {};
   final FireStoreService _firestoreService = FireStoreService();
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.asset(widget.videoPath);
-
-    _controller
-        .initialize()
-        .then((_) {
-          print("비디오 초기화 성공!");
-          setState(() {
-            _controller.play();
-            _controller.setLooping(true);
-          });
-        })
-        .catchError((error) {
-          print(" 비디오 초기화 실패: $error");
-        });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   //MARK: SendPost
   void _sendPost() async {
@@ -162,12 +136,16 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
             child: Stack(
               children: [
                 Center(
-                  child: _controller.value.isInitialized
-                      ? AspectRatio(
-                          aspectRatio: _controller.value.aspectRatio,
-                          child: VideoPlayer(_controller),
-                        )
-                      : const CircularProgressIndicator(),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        color: Colors.black,
+                        child: VideoPlayerWidget(videoUrl: widget.videoPath),
+                      ),
+                    ),
+                  ),
                 ),
                 //MARK: Close Button
                 Positioned(

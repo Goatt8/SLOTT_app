@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -18,10 +19,13 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     super.initState();
     if (widget.videoUrl.startsWith('assets/')) {
       _controller = VideoPlayerController.asset(widget.videoUrl);
-    } else {
+    } else if (widget.videoUrl.startsWith('http://') ||
+        widget.videoUrl.startsWith('https://')) {
       _controller = VideoPlayerController.networkUrl(
         Uri.parse(widget.videoUrl),
       );
+    } else {
+      _controller = VideoPlayerController.file(File(widget.videoUrl));
     }
 
     _controller.initialize().then((_) {
