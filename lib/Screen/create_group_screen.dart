@@ -30,6 +30,75 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     _randomId = _generateGroupId();
   }
 
+  Widget _buildCounterButton({
+    required IconData icon,
+    VoidCallback? onPressed,
+  }) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      color: Color(0xFF7C3AED),
+      disabledColor: Colors.white10,
+      style: IconButton.styleFrom(
+        side: BorderSide(
+          color: onPressed != null ? Color(0xFF7C3AED) : Colors.white10,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  //MARK: Generate Id Key
+  static String _generateGroupId() {
+    final random = Random();
+    final letters = List.generate(
+      2,
+      (_) => String.fromCharCode(random.nextInt(26) + 65),
+    ).join();
+    final numbers = random.nextInt(10000).toString().padLeft(4, '0');
+
+    return '$letters$numbers';
+  }
+
+  //MARK: ShowDialog
+  void _showConfirmDialog() async {
+    final isConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) =>
+          const ConfirmDialog(title: '그룹 생성', message: '그룹을 생성하시겠습니까?'),
+    );
+    if (isConfirmed == true) {
+      _completeGroupCreation();
+    }
+  }
+
+  //MARK: Create Group
+  Future<void> _completeGroupCreation() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    final newGroup = Group(
+      id: _randomId,
+      title: _nameController.text.isEmpty ? '새 그룹' : _nameController.text,
+      memberIds: [currentUser.uid],
+      ownerId: currentUser.uid,
+    );
+
+    setState(() => _isCreating = true);
+
+    try {
+      await _firestoreService.createGroup(newGroup);
+
+      if (!mounted) return;
+      Navigator.pop(context, newGroup);
+    } catch (error) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, "그룹생성에 실패했습니다.");
+    } finally {
+      if (mounted) setState(() => _isCreating = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,74 +234,5 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildCounterButton({
-    required IconData icon,
-    VoidCallback? onPressed,
-  }) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon),
-      color: Color(0xFF7C3AED),
-      disabledColor: Colors.white10,
-      style: IconButton.styleFrom(
-        side: BorderSide(
-          color: onPressed != null ? Color(0xFF7C3AED) : Colors.white10,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  //MARK: Generate Id Key
-  static String _generateGroupId() {
-    final random = Random();
-    final letters = List.generate(
-      2,
-      (_) => String.fromCharCode(random.nextInt(26) + 65),
-    ).join();
-    final numbers = random.nextInt(10000).toString().padLeft(4, '0');
-
-    return '$letters$numbers';
-  }
-
-  //MARK: ShowDialog
-  void _showConfirmDialog() async {
-    final isConfirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) =>
-          const ConfirmDialog(title: '그룹 생성', message: '그룹을 생성하시겠습니까?'),
-    );
-    if (isConfirmed == true) {
-      _completeGroupCreation();
-    }
-  }
-
-  //MARK: Create Group
-  Future<void> _completeGroupCreation() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-
-    final newGroup = Group(
-      id: _randomId,
-      title: _nameController.text.isEmpty ? '새 그룹' : _nameController.text,
-      memberIds: [currentUser.uid],
-      ownerId: currentUser.uid,
-    );
-
-    setState(() => _isCreating = true);
-
-    try {
-      await _firestoreService.createGroup(newGroup);
-
-      if (!mounted) return;
-      Navigator.pop(context, newGroup);
-    } catch (error) {
-      if (!mounted) return;
-      WarningSnackBar.showWarning(context, "그룹생성에 실패했습니다.");
-    } finally {
-      if (mounted) setState(() => _isCreating = false);
-    }
   }
 }

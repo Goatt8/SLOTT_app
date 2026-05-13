@@ -70,79 +70,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  //MARK: Background
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
-      );
-    }
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.8,
-              child: Image.network(
-                'https://i.pinimg.com/736x/dc/af/1d/dcaf1da24d63cefd2204ae13960536d4.jpg',
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          //MARK: PageView Clouum
-          SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    onPageChanged: (i) => setState(() => _currentPage = i),
-                    children: [
-                      _buildStepCard(
-                        "휴대폰 번호 인증",
-                        "인증번호를 받기 위해\n번호를 입력해주세요\n(-없이 010xxxxxxxx)",
-                        AuthSection(
-                          authService: _authService,
-                          onVerificationChanged: (result) =>
-                              _handleUserRouting(result),
-                        ),
-                      ),
-                      _buildStepCard(
-                        "권한 동의",
-                        "원활한 이용을 위해\n다음 권한이 필요합니다",
-                        PermissionSection(
-                          onPermissionChanged: (isCompleted) {
-                            setState(() => _pageCompleted[1] = isCompleted);
-                          },
-                        ),
-                      ),
-                      _buildStepCard(
-                        "프로필 설정",
-                        "프로필 사진과\n사용할 닉네임을 정해주세요",
-                        ProfileSection(
-                          key: _profileKey,
-                          onProfileChanged: (isCompleted) {
-                            setState(() => _pageCompleted[2] = isCompleted);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _buildBottomIndicator(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   //MARK: Glass card
   Widget _buildStepCard(String title, String subtitle, Widget content) {
     return Center(
@@ -273,6 +200,79 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //MARK: Background
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.8,
+              child: Image.network(
+                'https://i.pinimg.com/736x/dc/af/1d/dcaf1da24d63cefd2204ae13960536d4.jpg',
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          //MARK: PageView Clouum
+          SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onPageChanged: (i) => setState(() => _currentPage = i),
+                    children: [
+                      _buildStepCard(
+                        "휴대폰 번호 인증",
+                        "인증번호를 받기 위해\n번호를 입력해주세요\n(-없이 010xxxxxxxx)",
+                        AuthSection(
+                          authService: _authService,
+                          onVerificationChanged: (result) =>
+                              _handleUserRouting(result),
+                        ),
+                      ),
+                      _buildStepCard(
+                        "권한 동의",
+                        "원활한 이용을 위해\n다음 권한이 필요합니다",
+                        PermissionSection(
+                          onPermissionChanged: (isCompleted) {
+                            setState(() => _pageCompleted[1] = isCompleted);
+                          },
+                        ),
+                      ),
+                      _buildStepCard(
+                        "프로필 설정",
+                        "프로필 사진과\n사용할 닉네임을 정해주세요",
+                        ProfileSection(
+                          key: _profileKey,
+                          onProfileChanged: (isCompleted) {
+                            setState(() => _pageCompleted[2] = isCompleted);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildBottomIndicator(),
+              ],
             ),
           ),
         ],

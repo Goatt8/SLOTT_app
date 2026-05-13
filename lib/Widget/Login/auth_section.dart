@@ -36,6 +36,42 @@ class _AuthSectionState extends State<AuthSection> {
     super.dispose();
   }
 
+  Future<void> _requestCode() async {
+    if (!PhoneValidator.isValidKoreanNumber(_phoneNumber)) {
+      WarningSnackBar.showWarning(context, "휴대폰 번호 형식을 다시 입력해주세요.");
+      return;
+    }
+
+    final formatted = PhoneValidator.formatToFirebase(_phoneNumber);
+    try {
+      await widget.authService.sendCode(formatted, (_) {
+        setState(() => _isCodeSent = true);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, "인증번호 전송 실패");
+    }
+  }
+
+  Future<void> _verifyCode() async {
+    final userOTP = _verifyCodeController.text.trim();
+    if (userOTP.length != 6) {
+      WarningSnackBar.showWarning(context, "인증번호 6자리 형식이 아닙니다.");
+      return;
+    }
+
+    try {
+      final verifiedResult = await widget.authService.verifyCode(userOTP);
+      if (verifiedResult != null) {
+        setState(() => _isVerified = true);
+        widget.onVerificationChanged(verifiedResult);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, "인증에 실패했습니다");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedSize(
@@ -111,41 +147,5 @@ class _AuthSectionState extends State<AuthSection> {
         ],
       ),
     );
-  }
-
-  Future<void> _requestCode() async {
-    if (!PhoneValidator.isValidKoreanNumber(_phoneNumber)) {
-      WarningSnackBar.showWarning(context, "휴대폰 번호 형식을 다시 입력해주세요.");
-      return;
-    }
-
-    final formatted = PhoneValidator.formatToFirebase(_phoneNumber);
-    try {
-      await widget.authService.sendCode(formatted, (_) {
-        setState(() => _isCodeSent = true);
-      });
-    } catch (_) {
-      if (!mounted) return;
-      WarningSnackBar.showWarning(context, "인증번호 전송 실패");
-    }
-  }
-
-  Future<void> _verifyCode() async {
-    final userOTP = _verifyCodeController.text.trim();
-    if (userOTP.length != 6) {
-      WarningSnackBar.showWarning(context, "인증번호 6자리 형식이 아닙니다.");
-      return;
-    }
-
-    try {
-      final verifiedResult = await widget.authService.verifyCode(userOTP);
-      if (verifiedResult != null) {
-        setState(() => _isVerified = true);
-        widget.onVerificationChanged(verifiedResult);
-      }
-    } catch (_) {
-      if (!mounted) return;
-      WarningSnackBar.showWarning(context, "인증에 실패했습니다");
-    }
   }
 }

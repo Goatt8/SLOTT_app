@@ -65,25 +65,6 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text('${widget.groupName} 촬영'),
-        backgroundColor: Colors.black,
-      ),
-      body: _isInitialized
-          ? Stack(
-              children: [
-                Center(child: CameraPreview(_controller!)),
-                _buildCaptureButton(),
-              ],
-            )
-          : const Center(child: CircularProgressIndicator(color: Colors.white)),
-    );
-  }
-
   //MARK: Shutter Button
   Widget _buildCaptureButton() {
     return Align(
@@ -122,5 +103,24 @@ class _CameraScreenState extends State<CameraScreen> {
       print("촬영 에러: $e");
       WarningSnackBar.showWarning(context, "촬영에 실패했습니다.");
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text('${widget.groupName} 촬영'),
+        backgroundColor: Colors.black,
+      ),
+      body: _isInitialized
+          ? Stack(
+              children: [
+                Center(child: CameraPreview(_controller!)),
+                _buildCaptureButton(),
+              ],
+            )
+          : const Center(child: CircularProgressIndicator(color: Colors.white)),
+    );
   }
 }

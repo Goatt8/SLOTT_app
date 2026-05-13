@@ -5,7 +5,6 @@ import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Widget/member_post_card.dart';
-import 'package:bababam_app/Helper/warning_snackbar.dart';
 import 'package:bababam_app/Widget/navigation_triangle_button.dart';
 
 class SocialGroupScreen extends StatefulWidget {
@@ -26,8 +25,6 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   final FireStoreService _firestoreService = FireStoreService();
 
   int _currentPage = 0;
-  late Future<_SocialGroupData> _groupDataFuture;
-
   late Stream<List<Post>> _postsStream;
   late Future<List<AppUser>> _membersFuture;
   late int _currentHour;
@@ -93,53 +90,6 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
   String _generateDayKey(DateTime dateTime) {
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
-  }
-
-  Future<List<AppUser>> _loadMembers() async {
-    return await _firestoreService.getUsersByIds(widget.group.memberIds);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("${widget.group.title} ($_currentHour시)"),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: FutureBuilder<List<AppUser>>(
-          future: _membersFuture,
-          builder: (context, memberSnapshot) {
-            if (memberSnapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            return StreamBuilder<List<Post>>(
-              stream: _postsStream,
-              builder: (context, postSnapshot) {
-                if (postSnapshot.hasError) {
-                  return const Center(
-                    child: Text(
-                      "데이터 로드 중 오류가 발생했습니다.",
-                      style: TextStyle(color: Colors.redAccent),
-                    ),
-                  );
-                }
-
-                if (postSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final members = memberSnapshot.data ?? [];
-                final allDayPosts = postSnapshot.data ?? [];
-
-                return _buildGroupContent(members, allDayPosts);
-              },
-            );
-          },
-        ),
-      ),
-    );
   }
 
   Widget _buildGroupContent(List<AppUser> members, List<Post> groupPosts) {
@@ -350,16 +300,46 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     );
   }
 
-  String _buildDayKey(DateTime dateTime) {
-    final month = dateTime.month.toString().padLeft(2, '0');
-    final day = dateTime.day.toString().padLeft(2, '0');
-    return '${dateTime.year}-$month-$day';
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("${widget.group.title} ($_currentHour시)"),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: FutureBuilder<List<AppUser>>(
+          future: _membersFuture,
+          builder: (context, memberSnapshot) {
+            if (memberSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            return StreamBuilder<List<Post>>(
+              stream: _postsStream,
+              builder: (context, postSnapshot) {
+                if (postSnapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      "데이터 로드 중 오류가 발생했습니다.",
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  );
+                }
+
+                if (postSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final members = memberSnapshot.data ?? [];
+                final allDayPosts = postSnapshot.data ?? [];
+
+                return _buildGroupContent(members, allDayPosts);
+              },
+            );
+          },
+        ),
+      ),
+    );
   }
-}
-
-class _SocialGroupData {
-  const _SocialGroupData({required this.members, required this.posts});
-
-  final List<AppUser> members;
-  final List<Post> posts;
 }

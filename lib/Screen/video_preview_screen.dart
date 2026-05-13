@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:bababam_app/Helper/warning_snackbar.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
@@ -43,102 +42,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Column(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Stack(
-              children: [
-                Center(
-                  child: _controller.value.isInitialized
-                      ? AspectRatio(
-                          aspectRatio: _controller.value.aspectRatio,
-                          child: VideoPlayer(_controller),
-                        )
-                      : const CircularProgressIndicator(),
-                ),
-                //MARK: Close Button
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10,
-                  left: 16,
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                //MARK: Send Button
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10,
-                  right: 16,
-                  child: GestureDetector(
-                    onTap: _sendPost,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_upward,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                  ),
-                ),
-
-                //MARK: test time
-                const Center(
-                  child: Text(
-                    "15:00",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      "보낼 로그방:",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Expanded(child: _buildGroupListView()),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   //MARK: SendPost
@@ -245,6 +148,102 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
           },
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Column(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Stack(
+              children: [
+                Center(
+                  child: _controller.value.isInitialized
+                      ? AspectRatio(
+                          aspectRatio: _controller.value.aspectRatio,
+                          child: VideoPlayer(_controller),
+                        )
+                      : const CircularProgressIndicator(),
+                ),
+                //MARK: Close Button
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 10,
+                  left: 16,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+                //MARK: Send Button
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 10,
+                  right: 16,
+                  child: GestureDetector(
+                    onTap: _sendPost,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_upward,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+
+                //MARK: test time
+                const Center(
+                  child: Text(
+                    "15:00",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            flex: 3,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF1E1E1E),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      "보낼 로그방:",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: _buildGroupListView()),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

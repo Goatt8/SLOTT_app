@@ -30,106 +30,6 @@ class _GroupListScreenState extends State<GroupListScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    //MARK: Top title
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
-      appBar: AppBar(
-        title: const Text('Bababam'),
-        titleTextStyle: GoogleFonts.londrinaSolid(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-        ),
-        actions: [
-          //MARK: Add Button
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              _showGlassMenu(
-                context,
-                alignment: const Alignment(0.5, -0.75),
-                menu: GlassPopupMenu(
-                  items: [
-                    GlassMenuItem(
-                      title: '그룹 만들기',
-                      icon: Icons.add_circle_outline,
-                      onTap: _navigateAndAddGroup,
-                    ),
-                    GlassMenuItem(
-                      title: '그룹 참여하기',
-                      icon: Icons.group_add_outlined,
-                      onTap: () async {
-                        final String? code = await showDialog<String>(
-                          context: context,
-                          builder: (context) => const CodeInputDialog(),
-                        );
-
-                        await _joinGroup(code);
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () {
-              _showGlassMenu(
-                context,
-                alignment: const Alignment(0.9, -0.75),
-                menu: GlassPopupMenu(
-                  width: 180,
-                  items: [
-                    //MARK: Profile Button
-                    GlassMenuItem(
-                      title: '내 프로필',
-                      icon: Icons.account_circle_outlined,
-                      onTap: () {},
-                    ),
-                    //MARK: Logout Button
-                    GlassMenuItem(
-                      title: '로그아웃',
-                      icon: Icons.logout,
-                      onTap: () async {
-                        final bool? isConfirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => const ConfirmDialog(
-                            title: '로그아웃',
-                            message: '정말 로그아웃 하시겠습니까?',
-                          ),
-                        );
-                        if (isConfirmed == true) {
-                          try {
-                            await _authService.signOut();
-                            if (!context.mounted) return;
-                            Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/login',
-                              (route) => false,
-                            );
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            WarningSnackBar.showWarning(
-                              context,
-                              "로그아웃에 실패했습니다.",
-                            );
-                          }
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: _buildGroupList(),
-    );
-  }
-
   Widget _buildGroupList() {
     final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -286,6 +186,106 @@ class _GroupListScreenState extends State<GroupListScreen> {
           child: FadeTransition(opacity: anim1, child: child),
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    //MARK: Top title
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
+      appBar: AppBar(
+        title: const Text('Bababam'),
+        titleTextStyle: GoogleFonts.londrinaSolid(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+        ),
+        actions: [
+          //MARK: Add Button
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              _showGlassMenu(
+                context,
+                alignment: const Alignment(0.5, -0.75),
+                menu: GlassPopupMenu(
+                  items: [
+                    GlassMenuItem(
+                      title: '그룹 만들기',
+                      icon: Icons.add_circle_outline,
+                      onTap: _navigateAndAddGroup,
+                    ),
+                    GlassMenuItem(
+                      title: '그룹 참여하기',
+                      icon: Icons.group_add_outlined,
+                      onTap: () async {
+                        final String? code = await showDialog<String>(
+                          context: context,
+                          builder: (context) => const CodeInputDialog(),
+                        );
+
+                        await _joinGroup(code);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              _showGlassMenu(
+                context,
+                alignment: const Alignment(0.9, -0.75),
+                menu: GlassPopupMenu(
+                  width: 180,
+                  items: [
+                    //MARK: Profile Button
+                    GlassMenuItem(
+                      title: '내 프로필',
+                      icon: Icons.account_circle_outlined,
+                      onTap: () {},
+                    ),
+                    //MARK: Logout Button
+                    GlassMenuItem(
+                      title: '로그아웃',
+                      icon: Icons.logout,
+                      onTap: () async {
+                        final bool? isConfirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => const ConfirmDialog(
+                            title: '로그아웃',
+                            message: '정말 로그아웃 하시겠습니까?',
+                          ),
+                        );
+                        if (isConfirmed == true) {
+                          try {
+                            await _authService.signOut();
+                            if (!context.mounted) return;
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/login',
+                              (route) => false,
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            WarningSnackBar.showWarning(
+                              context,
+                              "로그아웃에 실패했습니다.",
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: _buildGroupList(),
     );
   }
 }

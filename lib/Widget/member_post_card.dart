@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/app_user.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:bababam_app/Widget/video_player.dart';
 
 class MemberPostCard extends StatefulWidget {
   final AppUser member;
@@ -23,69 +24,95 @@ class _MemberPostCardState extends State<MemberPostCard> {
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+
     final Color timeTextColor = post == null ? Colors.white10 : Colors.white;
 
     return Container(
       width: double.infinity,
-      height: 450,
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.grey[900],
         borderRadius: BorderRadius.circular(24),
       ),
-      child: Stack(
-        children: [
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${widget.hourSlot}:00',
-                  style: GoogleFonts.londrinaSolid(
-                    color: timeTextColor,
-                    fontSize: 40,
-                    fontWeight: FontWeight.w800,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            if (post != null)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: VideoPlayerWidget(videoUrl: post.videoUrl),
+                      ),
+
+                      const Center(
+                        child: Icon(
+                          Icons.play_circle_fill,
+                          color: Colors.white24,
+                          size: 50,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                if (post != null) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      post.comment ?? '',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+              ),
+
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${widget.hourSlot}:00',
+                    style: GoogleFonts.londrinaSolid(
+                      color: timeTextColor,
+                      fontSize: 40,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (post != null && post.comment.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Text(
+                        post.comment,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          shadows: [Shadow(blurRadius: 4, color: Colors.black)],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
+                    ),
+                ],
+              ),
+            ),
+
+            Positioned(
+              top: 15,
+              left: 15,
+              child: Row(
+                children: [
+                  CircleAvatar(backgroundColor: Colors.grey[700], radius: 15),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.member.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      shadows: [Shadow(blurRadius: 4, color: Colors.black)],
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-
-          Positioned(
-            top: 15,
-            left: 15,
-            child: Row(
-              children: [
-                CircleAvatar(backgroundColor: Colors.grey[700], radius: 15),
-                const SizedBox(width: 8),
-                Text(
-                  widget.member.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
