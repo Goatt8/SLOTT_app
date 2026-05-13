@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
@@ -17,6 +19,32 @@ class VideoPreviewScreen extends StatefulWidget {
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   final Set<String> _selectedGroupIds = {};
   final FireStoreService _firestoreService = FireStoreService();
+  late int _currentHour;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncCurrentHour();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      final nowHour = DateTime.now().hour;
+      if (nowHour != _currentHour) {
+        setState(() {
+          _currentHour = nowHour;
+        });
+      }
+    });
+  }
+
+  void _syncCurrentHour() {
+    _currentHour = DateTime.now().hour;
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   //MARK: SendPost
   void _sendPost() async {
@@ -181,14 +209,13 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                   ),
                 ),
 
-                //MARK: test time
-                const Center(
+                Center(
                   child: Text(
-                    "15:00",
-                    style: TextStyle(
+                    '${_currentHour.toString().padLeft(2, '0')}:00',
+                    style: GoogleFonts.londrinaSolid(
                       color: Colors.white,
                       fontSize: 40,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
