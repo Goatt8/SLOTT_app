@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
@@ -196,10 +196,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
         title: const Text('Bababam'),
-        titleTextStyle: GoogleFonts.londrinaSolid(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-        ),
+        titleTextStyle: AppTypography.brandTitle(fontSize: 20),
         actions: [
           //MARK: Add Button
           IconButton(

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
@@ -165,7 +165,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
               children: [
                 Center(
                   child: AspectRatio(
-                    aspectRatio: 16 / 9,
+                    aspectRatio: AppLayoutPolicy.previewVideoAspectRatio,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
@@ -212,10 +212,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                 Center(
                   child: Text(
                     '${_currentHour.toString().padLeft(2, '0')}:00',
-                    style: GoogleFonts.londrinaSolid(
+                    style: AppTypography.hourOverlay(
                       color: Colors.white,
                       fontSize: 40,
-                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),

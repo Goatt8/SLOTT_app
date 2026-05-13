@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Model/group.dart';
+import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Widget/member_post_card.dart';
 import 'package:bababam_app/Widget/navigation_triangle_button.dart';
@@ -105,7 +106,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     final List<Post> selectedPosts = groupPosts
         .where((post) => post.hourSlot == selectedHour)
         .toList();
-    final int count = members.length;
+    final layoutSpec = AppLayoutPolicy.groupSpecByMemberCount(members.length);
 
     return Column(
       children: [
@@ -118,9 +119,19 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
         Expanded(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 220),
-            child: count <= 6
-                ? _buildVerticalLayout(members, selectedPosts, selectedHour)
-                : _buildGridLayout(members, selectedPosts, selectedHour),
+            child: layoutSpec.useGrid
+                ? _buildGridLayout(
+                    members,
+                    selectedPosts,
+                    selectedHour,
+                    layoutSpec,
+                  )
+                : _buildVerticalLayout(
+                    members,
+                    selectedPosts,
+                    selectedHour,
+                    layoutSpec,
+                  ),
           ),
         ),
       ],
@@ -261,7 +272,30 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     List<AppUser> members,
     List<Post> selectedPosts,
     int selectedHour,
+    GroupVideoLayoutSpec layoutSpec,
   ) {
+    if (layoutSpec.compactVerticalCards) {
+      return ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+        children: members
+            .map(
+              (user) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: AspectRatio(
+                  aspectRatio: layoutSpec.videoAspectRatio,
+                  child: MemberPostCard(
+                    member: user,
+                    post: _findPostForUser(selectedPosts, user.id),
+                    hourSlot: selectedHour,
+                    videoAspectRatio: layoutSpec.videoAspectRatio,
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      );
+    }
+
     return Column(
       children: members
           .map(
@@ -270,6 +304,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                 member: user,
                 post: _findPostForUser(selectedPosts, user.id),
                 hourSlot: selectedHour,
+                videoAspectRatio: layoutSpec.videoAspectRatio,
               ),
             ),
           )
@@ -281,20 +316,26 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     List<AppUser> members,
     List<Post> selectedPosts,
     int selectedHour,
+    GroupVideoLayoutSpec layoutSpec,
   ) {
+    final slotCount = layoutSpec.fixedSlotCount ?? members.length;
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.5,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: layoutSpec.crossAxisCount,
+        childAspectRatio: layoutSpec.gridChildAspectRatio,
       ),
-      itemCount: members.length,
+      itemCount: slotCount,
       itemBuilder: (context, index) {
+        if (index >= members.length) {
+          return const SizedBox.shrink();
+        }
         final user = members[index];
         return MemberPostCard(
           member: user,
           post: _findPostForUser(selectedPosts, user.id),
           hourSlot: selectedHour,
+          videoAspectRatio: layoutSpec.videoAspectRatio,
         );
       },
     );

@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/app_user.dart';
+import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Widget/video_player.dart';
 
 class MemberPostCard extends StatefulWidget {
   final AppUser member;
   final Post? post;
   final int hourSlot;
+  final double videoAspectRatio;
 
   const MemberPostCard({
     super.key,
     required this.member,
     required this.hourSlot,
+    this.videoAspectRatio = 4 / 3,
     this.post,
   });
 
@@ -66,10 +68,9 @@ class _MemberPostCardState extends State<MemberPostCard> {
                 children: [
                   Text(
                     '${widget.hourSlot}:00',
-                    style: GoogleFonts.londrinaSolid(
+                    style: AppTypography.hourOverlay(
                       color: timeTextColor,
                       fontSize: 40,
-                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 4),
