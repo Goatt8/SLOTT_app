@@ -144,20 +144,28 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
       return 0;
     }
 
-    if (_currentPage >= availableHours.length) {
-      _currentPage = 0;
+    final int currentHourIndex = availableHours.indexOf(_currentHour);
+    if (currentHourIndex != -1) {
+      _currentPage = currentHourIndex;
+      return _currentPage;
+    }
+
+    if (_currentPage < 0 || _currentPage >= availableHours.length) {
+      _currentPage = availableHours.length - 1;
     }
 
     return _currentPage;
   }
 
   Post? _findPostForUser(List<Post> posts, String userId) {
+    Post? latestPost;
     for (final post in posts) {
-      if (post.authorId == userId) {
-        return post;
+      if (post.authorId != userId) continue;
+      if (latestPost == null || post.createdAt.isAfter(latestPost.createdAt)) {
+        latestPost = post;
       }
     }
-    return null;
+    return latestPost;
   }
 
   Widget _buildEmptyState() {

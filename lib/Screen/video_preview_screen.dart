@@ -56,7 +56,13 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
   //MARK: SendPost
   void _sendPost() async {
-    if (_selectedGroupIds.isEmpty || _isSending) return;
+    if (_isSending) return;
+    if (_selectedGroupIds.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('보낼 그룹을 먼저 선택해주세요.')));
+      return;
+    }
 
     final now = DateTime.now();
     final String dayKey = _generateDayKey(now);
@@ -66,9 +72,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
       String? uploadedVideoUrl;
       if (widget.uploadedVideoUrlFuture != null) {
-        uploadedVideoUrl = await widget.uploadedVideoUrlFuture!.timeout(
-          const Duration(seconds: 20),
-        );
+        uploadedVideoUrl = await widget.uploadedVideoUrlFuture;
       } else if (widget.videoPath.startsWith('http://') ||
           widget.videoPath.startsWith('https://')) {
         uploadedVideoUrl = widget.videoPath;
@@ -108,9 +112,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     } catch (e) {
       print("전송 실패: $e");
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('업로드 또는 전송 중 오류가 발생했습니다. 다시 시도해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('업로드/전송 실패: $e')));
     } finally {
       if (mounted) {
         setState(() => _isSending = false);

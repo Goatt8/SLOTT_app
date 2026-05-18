@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:video_compress/video_compress.dart';
+import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Screen/video_preview_screen.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
 
@@ -110,10 +110,7 @@ class _CameraScreenState extends State<CameraScreen>
         _animationController.reset();
         setState(() => _isRecording = false);
 
-        String finalPath = rawVideo?.path ?? testVideoPath;
-        if (rawVideo != null) {
-          finalPath = await _normalizeRecordedVideo(finalPath);
-        }
+        final String finalPath = rawVideo?.path ?? testVideoPath;
 
         _upLoadToFirestoragAndMove(finalPath);
       }
@@ -124,31 +121,13 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
-  Future<String> _normalizeRecordedVideo(String originalPath) async {
-    try {
-      final MediaInfo? mediaInfo = await VideoCompress.compressVideo(
-        originalPath,
-        quality: VideoQuality.DefaultQuality,
-        deleteOrigin: false,
-        includeAudio: true,
-      );
-      final convertedPath = mediaInfo?.path;
-      if (convertedPath != null && convertedPath.isNotEmpty) {
-        return convertedPath;
-      }
-    } catch (e) {
-      print("영상 리인코딩 실패: $e");
-    }
-    return originalPath;
-  }
-
   //MARK: Initialize
   Future<void> _initializeCamera() async {
     try {
       _cameras = await availableCameras();
 
       if (_cameras != null && _cameras!.isNotEmpty) {
-        _controller = CameraController(_cameras![0], ResolutionPreset.high);
+        _controller = CameraController(_cameras![0], ResolutionPreset.veryHigh);
         await _controller!.initialize();
         await _controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
         _maxZoomLevel = await _controller!.getMaxZoomLevel();
@@ -346,6 +325,35 @@ class _CameraScreenState extends State<CameraScreen>
                                     ),
                                   ),
                                 ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            top: previewTopPadding,
+                            bottom: previewBottomPadding,
+                            left: previewHorizontalPadding,
+                            right: previewHorizontalPadding,
+                          ),
+                          child: IgnorePointer(
+                            child: Center(
+                              child: AspectRatio(
+                                aspectRatio:
+                                    AppLayoutPolicy.previewVideoAspectRatio,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.35,
+                                      ),
+                                      width: 1.4,
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       if (_focusPoint != null)
