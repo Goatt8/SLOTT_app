@@ -5,12 +5,18 @@ import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
+import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Widget/video_player.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
   final String videoPath;
+  final Future<String?>? uploadedVideoUrlFuture;
 
-  const VideoPreviewScreen({super.key, required this.videoPath});
+  const VideoPreviewScreen({
+    super.key,
+    required this.videoPath,
+    this.uploadedVideoUrlFuture,
+  });
 
   @override
   State<VideoPreviewScreen> createState() => _VideoPreviewScreenState();
@@ -19,8 +25,10 @@ class VideoPreviewScreen extends StatefulWidget {
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   final Set<String> _selectedGroupIds = {};
   final FireStoreService _firestoreService = FireStoreService();
+  final FireStorageService _fireStorageService = FireStorageService();
   late int _currentHour;
   Timer? _timer;
+  bool _isSending = false;
 
   @override
   void initState() {
@@ -48,20 +56,43 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
   //MARK: SendPost
   void _sendPost() async {
-    if (_selectedGroupIds.isEmpty) return;
+    if (_selectedGroupIds.isEmpty || _isSending) return;
 
     final now = DateTime.now();
     final String dayKey = _generateDayKey(now);
 
-    const String testVideoPath = 'assets/video/test_video.mp4';
-
     try {
+      setState(() => _isSending = true);
+
+      String? uploadedVideoUrl;
+      if (widget.uploadedVideoUrlFuture != null) {
+        uploadedVideoUrl = await widget.uploadedVideoUrlFuture!.timeout(
+          const Duration(seconds: 20),
+        );
+      } else if (widget.videoPath.startsWith('http://') ||
+          widget.videoPath.startsWith('https://')) {
+        uploadedVideoUrl = widget.videoPath;
+      } else {
+        uploadedVideoUrl = await _fireStorageService.uploadVideo(
+          widget.videoPath,
+        );
+      }
+
+      if (uploadedVideoUrl == null || uploadedVideoUrl.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('영상 업로드가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.')),
+        );
+        setState(() => _isSending = false);
+        return;
+      }
+
       for (String groupId in _selectedGroupIds) {
         final newPost = Post(
           id: '',
           groupId: groupId,
           authorId: FirebaseAuth.instance.currentUser!.uid,
-          videoUrl: testVideoPath,
+          videoUrl: uploadedVideoUrl,
           comment: "", //MARK: 미구현
           createdAt: now,
           dayKey: dayKey,
@@ -76,6 +107,14 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       print("전송 실패: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('업로드 또는 전송 중 오류가 발생했습니다. 다시 시도해주세요.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
     }
   }
 
@@ -157,96 +196,100 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Column(
+      body: Column(children: [_buildPreviewArea(context), _buildGroupArea()]),
+    );
+  }
+
+  Widget _buildPreviewArea(BuildContext context) {
+    return Expanded(
+      flex: 2,
+      child: Stack(
         children: [
-          Expanded(
-            flex: 2,
-            child: Stack(
-              children: [
-                Center(
-                  child: AspectRatio(
-                    aspectRatio: AppLayoutPolicy.previewVideoAspectRatio,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        color: Colors.black,
-                        child: VideoPlayerWidget(videoUrl: widget.videoPath),
-                      ),
-                    ),
-                  ),
+          Center(
+            child: AspectRatio(
+              aspectRatio: AppLayoutPolicy.previewVideoAspectRatio,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  color: Colors.black,
+                  child: VideoPlayerWidget(videoUrl: widget.videoPath),
                 ),
-                //MARK: Close Button
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10,
-                  left: 16,
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            right: 16,
+            child: GestureDetector(
+              onTap: _isSending ? null : _sendPost,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
                 ),
-                //MARK: Send Button
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10,
-                  right: 16,
-                  child: GestureDetector(
-                    onTap: _sendPost,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
+                child: _isSending
+                    ? const SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(
                         Icons.arrow_upward,
                         color: Colors.white,
                         size: 28,
                       ),
-                    ),
-                  ),
-                ),
-
-                Center(
-                  child: Text(
-                    '${_currentHour.toString().padLeft(2, '0')}:00',
-                    style: AppTypography.hourOverlay(
-                      color: Colors.white,
-                      fontSize: 40,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      "보낼 로그방:",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Expanded(child: _buildGroupListView()),
-                ],
+          Center(
+            child: Text(
+              '${_currentHour.toString().padLeft(2, '0')}:00',
+              style: AppTypography.hourOverlay(
+                color: Colors.white,
+                fontSize: 40,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGroupArea() {
+    return Expanded(
+      flex: 3,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                "보낼 로그방:",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Expanded(child: _buildGroupListView()),
+          ],
+        ),
       ),
     );
   }
