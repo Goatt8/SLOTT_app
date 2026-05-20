@@ -9,12 +9,16 @@ class MemberPostCard extends StatefulWidget {
   final Post? post;
   final int hourSlot;
   final double videoAspectRatio;
+  final double cardRadius;
+  final double cardOuterMargin;
 
   const MemberPostCard({
     super.key,
     required this.member,
     required this.hourSlot,
     this.videoAspectRatio = 4 / 3,
+    this.cardRadius = 24,
+    this.cardOuterMargin = 4,
     this.post,
   });
 
@@ -31,13 +35,13 @@ class _MemberPostCardState extends State<MemberPostCard> {
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.all(4),
+      margin: EdgeInsets.all(widget.cardOuterMargin),
       decoration: BoxDecoration(
         color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(widget.cardRadius),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(widget.cardRadius),
         child: Stack(
           children: [
             if (post != null)

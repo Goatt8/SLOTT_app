@@ -26,6 +26,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   final FireStoreService _firestoreService = FireStoreService();
 
   int _currentPage = 0;
+  int? _selectedHourOverride;
+  bool _useDiceLayout = false;
   late Stream<List<Post>> _postsStream;
   late Future<List<AppUser>> _membersFuture;
   late int _currentHour;
@@ -106,7 +108,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     final List<Post> selectedPosts = groupPosts
         .where((post) => post.hourSlot == selectedHour)
         .toList();
-    final layoutSpec = AppLayoutPolicy.groupSpecByMemberCount(members.length);
+    final preset = _resolvePreset(members.length);
+    final layoutSpec = preset.layoutSpec;
 
     return Column(
       children: [
@@ -124,13 +127,13 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                     members,
                     selectedPosts,
                     selectedHour,
-                    layoutSpec,
+                    preset,
                   )
                 : _buildVerticalLayout(
                     members,
                     selectedPosts,
                     selectedHour,
-                    layoutSpec,
+                    preset,
                   ),
           ),
         ),
@@ -141,18 +144,30 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   int _resolveCurrentPage(List<int> availableHours) {
     if (availableHours.isEmpty) {
       _currentPage = 0;
+      _selectedHourOverride = null;
       return 0;
+    }
+
+    if (_selectedHourOverride != null) {
+      final int selectedIndex = availableHours.indexOf(_selectedHourOverride!);
+      if (selectedIndex != -1) {
+        _currentPage = selectedIndex;
+        return _currentPage;
+      }
+      _selectedHourOverride = null;
     }
 
     final int currentHourIndex = availableHours.indexOf(_currentHour);
     if (currentHourIndex != -1) {
       _currentPage = currentHourIndex;
+      _selectedHourOverride = availableHours[_currentPage];
       return _currentPage;
     }
 
     if (_currentPage < 0 || _currentPage >= availableHours.length) {
       _currentPage = availableHours.length - 1;
     }
+    _selectedHourOverride = availableHours[_currentPage];
 
     return _currentPage;
   }
@@ -182,11 +197,23 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
       return _buildEmptyState();
     }
 
+    final preset = _resolvePreset(members.length);
+    final layoutSpec = preset.layoutSpec;
+    if (layoutSpec.useGrid) {
+      return _buildGridLayout(members, const <Post>[], _currentHour, preset);
+    }
+
     return Column(
       children: members
           .map(
             (user) => Expanded(
-              child: MemberPostCard(member: user, post: null, hourSlot: 0),
+              child: MemberPostCard(
+                member: user,
+                post: null,
+                hourSlot: 0,
+                cardRadius: preset.cardRadius,
+                cardOuterMargin: preset.cardOuterMargin,
+              ),
             ),
           )
           .toList(),
@@ -210,6 +237,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                 ? () {
                     setState(() {
                       _currentPage -= 1;
+                      _selectedHourOverride = availableHours[_currentPage];
                     });
                   }
                 : null,
@@ -252,6 +280,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                       onTap: () {
                         setState(() {
                           _currentPage = index;
+                          _selectedHourOverride = availableHours[index];
                         });
                       },
                     ),
@@ -267,6 +296,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                 ? () {
                     setState(() {
                       _currentPage += 1;
+                      _selectedHourOverride = availableHours[_currentPage];
                     });
                   }
                 : null,
@@ -280,8 +310,9 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     List<AppUser> members,
     List<Post> selectedPosts,
     int selectedHour,
-    GroupVideoLayoutSpec layoutSpec,
+    GroupUiPreset preset,
   ) {
+    final layoutSpec = preset.layoutSpec;
     if (layoutSpec.compactVerticalCards) {
       return ListView(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
@@ -296,6 +327,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                     post: _findPostForUser(selectedPosts, user.id),
                     hourSlot: selectedHour,
                     videoAspectRatio: layoutSpec.videoAspectRatio,
+                    cardRadius: preset.cardRadius,
+                    cardOuterMargin: preset.cardOuterMargin,
                   ),
                 ),
               ),
@@ -313,6 +346,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                 post: _findPostForUser(selectedPosts, user.id),
                 hourSlot: selectedHour,
                 videoAspectRatio: layoutSpec.videoAspectRatio,
+                cardRadius: preset.cardRadius,
+                cardOuterMargin: preset.cardOuterMargin,
               ),
             ),
           )
@@ -324,28 +359,65 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     List<AppUser> members,
     List<Post> selectedPosts,
     int selectedHour,
-    GroupVideoLayoutSpec layoutSpec,
+    GroupUiPreset preset,
   ) {
+    final layoutSpec = preset.layoutSpec;
     final slotCount = layoutSpec.fixedSlotCount ?? members.length;
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: layoutSpec.crossAxisCount,
-        childAspectRatio: layoutSpec.gridChildAspectRatio,
-      ),
-      itemCount: slotCount,
-      itemBuilder: (context, index) {
-        if (index >= members.length) {
-          return const SizedBox.shrink();
-        }
-        final user = members[index];
-        return MemberPostCard(
-          member: user,
-          post: _findPostForUser(selectedPosts, user.id),
-          hourSlot: selectedHour,
-          videoAspectRatio: layoutSpec.videoAspectRatio,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = preset.gridHorizontalPadding;
+        final verticalPadding = preset.gridVerticalPadding;
+        final spacing = preset.gridSpacing;
+
+        final columns = layoutSpec.crossAxisCount;
+        final rows = (slotCount / columns).ceil();
+        final availableWidth =
+            constraints.maxWidth - (horizontalPadding * 2) - (spacing * (columns - 1));
+        final availableHeight =
+            constraints.maxHeight - (verticalPadding * 2) - (spacing * (rows - 1));
+        final tileWidth = availableWidth / columns;
+        final tileHeight = availableHeight / rows;
+        final fillAspectRatio = tileWidth / tileHeight;
+        final childAspectRatio = preset.fillGridViewport
+            ? fillAspectRatio
+            : layoutSpec.gridChildAspectRatio;
+
+        return GridView.builder(
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+            childAspectRatio: childAspectRatio,
+          ),
+          itemCount: slotCount,
+          itemBuilder: (context, index) {
+            if (index >= members.length) {
+              return const SizedBox.shrink();
+            }
+            final user = members[index];
+            return MemberPostCard(
+              member: user,
+              post: _findPostForUser(selectedPosts, user.id),
+              hourSlot: selectedHour,
+              videoAspectRatio: layoutSpec.videoAspectRatio,
+              cardRadius: preset.cardRadius,
+              cardOuterMargin: preset.cardOuterMargin,
+            );
+          },
         );
       },
+    );
+  }
+
+  GroupUiPreset _resolvePreset(int memberCount) {
+    return AppLayoutPolicy.presetFor(
+      memberCount: memberCount,
+      useDiceLayout: _useDiceLayout,
     );
   }
 
@@ -355,6 +427,35 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
       appBar: AppBar(
         title: Text("${widget.group.title} ($_currentHour시)"),
         centerTitle: true,
+        actions: [
+          Builder(
+            builder: (context) {
+              final memberCount = widget.group.memberIds.length;
+              final canToggle =
+                  AppLayoutPolicy.supportsVerticalLayout(memberCount) &&
+                  AppLayoutPolicy.supportsDiceLayout(memberCount) &&
+                  !AppLayoutPolicy.isDiceOnlyMemberCount(memberCount);
+              final forcedDice =
+                  AppLayoutPolicy.isDiceOnlyMemberCount(memberCount);
+              final usingDice = forcedDice || _useDiceLayout;
+              return IconButton(
+                tooltip: usingDice ? '기본 레이아웃' : '주사위 레이아웃',
+                onPressed: canToggle
+                    ? () {
+                        setState(() {
+                          _useDiceLayout = !_useDiceLayout;
+                        });
+                      }
+                    : null,
+                icon: Icon(
+                  usingDice
+                      ? Icons.view_agenda_rounded
+                      : Icons.grid_view_rounded,
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: FutureBuilder<List<AppUser>>(

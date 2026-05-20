@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Screen/video_preview_screen.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
+import 'package:bababam_app/Widget/record_progress_ring_painter.dart';
 
 class CameraScreen extends StatefulWidget {
   final String groupName;
@@ -221,7 +221,7 @@ class _CameraScreenState extends State<CameraScreen>
                     animation: _animationController,
                     builder: (context, _) {
                       return CustomPaint(
-                        painter: _RecordProgressRingPainter(
+                        painter: RecordProgressRingPainter(
                           progress: _animationController.value,
                         ),
                       );
@@ -412,43 +412,5 @@ class _CameraScreenState extends State<CameraScreen>
               ),
       ),
     );
-  }
-}
-
-class _RecordProgressRingPainter extends CustomPainter {
-  final double progress;
-
-  const _RecordProgressRingPainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width / 2) - 2.5;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    final trackPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    final progressPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.6
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(rect, -math.pi / 2, math.pi * 2, false, trackPaint);
-    canvas.drawArc(
-      rect,
-      -math.pi / 2,
-      math.pi * 2 * progress.clamp(0.0, 1.0),
-      false,
-      progressPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _RecordProgressRingPainter oldDelegate) {
-    return oldDelegate.progress != progress;
   }
 }
