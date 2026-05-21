@@ -78,6 +78,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
     if (oldWidget.group.id != widget.group.id) {
       setState(() {
+        _selectedHourOverride = null;
         _currentPage = 0;
         _updateTime();
         _membersFuture = _firestoreService.getUsersByIds(
@@ -96,45 +97,52 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   }
 
   Widget _buildGroupContent(List<AppUser> members, List<Post> groupPosts) {
-    final List<int> availableHours =
+    final List<int> postedHours =
         groupPosts.map((post) => post.hourSlot).toSet().toList()..sort();
-    final int currentPage = _resolveCurrentPage(availableHours);
 
-    if (availableHours.isEmpty) {
-      return _buildMembersWithoutPosts(members);
+    final int activeHour = _selectedHourOverride ?? _currentHour;
+
+    final List<int> timelineHours = List<int>.from(postedHours);
+    if (!timelineHours.contains(_currentHour)) {
+      timelineHours.add(_currentHour);
+      timelineHours.sort();
     }
 
-    final int selectedHour = availableHours[currentPage];
+    final int currentIndex = timelineHours.indexOf(activeHour);
+
     final List<Post> selectedPosts = groupPosts
-        .where((post) => post.hourSlot == selectedHour)
+        .where((post) => post.hourSlot == activeHour)
         .toList();
+
     final preset = _resolvePreset(members.length);
     final layoutSpec = preset.layoutSpec;
 
     return Column(
       children: [
         _buildDotIndicator(
-          availableHours: availableHours,
-          currentIndex: currentPage,
+          timelineHours: timelineHours,
+          currentIndex: currentIndex,
           groupPosts: groupPosts,
           memberCount: members.length,
         ),
         Expanded(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 220),
-            child: layoutSpec.useGrid
-                ? _buildGridLayout(
-                    members,
-                    selectedPosts,
-                    selectedHour,
-                    preset,
-                  )
-                : _buildVerticalLayout(
-                    members,
-                    selectedPosts,
-                    selectedHour,
-                    preset,
-                  ),
+            child: selectedPosts.isEmpty
+                ? _buildMembersWithoutPosts(members, activeHour)
+                : (layoutSpec.useGrid
+                      ? _buildGridLayout(
+                          members,
+                          selectedPosts,
+                          activeHour,
+                          preset,
+                        )
+                      : _buildVerticalLayout(
+                          members,
+                          selectedPosts,
+                          activeHour,
+                          preset,
+                        )),
           ),
         ),
       ],
@@ -165,22 +173,25 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     }
 
     if (_currentPage < 0 || _currentPage >= availableHours.length) {
-      _currentPage = availableHours.length - 1;
+      _currentPage = 0;
     }
     _selectedHourOverride = availableHours[_currentPage];
 
     return _currentPage;
   }
 
-  Post? _findPostForUser(List<Post> posts, String userId) {
-    Post? latestPost;
+  //MARK: FindUserHour
+  Post? _findPostForUser(List<Post> posts, String userId, int targetHour) {
+    Post? targetPost;
     for (final post in posts) {
       if (post.authorId != userId) continue;
-      if (latestPost == null || post.createdAt.isAfter(latestPost.createdAt)) {
-        latestPost = post;
+      if (post.hourSlot != targetHour) continue;
+
+      if (targetPost == null || post.createdAt.isAfter(targetPost.createdAt)) {
+        targetPost = post;
       }
     }
-    return latestPost;
+    return targetPost;
   }
 
   Widget _buildEmptyState() {
@@ -192,15 +203,21 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     );
   }
 
-  Widget _buildMembersWithoutPosts(List<AppUser> members) {
+  Widget _buildMembersWithoutPosts(List<AppUser> members, int targetHour) {
     if (members.isEmpty) {
-      return _buildEmptyState();
+      return const Center(
+        child: Text(
+          '아직 올라온 시간대가 없어요',
+          style: TextStyle(color: Colors.white54, fontSize: 13),
+        ),
+      );
     }
 
     final preset = _resolvePreset(members.length);
     final layoutSpec = preset.layoutSpec;
+
     if (layoutSpec.useGrid) {
-      return _buildGridLayout(members, const <Post>[], _currentHour, preset);
+      return _buildGridLayout(members, const <Post>[], targetHour, preset);
     }
 
     return Column(
@@ -208,9 +225,10 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
           .map(
             (user) => Expanded(
               child: MemberPostCard(
+                key: ValueKey('${user.id}_$targetHour'),
                 member: user,
                 post: null,
-                hourSlot: 0,
+                hourSlot: targetHour,
                 cardRadius: preset.cardRadius,
                 cardOuterMargin: preset.cardOuterMargin,
               ),
@@ -221,7 +239,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   }
 
   Widget _buildDotIndicator({
-    required List<int> availableHours,
+    required List<int> timelineHours,
     required int currentIndex,
     required List<Post> groupPosts,
     required int memberCount,
@@ -236,8 +254,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
             onTap: currentIndex > 0
                 ? () {
                     setState(() {
-                      _currentPage -= 1;
-                      _selectedHourOverride = availableHours[_currentPage];
+                      _selectedHourOverride = timelineHours[currentIndex - 1];
                     });
                   }
                 : null,
@@ -245,23 +262,25 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(availableHours.length, (index) {
-                final hour = availableHours[index];
+              children: List.generate(timelineHours.length, (index) {
+                final hour = timelineHours[index];
                 final int postCount = groupPosts
                     .where((post) => post.hourSlot == hour)
                     .length;
-                final bool isComplete = postCount == memberCount;
+                final bool isComplete =
+                    postCount == memberCount && postCount > 0;
                 final bool isSelected = index == currentIndex;
 
-                final Color indicatorColor;
-                if (isSelected && isComplete) {
-                  indicatorColor = const Color(0xFF7C3AED);
-                } else if (isSelected) {
-                  indicatorColor = Colors.white;
-                } else if (isComplete) {
-                  indicatorColor = const Color(0xFF7C3AED);
+                // 인디케이터 색상 로직 보정
+                Color indicatorColor;
+                if (isSelected) {
+                  indicatorColor = isComplete
+                      ? const Color(0xFF7C3AED)
+                      : Colors.white;
                 } else {
-                  indicatorColor = Colors.white24;
+                  indicatorColor = isComplete
+                      ? const Color(0xFF7C3AED).withOpacity(0.5)
+                      : Colors.white24;
                 }
 
                 return AnimatedContainer(
@@ -279,8 +298,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                       borderRadius: BorderRadius.circular(999),
                       onTap: () {
                         setState(() {
-                          _currentPage = index;
-                          _selectedHourOverride = availableHours[index];
+                          _selectedHourOverride = hour;
                         });
                       },
                     ),
@@ -291,12 +309,11 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
           ),
           NavigationTriangleButton(
             isLeft: false,
-            enabled: currentIndex < availableHours.length - 1,
-            onTap: currentIndex < availableHours.length - 1
+            enabled: currentIndex < timelineHours.length - 1,
+            onTap: currentIndex < timelineHours.length - 1
                 ? () {
                     setState(() {
-                      _currentPage += 1;
-                      _selectedHourOverride = availableHours[_currentPage];
+                      _selectedHourOverride = timelineHours[currentIndex + 1];
                     });
                   }
                 : null,
@@ -306,6 +323,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     );
   }
 
+  //MARK: Vertical Layout
   Widget _buildVerticalLayout(
     List<AppUser> members,
     List<Post> selectedPosts,
@@ -323,8 +341,13 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                 child: AspectRatio(
                   aspectRatio: layoutSpec.videoAspectRatio,
                   child: MemberPostCard(
+                    key: ValueKey('${user.id}_$selectedHour'),
                     member: user,
-                    post: _findPostForUser(selectedPosts, user.id),
+                    post: _findPostForUser(
+                      selectedPosts,
+                      user.id,
+                      selectedHour,
+                    ),
                     hourSlot: selectedHour,
                     videoAspectRatio: layoutSpec.videoAspectRatio,
                     cardRadius: preset.cardRadius,
@@ -343,7 +366,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
             (user) => Expanded(
               child: MemberPostCard(
                 member: user,
-                post: _findPostForUser(selectedPosts, user.id),
+                post: _findPostForUser(selectedPosts, user.id, selectedHour),
                 hourSlot: selectedHour,
                 videoAspectRatio: layoutSpec.videoAspectRatio,
                 cardRadius: preset.cardRadius,
@@ -355,6 +378,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     );
   }
 
+  //MARK: Grid Layout
   Widget _buildGridLayout(
     List<AppUser> members,
     List<Post> selectedPosts,
@@ -372,9 +396,13 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
         final columns = layoutSpec.crossAxisCount;
         final rows = (slotCount / columns).ceil();
         final availableWidth =
-            constraints.maxWidth - (horizontalPadding * 2) - (spacing * (columns - 1));
+            constraints.maxWidth -
+            (horizontalPadding * 2) -
+            (spacing * (columns - 1));
         final availableHeight =
-            constraints.maxHeight - (verticalPadding * 2) - (spacing * (rows - 1));
+            constraints.maxHeight -
+            (verticalPadding * 2) -
+            (spacing * (rows - 1));
         final tileWidth = availableWidth / columns;
         final tileHeight = availableHeight / rows;
         final fillAspectRatio = tileWidth / tileHeight;
@@ -401,8 +429,9 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
             }
             final user = members[index];
             return MemberPostCard(
+              key: ValueKey('${user.id}_$selectedHour'),
               member: user,
-              post: _findPostForUser(selectedPosts, user.id),
+              post: _findPostForUser(selectedPosts, user.id, selectedHour),
               hourSlot: selectedHour,
               videoAspectRatio: layoutSpec.videoAspectRatio,
               cardRadius: preset.cardRadius,
@@ -435,8 +464,9 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                   AppLayoutPolicy.supportsVerticalLayout(memberCount) &&
                   AppLayoutPolicy.supportsDiceLayout(memberCount) &&
                   !AppLayoutPolicy.isDiceOnlyMemberCount(memberCount);
-              final forcedDice =
-                  AppLayoutPolicy.isDiceOnlyMemberCount(memberCount);
+              final forcedDice = AppLayoutPolicy.isDiceOnlyMemberCount(
+                memberCount,
+              );
               final usingDice = forcedDice || _useDiceLayout;
               return IconButton(
                 tooltip: usingDice ? '기본 레이아웃' : '주사위 레이아웃',

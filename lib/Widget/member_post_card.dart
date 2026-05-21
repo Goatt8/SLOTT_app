@@ -52,7 +52,10 @@ class _MemberPostCardState extends State<MemberPostCard> {
                     children: [
                       //MARK: Video Url
                       Positioned.fill(
-                        child: VideoPlayerWidget(videoUrl: post.videoUrl),
+                        child: VideoPlayerWidget(
+                          key: ValueKey(post.videoUrl), // <- 이 줄을 추가해 줍니다!
+                          videoUrl: post.videoUrl,
+                        ),
                       ),
                       const Center(
                         child: Icon(
