@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_video_player_plus/cached_video_player_plus.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
@@ -11,6 +12,7 @@ class MemberPostCard extends StatefulWidget {
   final double videoAspectRatio;
   final double cardRadius;
   final double cardOuterMargin;
+  final CachedVideoPlayerPlusController? externalVideoController;
 
   const MemberPostCard({
     super.key,
@@ -19,6 +21,7 @@ class MemberPostCard extends StatefulWidget {
     this.videoAspectRatio = 4 / 3,
     this.cardRadius = 24,
     this.cardOuterMargin = 4,
+    this.externalVideoController,
     this.post,
   });
 
@@ -55,6 +58,7 @@ class _MemberPostCardState extends State<MemberPostCard> {
                         child: VideoPlayerWidget(
                           key: ValueKey(post.videoUrl), // <- 이 줄을 추가해 줍니다!
                           videoUrl: post.videoUrl,
+                          externalController: widget.externalVideoController,
                         ),
                       ),
                       const Center(
