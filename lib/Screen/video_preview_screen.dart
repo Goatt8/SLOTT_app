@@ -73,6 +73,14 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
       String? uploadedVideoUrl;
       if (widget.uploadedVideoUrlFuture != null) {
         uploadedVideoUrl = await widget.uploadedVideoUrlFuture;
+        if ((uploadedVideoUrl == null || uploadedVideoUrl.isEmpty) &&
+            !widget.videoPath.startsWith('http://') &&
+            !widget.videoPath.startsWith('https://')) {
+          // 카메라 화면 선업로드가 실패한 경우, 프리뷰에서 로컬 파일 업로드 1회 재시도
+          uploadedVideoUrl = await _fireStorageService.uploadVideo(
+            widget.videoPath,
+          );
+        }
       } else if (widget.videoPath.startsWith('http://') ||
           widget.videoPath.startsWith('https://')) {
         uploadedVideoUrl = widget.videoPath;
