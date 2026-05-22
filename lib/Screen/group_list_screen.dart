@@ -6,6 +6,7 @@ import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Screen/create_group_screen.dart';
 import 'package:bababam_app/Screen/social_group_screen.dart';
+import 'package:bababam_app/Screen/profile_edit_screen.dart';
 import 'package:bababam_app/Widget/group_list_cell.dart';
 import 'package:bababam_app/Widget/glass_popup_menu.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
@@ -22,12 +23,29 @@ class GroupListScreen extends StatefulWidget {
 class _GroupListScreenState extends State<GroupListScreen> {
   final AuthService _authService = AuthService();
   final FireStoreService _firestoreService = FireStoreService();
-
+  //MARK: Navigation Create Grouo
   void _navigateAndAddGroup() async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
     );
+  }
+
+  //MARK: Navigation Profile
+  Future<void> _navigateToEditProfile() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfileEditScreen(currentUserId: currentUser.uid),
+      ),
+    );
+
+    setState(() {
+      //MARK: pop뒤 로직
+    });
   }
 
   Widget _buildGroupList() {
@@ -243,7 +261,9 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     GlassMenuItem(
                       title: '내 프로필',
                       icon: Icons.account_circle_outlined,
-                      onTap: () {},
+                      onTap: () {
+                        _navigateToEditProfile();
+                      },
                     ),
                     //MARK: Logout Button
                     GlassMenuItem(

@@ -218,7 +218,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("${widget.group.title} ($_currentHour시)"),
+        title: Text(widget.group.title),
         centerTitle: true,
         actions: [_buildLayoutToggleButton()],
       ),
