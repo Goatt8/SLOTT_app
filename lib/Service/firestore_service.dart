@@ -63,6 +63,19 @@ class FireStoreService {
     await _users.doc(userId).update({'currentPost': currentPost?.toMap()});
   }
 
+  Future<void> updateUser({
+    required String userId,
+    required String newName,
+    String? profileUrl,
+  }) async {
+    final Map<String, dynamic> updates = {'name': newName};
+
+    if (profileUrl != null) {
+      updates['profileUrl'] = profileUrl;
+    }
+    await _users.doc(userId).update(updates);
+  }
+
   Future<void> clearUserCurrentPost(String userId) async {
     await updateUserCurrentPost(userId: userId, currentPost: null);
   }

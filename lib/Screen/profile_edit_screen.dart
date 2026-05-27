@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
+import 'package:bababam_app/Service/firestorage_service.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 
 class ProfileEditScreen extends StatefulWidget {
-  // ★ 이제 무거운 AppUser 대신, 깔끔하게 유저 ID(String)만 받습니다!
   final String currentUserId;
 
   const ProfileEditScreen({super.key, required this.currentUserId});
@@ -18,21 +19,21 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   final TextEditingController _nameController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final FireStoreService _firestoreService = FireStoreService();
+  final FireStorageService _firestorageService = FireStorageService();
 
   File? _pickedImageFile;
   String? _currentProfileUrl;
   String _selectedTheme = "블랙";
   String _selectedFont = "기본체";
 
-  bool _isLoading = true; // 서버에서 내 데이터를 받아오는 중인지 체크하는 변수
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // 화면이 켜지자마자 넘겨받은 id로 서버 조회 시작!
+    _loadUserData();
   }
 
-  // ★ 네가 보여준 getUser 메서드를 활용해 기존 이름과 사진을 채워넣는 핵심 함수
   Future<void> _loadUserData() async {
     try {
       AppUser? user = await _firestoreService.getUser(widget.currentUserId);
@@ -40,7 +41,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         setState(() {
           _nameController.text = user.name;
           _currentProfileUrl = user.profileUrl;
-          _isLoading = false; // 로딩 완료!
+          _isLoading = false;
         });
       }
     } catch (e) {
@@ -57,8 +58,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     super.dispose();
   }
 
-  // 1. 프로필 이미지 섹션
-  Widget _buildProfileImage() {
+  Widget _changeProfileImage() {
     return Column(
       children: [
         const SizedBox(height: 20),
@@ -76,9 +76,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           onPressed: () async {
             final XFile? pickedFile = await _picker.pickImage(
               source: ImageSource.gallery,
-              maxWidth: 300, // 가벼운 해상도로 조절 (렉 방지)
+              maxWidth: 300,
               maxHeight: 300,
-              imageQuality: 70, // 압축률 설정 (용량 다이어트)
+              imageQuality: 70,
             );
             if (pickedFile != null) {
               setState(() {
@@ -99,7 +99,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  // 2. 입력 필드 섹션
+  //MARK: TextField
   Widget _buildTextField() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -127,14 +127,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  // 3. 테마/폰트 선택 섹션 (인스타 스타일)
+  //MARK: Select Section
   Widget _buildSelectionButtons() {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 30),
       decoration: BoxDecoration(
         border: Border.symmetric(
           vertical: BorderSide(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             width: 0.5,
           ),
         ),
@@ -160,31 +160,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  Widget _buildStatButton(String label, String value, VoidCallback onTap) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white54, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
+  //MARK: Bottom Sheet
   void _showSelectionSheet(
     String title,
     List<String> options,
@@ -192,7 +168,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   ) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Colors.black87,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -231,6 +207,88 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
+  Widget _buildStatButton(String label, String value, VoidCallback onTap) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  //MARK: SaveProfile Button
+  Future<void> _saveProfile() async {
+    final newName = _nameController.text.trim();
+
+    if (newName.isEmpty) {
+      WarningSnackBar.showWarning(context, '프로필 명을 변경해주세요.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      String? newProfileUrl;
+
+      if (_pickedImageFile != null) {
+        newProfileUrl = await _firestorageService.uploadProfileImage(
+          uid: widget.currentUserId,
+          imageFile: _pickedImageFile!,
+        );
+
+        if (newProfileUrl == null) {
+          WarningSnackBar.showWarning(context, '이미지 업로드에 실패했습니다.');
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
+      await _firestoreService.updateUser(
+        userId: widget.currentUserId,
+        newName: newName,
+        profileUrl: newProfileUrl,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("프로필이 변경되었습니다.")));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      print("프로필 저장 실패: $e");
+      if (mounted) {
+        WarningSnackBar.showWarning(context, '포로필 저장 실패.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -249,12 +307,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           IconButton(
             icon: const Icon(Icons.check, color: Colors.blueAccent),
             onPressed: () {
-              // TODO: 저장 로직 실행
+              _saveProfile();
             },
           ),
         ],
       ),
-      // ★ 데이터를 가져오는 중일 때는 한가운데에 로딩바를 띄우고, 완료되면 UI를 그립니다.
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Colors.blueAccent),
@@ -262,7 +319,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           : SingleChildScrollView(
               child: Column(
                 children: [
-                  _buildProfileImage(),
+                  _changeProfileImage(),
                   const SizedBox(height: 10),
                   _buildTextField(),
                   _buildSelectionButtons(),
