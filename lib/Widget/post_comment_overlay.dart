@@ -7,6 +7,7 @@ class PostCommentOverlay extends StatelessWidget {
     required this.hourText,
     required this.controller,
     this.hourTextColor = Colors.white,
+    this.styleSelection = AppTypography.defaultPostTextStyleSelection,
   }) : comment = null,
        isEditable = true;
 
@@ -15,6 +16,7 @@ class PostCommentOverlay extends StatelessWidget {
     required this.hourText,
     required this.comment,
     this.hourTextColor = Colors.white,
+    this.styleSelection = AppTypography.defaultPostTextStyleSelection,
   }) : controller = null,
        isEditable = false;
 
@@ -23,6 +25,7 @@ class PostCommentOverlay extends StatelessWidget {
   final TextEditingController? controller;
   final String? comment;
   final bool isEditable;
+  final PostTextStyleSelection styleSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +59,9 @@ class PostCommentOverlay extends StatelessWidget {
       cursorColor: Colors.white,
       cursorHeight: 24,
       cursorWidth: 2,
-      style: AppTypography.postCommentOverlay(),
+      style: AppTypography.postCommentOverlay(
+        selection: styleSelection,
+      ),
       maxLines: null,
       textAlign: TextAlign.center,
       maxLength: 50,
@@ -74,12 +79,21 @@ class PostCommentOverlay extends StatelessWidget {
     final text = comment?.trim() ?? '';
     if (text.isEmpty) return const SizedBox.shrink();
 
-    return Text(
+    final textWidget = Text(
       text,
-      style: AppTypography.postCommentOverlay(),
+      style: AppTypography.postCommentOverlay(selection: styleSelection),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.center,
+    );
+
+    final gradient = AppTypography.postTextGradient(styleSelection);
+    if (gradient == null) return textWidget;
+
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) => gradient.createShader(bounds),
+      child: textWidget,
     );
   }
 }

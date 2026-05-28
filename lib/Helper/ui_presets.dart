@@ -1,8 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+class PostFontPreset {
+  const PostFontPreset({
+    required this.id,
+    required this.label,
+    required this.fontFamily,
+  });
+
+  final String id;
+  final String label;
+  final String fontFamily;
+}
+
+class PostColorPreset {
+  const PostColorPreset({required this.id, required this.colors});
+
+  final String id;
+  final List<Color> colors;
+}
+
+class PostTextStyleSelection {
+  const PostTextStyleSelection({
+    required this.fontId,
+    required this.colorId,
+  });
+
+  final String fontId;
+  final String colorId;
+
+  PostTextStyleSelection copyWith({
+    String? fontId,
+    String? colorId,
+  }) {
+    return PostTextStyleSelection(
+      fontId: fontId ?? this.fontId,
+      colorId: colorId ?? this.colorId,
+    );
+  }
+}
+
 class AppTypography {
   static const double postOverlayHourLineHeight = 0.95;
+  static const PostTextStyleSelection defaultPostTextStyleSelection =
+      PostTextStyleSelection(
+        fontId: 'londrina',
+        colorId: 'white',
+      );
+
+  static const List<PostFontPreset> postFontPresets = [
+    PostFontPreset(
+      id: 'londrina',
+      label: 'Londrina',
+      fontFamily: 'Londrina Solid',
+    ),
+    PostFontPreset(id: 'fredoka', label: 'Fredoka', fontFamily: 'Fredoka'),
+    PostFontPreset(id: 'gugi', label: 'Gugi', fontFamily: 'Gugi'),
+    PostFontPreset(id: 'bagel', label: 'Bagel', fontFamily: 'Bagel Fat One'),
+    PostFontPreset(id: 'gaegu', label: 'Gaegu', fontFamily: 'Gaegu'),
+    PostFontPreset(id: 'press', label: 'Pixel', fontFamily: 'Press Start 2P'),
+    PostFontPreset(
+      id: 'blackhan',
+      label: 'Black Han',
+      fontFamily: 'Black Han Sans',
+    ),
+    PostFontPreset(id: 'serif', label: 'Serif', fontFamily: 'Noto Serif KR'),
+  ];
+
+  static const List<PostColorPreset> postColorPresets = [
+    PostColorPreset(id: 'white', colors: [Colors.white]),
+    PostColorPreset(id: 'black', colors: [Colors.black]),
+    PostColorPreset(id: 'mint', colors: [Color(0xFF48D6A2), Color(0xFF7CE6F0)]),
+    PostColorPreset(id: 'pink', colors: [Color(0xFFFFB3C7), Color(0xFFE86BD5)]),
+    PostColorPreset(
+      id: 'sunset',
+      colors: [Color(0xFFFFA142), Color(0xFFE64BDB)],
+    ),
+    PostColorPreset(id: 'blue', colors: [Color(0xFFB667FF), Color(0xFF2F8CFF)]),
+    PostColorPreset(
+      id: 'green',
+      colors: [Color(0xFF8A43D3), Color(0xFF36D893)],
+    ),
+  ];
 
   static TextStyle hourOverlay({
     Color color = Colors.white,
@@ -16,15 +95,43 @@ class AppTypography {
   }
 
   static TextStyle postCommentOverlay({
-    Color color = Colors.white,
+    PostTextStyleSelection selection = defaultPostTextStyleSelection,
     double fontSize = 20,
   }) {
-    return TextStyle(
-      color: color,
+    final color = postTextColor(selection);
+
+    return GoogleFonts.getFont(
+      postFontPreset(selection.fontId).fontFamily,
       fontSize: fontSize,
       fontWeight: FontWeight.w700,
       height: 1,
+      color: color,
     );
+  }
+
+  static PostFontPreset postFontPreset(String id) {
+    return postFontPresets.firstWhere(
+      (preset) => preset.id == id,
+      orElse: () => postFontPresets.first,
+    );
+  }
+
+  static PostColorPreset postColorPreset(String id) {
+    return postColorPresets.firstWhere(
+      (preset) => preset.id == id,
+      orElse: () => postColorPresets.first,
+    );
+  }
+
+  static Color postTextColor(PostTextStyleSelection selection) {
+    final colors = postColorPreset(selection.colorId).colors;
+    return colors.first;
+  }
+
+  static LinearGradient? postTextGradient(PostTextStyleSelection selection) {
+    final colors = postColorPreset(selection.colorId).colors;
+    if (colors.length < 2) return null;
+    return LinearGradient(colors: colors);
   }
 
   static TextStyle brandTitle({double fontSize = 20}) {
