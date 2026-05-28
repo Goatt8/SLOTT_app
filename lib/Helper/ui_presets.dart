@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTypography {
+  static const double postOverlayHourLineHeight = 0.95;
+
   static TextStyle hourOverlay({
     Color color = Colors.white,
     double fontSize = 40,
@@ -10,6 +12,18 @@ class AppTypography {
       color: color,
       fontSize: fontSize,
       fontWeight: FontWeight.w800,
+    );
+  }
+
+  static TextStyle postCommentOverlay({
+    Color color = Colors.white,
+    double fontSize = 20,
+  }) {
+    return TextStyle(
+      color: color,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w700,
+      height: 1,
     );
   }
 
@@ -171,7 +185,9 @@ class AppLayoutPolicy {
     final bool forceDice = isDiceOnlyMemberCount(memberCount);
 
     final bool willUseDice =
-        forceDice || (useDiceLayout && allowDice) || (!allowVertical && allowDice);
+        forceDice ||
+        (useDiceLayout && allowDice) ||
+        (!allowVertical && allowDice);
 
     final layoutSpec = willUseDice
         ? diceSpecByMemberCount(memberCount)

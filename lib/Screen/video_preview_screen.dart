@@ -6,6 +6,7 @@ import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
+import 'package:bababam_app/Widget/post_comment_overlay.dart';
 import 'package:bababam_app/Widget/video_player.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
@@ -266,39 +267,10 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
               ),
             ),
           ),
-          Center(
-            child: Text(
-              '${_currentHour.toString().padLeft(2, '0')}:00',
-              style: AppTypography.hourOverlay(
-                color: Colors.white,
-                fontSize: 40,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 40,
-            left: 24,
-            right: 24,
-            child: TextField(
+          Positioned.fill(
+            child: PostCommentOverlay.editable(
+              hourText: '${_currentHour.toString().padLeft(2, '0')}:00',
               controller: _commentController,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-              maxLines: null,
-              maxLength: 50,
-              decoration: InputDecoration(
-                hintText: '한 줄 일기나 댓글을 남겨보세요...',
-                hintStyle: const TextStyle(color: Colors.white54, fontSize: 15),
-                filled: true,
-                fillColor: Colors.black45,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                counterStyle: const TextStyle(color: Colors.white54),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-              ),
             ),
           ),
         ],

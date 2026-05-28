@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_video_player_plus/cached_video_player_plus.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:bababam_app/Model/post.dart';
@@ -190,6 +191,28 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   CachedVideoPlayerPlusController? _controllerForPost(Post? post) {
     if (post == null) return null;
     return _videoCacheService.controllerFor(post.videoUrl);
+  }
+
+  bool _canEditPost(Post post) {
+    return FirebaseAuth.instance.currentUser?.uid == post.authorId;
+  }
+
+  Future<void> _updatePostComment(Post post, String updatedComment) async {
+    if (updatedComment == post.comment) return;
+
+    try {
+      await _firestoreService.updatePostComment(
+        groupId: widget.groupId,
+        postId: post.id,
+        newComment: updatedComment,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('텍스트 수정 실패: $error')));
+      rethrow;
+    }
   }
 
   //MARK: Post Lookup
@@ -593,6 +616,9 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
       cardRadius: preset.cardRadius,
       cardOuterMargin: preset.cardOuterMargin,
       externalVideoController: _controllerForPost(post),
+      onSaveComment: post != null && _canEditPost(post)
+          ? (comment) => _updatePostComment(post, comment)
+          : null,
     );
   }
 }
