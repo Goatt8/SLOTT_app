@@ -121,19 +121,11 @@ class _MemberPostCardState extends State<MemberPostCard> {
                   color: Colors.black,
                   child: Stack(
                     children: [
-                      //MARK: Video Url
                       Positioned.fill(
                         child: VideoPlayerWidget(
-                          key: ValueKey(post.videoUrl), // <- 이 줄을 추가해 줍니다!
+                          key: ValueKey(post.videoUrl),
                           videoUrl: post.videoUrl,
                           externalController: widget.externalVideoController,
-                        ),
-                      ),
-                      const Center(
-                        child: Icon(
-                          Icons.play_circle_fill,
-                          color: Colors.white24,
-                          size: 50,
                         ),
                       ),
                     ],
