@@ -187,14 +187,21 @@ class FireStoreService {
     }
   }
 
-  Future<Post?> getPost(String postId) async {
-    final snapshot = await _posts.doc(postId).get();
-    final data = snapshot.data();
+  Future<Post?> getPost({
+    required String groupId,
+    required String postId,
+  }) async {
+    final snapshot = await _firestore
+        .collection('group')
+        .doc(groupId)
+        .collection('posts')
+        .doc(postId)
+        .get();
 
+    final data = snapshot.data();
     if (!snapshot.exists || data == null) {
       return null;
     }
-
     return Post.fromMap(snapshot.id, data);
   }
 
@@ -238,7 +245,36 @@ class FireStoreService {
         );
   }
 
-  Future<void> deletePost(String postId) async {
-    await _posts.doc(postId).delete();
+  Future<void> updatePostComment({
+    required String groupId,
+    required String postId,
+    required String newComment,
+  }) async {
+    try {
+      await _firestore
+          .collection('group')
+          .doc(groupId)
+          .collection('posts')
+          .doc(postId)
+          .update({
+            'comment': newComment, // Firestore 문서의 comment 필드만 덮어씌움
+          });
+      print("코멘트 수정 성공!");
+    } catch (e) {
+      print("코멘트 수정 에러: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> deletePost({
+    required String groupId,
+    required String postId,
+  }) async {
+    await _firestore
+        .collection('group')
+        .doc(groupId)
+        .collection('posts')
+        .doc(postId)
+        .delete();
   }
 }

@@ -26,6 +26,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   final Set<String> _selectedGroupIds = {};
   final FireStoreService _firestoreService = FireStoreService();
   final FireStorageService _fireStorageService = FireStorageService();
+  final TextEditingController _commentController = TextEditingController();
   late int _currentHour;
   Timer? _timer;
   bool _isSending = false;
@@ -51,6 +52,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _commentController.dispose();
     super.dispose();
   }
 
@@ -76,7 +78,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
         if ((uploadedVideoUrl == null || uploadedVideoUrl.isEmpty) &&
             !widget.videoPath.startsWith('http://') &&
             !widget.videoPath.startsWith('https://')) {
-          // 카메라 화면 선업로드가 실패한 경우, 프리뷰에서 로컬 파일 업로드 1회 재시도
           uploadedVideoUrl = await _fireStorageService.uploadVideo(
             widget.videoPath,
           );
@@ -105,7 +106,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
           groupId: groupId,
           authorId: FirebaseAuth.instance.currentUser!.uid,
           videoUrl: uploadedVideoUrl,
-          comment: "", //MARK: 미구현
+          comment: _commentController.text.trim(),
           createdAt: now,
           dayKey: dayKey,
           hourSlot: now.hour,
@@ -271,6 +272,32 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
               style: AppTypography.hourOverlay(
                 color: Colors.white,
                 fontSize: 40,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 40,
+            left: 24,
+            right: 24,
+            child: TextField(
+              controller: _commentController,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              maxLines: null,
+              maxLength: 50,
+              decoration: InputDecoration(
+                hintText: '한 줄 일기나 댓글을 남겨보세요...',
+                hintStyle: const TextStyle(color: Colors.white54, fontSize: 15),
+                filled: true,
+                fillColor: Colors.black45,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                counterStyle: const TextStyle(color: Colors.white54),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
