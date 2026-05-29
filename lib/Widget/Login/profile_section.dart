@@ -8,9 +8,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfileSection extends StatefulWidget {
-  const ProfileSection({super.key, required this.onProfileChanged});
+  const ProfileSection({
+    super.key,
+    required this.onProfileChanged,
+    required this.termsVersion,
+  });
 
   final ValueChanged<bool> onProfileChanged;
+  final String termsVersion;
 
   @override
   State<ProfileSection> createState() => ProfileSectionState();
@@ -67,6 +72,8 @@ class ProfileSectionState extends State<ProfileSection> {
       name: _nicknameController.text,
       phoneNumber: authUser.phoneNumber ?? "",
       profileUrl: imageUrl,
+      hasAgreedTerms: true,
+      termsVersion: widget.termsVersion,
     );
 
     await FireStoreService().createUser(newUser);

@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final List<bool> _pageCompleted = [false, false, false];
   final GlobalKey<ProfileSectionState> _profileKey = GlobalKey();
+  String _agreedTermsVersion = '';
 
   int _currentPage = 0;
   bool _isLoading = true;
@@ -41,20 +42,20 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleUserRouting(Map<String, dynamic>? authData) async {
-    // logout state, no user data
+    //MARK: Logout state, no user data
     if (authData == null) {
       setState(() => _isLoading = false);
       return;
     }
 
     final bool isExistingUser = (authData['isExistingUser'] as bool?) ?? false;
-    // login state, if user exist
+    //MARK: Login state, if user exist
     if (isExistingUser) {
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       }
     } else {
-      // login state, user no exist
+      //MARK: Login state, user no exist
       setState(() {
         _pageCompleted[0] = true;
         _isLoading = false;
@@ -253,8 +254,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         "권한 동의",
                         "원활한 이용을 위해\n다음 권한이 필요합니다",
                         PermissionSection(
-                          onPermissionChanged: (isCompleted) {
-                            setState(() => _pageCompleted[1] = isCompleted);
+                          onPermissionChanged: (isCompleted, version) {
+                            setState(() {
+                              _pageCompleted[1] = isCompleted;
+                              _agreedTermsVersion = version;
+                            });
                           },
                         ),
                       ),
@@ -263,6 +267,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         "프로필 사진과\n사용할 닉네임을 정해주세요",
                         ProfileSection(
                           key: _profileKey,
+                          termsVersion: _agreedTermsVersion,
                           onProfileChanged: (isCompleted) {
                             setState(() => _pageCompleted[2] = isCompleted);
                           },
