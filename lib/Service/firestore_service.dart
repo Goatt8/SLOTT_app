@@ -67,13 +67,29 @@ class FireStoreService {
     required String userId,
     required String newName,
     String? profileUrl,
+    String? fontId,
+    String? colorId,
   }) async {
     final Map<String, dynamic> updates = {'name': newName};
 
     if (profileUrl != null) {
       updates['profileUrl'] = profileUrl;
     }
+    if (fontId != null) {
+      updates['fontId'] = fontId;
+    }
+    if (colorId != null) {
+      updates['colorId'] = colorId;
+    }
     await _users.doc(userId).update(updates);
+  }
+
+  Future<void> updateUserTextStyle({
+    required String userId,
+    required String fontId,
+    required String colorId,
+  }) async {
+    await _users.doc(userId).update({'fontId': fontId, 'colorId': colorId});
   }
 
   Future<void> clearUserCurrentPost(String userId) async {

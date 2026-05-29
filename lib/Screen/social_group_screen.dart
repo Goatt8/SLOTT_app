@@ -38,6 +38,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
   int? _selectedHourOverride;
   bool _useDiceLayout = false;
+  final Map<String, PostTextStyleSelection> _memberTextStyleSelections = {};
   Timer? _timer;
 
   @override
@@ -616,6 +617,26 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
       cardRadius: preset.cardRadius,
       cardOuterMargin: preset.cardOuterMargin,
       externalVideoController: _controllerForPost(post),
+      initialStyleSelection:
+          _memberTextStyleSelections[user.id] ??
+          AppTypography.postTextStyleSelection(
+            fontId: user.fontId,
+            colorId: user.colorId,
+          ),
+      onStyleSelectionChanged: (selection) {
+        setState(() {
+          _memberTextStyleSelections[user.id] = selection;
+        });
+        if (FirebaseAuth.instance.currentUser?.uid == user.id) {
+          _firestoreService
+              .updateUserTextStyle(
+                userId: user.id,
+                fontId: selection.fontId,
+                colorId: selection.colorId,
+              )
+              .catchError((_) {});
+        }
+      },
       onSaveComment: post != null && _canEditPost(post)
           ? (comment) => _updatePostComment(post, comment)
           : null,

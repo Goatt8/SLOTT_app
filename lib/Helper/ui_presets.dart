@@ -21,31 +21,37 @@ class PostColorPreset {
 }
 
 class PostTextStyleSelection {
-  const PostTextStyleSelection({
-    required this.fontId,
-    required this.colorId,
-  });
+  const PostTextStyleSelection({required this.fontId, required this.colorId});
 
   final String fontId;
   final String colorId;
 
-  PostTextStyleSelection copyWith({
-    String? fontId,
-    String? colorId,
-  }) {
+  PostTextStyleSelection copyWith({String? fontId, String? colorId}) {
     return PostTextStyleSelection(
       fontId: fontId ?? this.fontId,
       colorId: colorId ?? this.colorId,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is PostTextStyleSelection &&
+        other.fontId == fontId &&
+        other.colorId == colorId;
+  }
+
+  @override
+  int get hashCode => Object.hash(fontId, colorId);
 }
 
 class AppTypography {
   static const double postOverlayHourLineHeight = 0.95;
+  static const String defaultPostFontId = 'londrina';
+  static const String defaultPostColorId = 'white';
   static const PostTextStyleSelection defaultPostTextStyleSelection =
       PostTextStyleSelection(
-        fontId: 'londrina',
-        colorId: 'white',
+        fontId: defaultPostFontId,
+        colorId: defaultPostColorId,
       );
 
   static const List<PostFontPreset> postFontPresets = [
@@ -116,11 +122,29 @@ class AppTypography {
     );
   }
 
+  static PostTextStyleSelection postTextStyleSelection({
+    String? fontId,
+    String? colorId,
+  }) {
+    return PostTextStyleSelection(
+      fontId: postFontPreset(fontId ?? defaultPostFontId).id,
+      colorId: postColorPreset(colorId ?? defaultPostColorId).id,
+    );
+  }
+
+  static String postFontLabel(String? fontId) {
+    return postFontPreset(fontId ?? defaultPostFontId).label;
+  }
+
   static PostColorPreset postColorPreset(String id) {
     return postColorPresets.firstWhere(
       (preset) => preset.id == id,
       orElse: () => postColorPresets.first,
     );
+  }
+
+  static String postColorLabel(String? colorId) {
+    return postColorPreset(colorId ?? defaultPostColorId).id;
   }
 
   static Color postTextColor(PostTextStyleSelection selection) {

@@ -5,6 +5,8 @@ import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
+import 'package:bababam_app/Helper/ui_presets.dart';
+import 'package:bababam_app/Widget/post_text_style_picker_dialog.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final String currentUserId;
@@ -24,7 +26,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   File? _pickedImageFile;
   String? _currentProfileUrl;
   String _selectedTheme = "블랙";
-  String _selectedFont = "기본체";
+  PostTextStyleSelection _selectedTextStyle =
+      AppTypography.defaultPostTextStyleSelection;
 
   bool _isLoading = true;
 
@@ -37,14 +40,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Future<void> _loadUserData() async {
     try {
       AppUser? user = await _firestoreService.getUser(widget.currentUserId);
-      if (user != null) {
-        setState(() {
+      if (!mounted) return;
+      setState(() {
+        if (user != null) {
           _nameController.text = user.name;
           _currentProfileUrl = user.profileUrl;
-          _isLoading = false;
-        });
-      }
+          _selectedTextStyle = AppTypography.postTextStyleSelection(
+            fontId: user.fontId,
+            colorId: user.colorId,
+          );
+        }
+        _isLoading = false;
+      });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(
         context,
@@ -148,16 +157,32 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             ], (val) => setState(() => _selectedTheme = val));
           }),
           Container(width: 1, height: 30, color: Colors.white10),
-          _buildStatButton("폰트", _selectedFont, () {
-            _showSelectionSheet("폰트 선택", [
-              "기본체",
-              "나눔고딕",
-              "프리텐다드",
-            ], (val) => setState(() => _selectedFont = val));
-          }),
+          _buildStatButton(
+            "폰트",
+            '${AppTypography.postFontLabel(_selectedTextStyle.fontId)} · ${AppTypography.postColorLabel(_selectedTextStyle.colorId)}',
+            () {
+              _showFontPicker();
+            },
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _showFontPicker() async {
+    final selection = await showDialog<PostTextStyleSelection>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.08),
+      builder: (context) {
+        return PostTextStylePickerDialog(initialSelection: _selectedTextStyle);
+      },
+    );
+
+    if (!mounted || selection == null) return;
+
+    setState(() {
+      _selectedTextStyle = selection;
+    });
   }
 
   //MARK: Bottom Sheet
@@ -220,6 +245,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(
@@ -255,6 +282,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         );
 
         if (newProfileUrl == null) {
+          if (!mounted) return;
           WarningSnackBar.showWarning(context, '이미지 업로드에 실패했습니다.');
           setState(() {
             _isLoading = false;
@@ -267,6 +295,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         userId: widget.currentUserId,
         newName: newName,
         profileUrl: newProfileUrl,
+        fontId: _selectedTextStyle.fontId,
+        colorId: _selectedTextStyle.colorId,
       );
 
       if (mounted) {
@@ -276,7 +306,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      print("프로필 저장 실패: $e");
       if (mounted) {
         WarningSnackBar.showWarning(context, '포로필 저장 실패.');
       }

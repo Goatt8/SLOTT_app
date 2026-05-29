@@ -74,6 +74,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/video/test_video.mp4
+    - assets/emoji/face_in_cloud.png
+    - assets/emoji/zzz.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_init_to_null
+
 import 'package:flutter/material.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 
@@ -8,8 +10,12 @@ class PostCommentOverlay extends StatelessWidget {
     required this.controller,
     this.hourTextColor = Colors.white,
     this.styleSelection = AppTypography.defaultPostTextStyleSelection,
-  }) : comment = null,
-       isEditable = true;
+    this.comment = null,
+    this.isEditable = true,
+    this.emptyAssetPath = null,
+    this.emptyAssetSize = 50,
+    this.emptyAssetOpacity = 0.6,
+  });
 
   const PostCommentOverlay.readOnly({
     super.key,
@@ -17,8 +23,25 @@ class PostCommentOverlay extends StatelessWidget {
     required this.comment,
     this.hourTextColor = Colors.white,
     this.styleSelection = AppTypography.defaultPostTextStyleSelection,
-  }) : controller = null,
-       isEditable = false;
+    this.controller = null,
+    this.isEditable = false,
+    this.emptyAssetPath = null,
+    this.emptyAssetSize = 50,
+    this.emptyAssetOpacity = 0.6,
+  });
+
+  const PostCommentOverlay.empty({
+    super.key,
+    required this.hourText,
+    this.hourTextColor = Colors.white10,
+    this.emptyAssetPath = 'assets/emoji/zzz.png',
+    this.emptyAssetSize = 50,
+    this.emptyAssetOpacity = 0.6,
+    this.controller = null,
+    this.comment = null,
+    this.isEditable = false,
+    this.styleSelection = AppTypography.defaultPostTextStyleSelection,
+  });
 
   final String hourText;
   final Color hourTextColor;
@@ -26,6 +49,9 @@ class PostCommentOverlay extends StatelessWidget {
   final String? comment;
   final bool isEditable;
   final PostTextStyleSelection styleSelection;
+  final String? emptyAssetPath;
+  final double emptyAssetSize;
+  final double emptyAssetOpacity;
 
   @override
   Widget build(BuildContext context) {
@@ -45,10 +71,16 @@ class PostCommentOverlay extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: isEditable ? _buildTextField() : _buildCommentLabel(),
+          child: _buildContent(),
         ),
       ],
     );
+  }
+
+  Widget _buildContent() {
+    if (isEditable) return _buildTextField();
+    if (emptyAssetPath != null) return _buildEmptyAsset();
+    return _buildCommentLabel();
   }
 
   Widget _buildTextField() {
@@ -59,9 +91,7 @@ class PostCommentOverlay extends StatelessWidget {
       cursorColor: Colors.white,
       cursorHeight: 24,
       cursorWidth: 2,
-      style: AppTypography.postCommentOverlay(
-        selection: styleSelection,
-      ),
+      style: AppTypography.postCommentOverlay(selection: styleSelection),
       maxLines: null,
       textAlign: TextAlign.center,
       maxLength: 50,
@@ -71,6 +101,20 @@ class PostCommentOverlay extends StatelessWidget {
         border: InputBorder.none,
         isCollapsed: true,
         contentPadding: EdgeInsets.zero,
+      ),
+    );
+  }
+
+  Widget _buildEmptyAsset() {
+    return Opacity(
+      opacity: emptyAssetOpacity,
+      child: Image.asset(
+        emptyAssetPath!,
+        width: emptyAssetSize,
+        height: emptyAssetSize,
+        errorBuilder: (context, error, stackTrace) {
+          return SizedBox(width: emptyAssetSize, height: emptyAssetSize);
+        },
       ),
     );
   }

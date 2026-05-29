@@ -15,6 +15,8 @@ class MemberPostCard extends StatefulWidget {
   final double cardRadius;
   final double cardOuterMargin;
   final CachedVideoPlayerPlusController? externalVideoController;
+  final PostTextStyleSelection initialStyleSelection;
+  final ValueChanged<PostTextStyleSelection>? onStyleSelectionChanged;
   final Future<void> Function(String comment)? onSaveComment;
 
   const MemberPostCard({
@@ -25,6 +27,8 @@ class MemberPostCard extends StatefulWidget {
     this.cardRadius = 24,
     this.cardOuterMargin = 4,
     this.externalVideoController,
+    this.initialStyleSelection = AppTypography.defaultPostTextStyleSelection,
+    this.onStyleSelectionChanged,
     this.onSaveComment,
     this.post,
   });
@@ -36,14 +40,14 @@ class MemberPostCard extends StatefulWidget {
 class _MemberPostCardState extends State<MemberPostCard> {
   late final TextEditingController _commentController;
   final GlobalKey _editButtonKey = GlobalKey();
-  PostTextStyleSelection _textStyleSelection =
-      AppTypography.defaultPostTextStyleSelection;
+  late PostTextStyleSelection _textStyleSelection;
   bool _isEditingComment = false;
   bool _isSavingComment = false;
 
   @override
   void initState() {
     super.initState();
+    _textStyleSelection = widget.initialStyleSelection;
     _commentController = TextEditingController(
       text: widget.post?.comment ?? '',
     );
@@ -55,6 +59,10 @@ class _MemberPostCardState extends State<MemberPostCard> {
 
     if (!_isEditingComment && oldWidget.post?.comment != widget.post?.comment) {
       _commentController.text = widget.post?.comment ?? '';
+    }
+
+    if (oldWidget.initialStyleSelection != widget.initialStyleSelection) {
+      _textStyleSelection = widget.initialStyleSelection;
     }
   }
 
@@ -140,6 +148,7 @@ class _MemberPostCardState extends State<MemberPostCard> {
     setState(() {
       _textStyleSelection = selection;
     });
+    widget.onStyleSelectionChanged?.call(selection);
   }
 
   Future<void> _saveEditingComment() async {
@@ -178,8 +187,6 @@ class _MemberPostCardState extends State<MemberPostCard> {
   Widget build(BuildContext context) {
     final post = widget.post;
 
-    final Color timeTextColor = post == null ? Colors.white10 : Colors.white;
-
     return Container(
       width: double.infinity,
       margin: EdgeInsets.all(widget.cardOuterMargin),
@@ -210,18 +217,19 @@ class _MemberPostCardState extends State<MemberPostCard> {
               ),
             //MARK: IsEditing switch
             Positioned.fill(
-              child: _isEditingComment
-                  ? PostCommentOverlay.editable(
-                      hourText: '${widget.hourSlot}:00',
-                      controller: _commentController,
-                      styleSelection: _textStyleSelection,
-                    )
-                  : PostCommentOverlay.readOnly(
-                      hourText: '${widget.hourSlot}:00',
-                      comment: post?.comment ?? '',
-                      hourTextColor: timeTextColor,
-                      styleSelection: _textStyleSelection,
-                    ),
+              child: post != null
+                  ? (_isEditingComment
+                        ? PostCommentOverlay.editable(
+                            hourText: '${widget.hourSlot}:00',
+                            controller: _commentController,
+                            styleSelection: _textStyleSelection,
+                          )
+                        : PostCommentOverlay.readOnly(
+                            hourText: '${widget.hourSlot}:00',
+                            comment: post.comment,
+                            styleSelection: _textStyleSelection,
+                          ))
+                  : PostCommentOverlay.empty(hourText: '${widget.hourSlot}:00'),
             ),
             if (!_isEditingComment)
               Positioned(top: 15, left: 15, child: _buildProfile()),
