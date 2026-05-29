@@ -4,7 +4,6 @@ import 'package:permission_handler/permission_handler.dart';
 class PermissionSection extends StatefulWidget {
   const PermissionSection({super.key, required this.onPermissionChanged});
 
-  // 💡 부모(로그인스크린)에게 약관동의 여부와 버전을 함께 넘겨주도록 변경합니다.
   final Function(bool isAllAgreed, String version) onPermissionChanged;
 
   @override
@@ -44,34 +43,37 @@ class _PermissionSectionState extends State<PermissionSection> {
   }
 
   //MARK: Request
+  // Future<void> _requestCameraPermission() async {
+  //   if (_cameraAgreed) {
+  //     setState(() => _cameraAgreed = false);
+  //     _notify();
+  //     return;
+  //   }
+
+  //   PermissionStatus status = await Permission.camera.status;
+  //   //MARK: User Reject
+  //   if (status.isPermanentlyDenied) {
+  //     if (mounted) {
+  //       _showSettingsDialog();
+  //     }
+  //     return;
+  //   }
+
+  //   status = await Permission.camera.request();
+
+  //   if (status.isGranted) {
+  //     setState(() => _cameraAgreed = true);
+  //   } else if (status.isPermanentlyDenied || status.isRestricted) {
+  //     if (mounted) _showSettingsDialog();
+  //   }
+  //   _notify();
+  // }
+
   Future<void> _requestCameraPermission() async {
-    if (_cameraAgreed) {
-      setState(() => _cameraAgreed = false);
-      _notify();
-      return;
-    }
-
-    PermissionStatus status = await Permission.camera.status;
-    //MARK: User Reject
-    if (status.isPermanentlyDenied) {
-      if (mounted) {
-        _showSettingsDialog();
-      }
-      return;
-    }
-
-    status = await Permission.camera.request();
-
-    if (status.isGranted) {
-      setState(() => _cameraAgreed = true);
-    } else if (status.isPermanentlyDenied || status.isRestricted) {
-      if (mounted) _showSettingsDialog();
-    } else {
-      setState(() => _cameraAgreed = false);
-      if (mounted) {
-        _notify();
-      }
-    }
+    // 💡 아래 권한 로직들을 싹 주석 처리하거나 지우고, 이것만 남겨서 실행해봅니다.
+    setState(() {
+      _cameraAgreed = !_cameraAgreed;
+    });
     _notify();
   }
 
