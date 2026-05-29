@@ -10,6 +10,9 @@ class AppUser {
   final String colorId;
   final CurrentPostPreview? currentPost;
 
+  final bool hasAgreedTerms;
+  final String? termsVersion;
+
   AppUser({
     required this.id,
     required this.name,
@@ -18,6 +21,8 @@ class AppUser {
     this.colorId = AppTypography.defaultPostColorId,
     this.profileUrl,
     this.currentPost,
+    this.hasAgreedTerms = false,
+    this.termsVersion,
   });
 
   Map<String, dynamic> toMap() {
@@ -28,10 +33,13 @@ class AppUser {
       'fontId': fontId,
       'colorId': colorId,
       'currentPost': currentPost?.toMap(),
+      'termsInfo': {'hasAgreed': hasAgreedTerms, 'version': termsVersion},
     };
   }
 
   factory AppUser.fromMap(String id, Map<String, dynamic> map) {
+    final termsInfo = map['termsInfo'] as Map<String, dynamic>?;
+
     return AppUser(
       id: id,
       name: map['name'] as String? ?? '',
@@ -50,6 +58,9 @@ class AppUser {
               map['currentPost'] as Map<String, dynamic>,
             )
           : null,
+
+      hasAgreedTerms: termsInfo?['hasAgreed'] as bool? ?? false,
+      termsVersion: termsInfo?['version'] as String?,
     );
   }
 
