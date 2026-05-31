@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 class PermissionSection extends StatefulWidget {
   const PermissionSection({super.key, required this.onPermissionChanged});
@@ -69,8 +70,8 @@ class _PermissionSectionState extends State<PermissionSection> {
   //   _notify();
   // }
 
+  //MARK: 테스트용 카메라 동의로직
   Future<void> _requestCameraPermission() async {
-    // 💡 아래 권한 로직들을 싹 주석 처리하거나 지우고, 이것만 남겨서 실행해봅니다.
     setState(() {
       _cameraAgreed = !_cameraAgreed;
     });
@@ -98,6 +99,37 @@ class _PermissionSectionState extends State<PermissionSection> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showWebViewDialog({required String title, required String url}) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: InAppWebView(
+                initialUrlRequest: URLRequest(url: WebUri(url)),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('닫기', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -198,11 +230,6 @@ class _PermissionSectionState extends State<PermissionSection> {
         ),
 
         _buildAgreementRow(
-          text: "카메라 권한 동의 (필수)",
-          value: _cameraAgreed,
-          onTap: () => _requestCameraPermission(),
-        ),
-        _buildAgreementRow(
           text: "이용약관 동의 (필수)",
           value: _termsAgreed,
           onTap: () {
@@ -210,15 +237,21 @@ class _PermissionSectionState extends State<PermissionSection> {
             _notify();
           },
           onArrowPressed: () {
-            print("이용약관 상세 보기 클릭");
+            _showWebViewDialog(title: "바바밤 이용약관", url: "https://이용약관_웹_주소");
           },
         ),
         _buildAgreementRow(
           text: "개인정보 수집 및 이용동의 (필수)",
           value: _privacyAgreed,
-          onTap: () => setState(() => _privacyAgreed = !_privacyAgreed),
+          onTap: () {
+            setState(() => _privacyAgreed = !_privacyAgreed);
+            _notify(); // 💡 빠져있던 알림 추가 (체크박스 버그 수정)
+          },
           onArrowPressed: () {
-            print("개인정보 상세 보기 클릭");
+            _showWebViewDialog(
+              title: "바바밤 개인정보 보호정책",
+              url: "https://개인정보_웹_주소",
+            );
           },
         ),
       ],
