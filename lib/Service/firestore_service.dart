@@ -3,6 +3,7 @@ import 'package:bababam_app/Model/current_post_preview.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/app_user.dart';
+import 'package:bababam_app/Model/app_setting.dart';
 
 class FireStoreService {
   FireStoreService({FirebaseFirestore? firestore})
@@ -272,9 +273,7 @@ class FireStoreService {
           .doc(groupId)
           .collection('posts')
           .doc(postId)
-          .update({
-            'comment': newComment, // Firestore 문서의 comment 필드만 덮어씌움
-          });
+          .update({'comment': newComment});
       print("코멘트 수정 성공!");
     } catch (e) {
       print("코멘트 수정 에러: $e");
@@ -292,5 +291,23 @@ class FireStoreService {
         .collection('posts')
         .doc(postId)
         .delete();
+  }
+
+  //MARK: App_Setting
+  Future<AppSetting?> getAppSetting() async {
+    try {
+      final doc = await _firestore
+          .collection('app_setting')
+          .doc('terms_info')
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        return AppSetting.fromFirestore(doc.data()!);
+      }
+      return null;
+    } catch (e) {
+      print("파이어스토어에서 약관 주소 로딩 실패: $e");
+      return null;
+    }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:bababam_app/Service/firestore_service.dart';
 
 class PermissionSection extends StatefulWidget {
   const PermissionSection({super.key, required this.onPermissionChanged});
@@ -18,7 +19,23 @@ class _PermissionSectionState extends State<PermissionSection> {
 
   bool get _isAllChecked => _cameraAgreed && _termsAgreed && _privacyAgreed;
 
-  final String _currentTermsVersion = "v1.0.0";
+  String _currentTermsVersion = "v1.0.0";
+  String _usageTermsUrl = "";
+  String _privacyPolicyUrl = "";
+
+  @override
+  void initState() {
+    super.initState();
+    FireStoreService().getAppSetting().then((setting) {
+      if (setting != null && mounted) {
+        setState(() {
+          _currentTermsVersion = setting.currentVersion;
+          _usageTermsUrl = setting.usageTermsUrl;
+          _privacyPolicyUrl = setting.privacyPolicyUrl;
+        });
+      }
+    });
+  }
 
   void _notify() {
     widget.onPermissionChanged(
@@ -237,7 +254,7 @@ class _PermissionSectionState extends State<PermissionSection> {
             _notify();
           },
           onArrowPressed: () {
-            _showWebViewDialog(title: "바바밤 이용약관", url: "https://이용약관_웹_주소");
+            _showWebViewDialog(title: "바바밤 이용약관", url: _usageTermsUrl);
           },
         ),
         _buildAgreementRow(
@@ -245,13 +262,10 @@ class _PermissionSectionState extends State<PermissionSection> {
           value: _privacyAgreed,
           onTap: () {
             setState(() => _privacyAgreed = !_privacyAgreed);
-            _notify(); // 💡 빠져있던 알림 추가 (체크박스 버그 수정)
+            _notify();
           },
           onArrowPressed: () {
-            _showWebViewDialog(
-              title: "바바밤 개인정보 보호정책",
-              url: "https://개인정보_웹_주소",
-            );
+            _showWebViewDialog(title: "바바밤 개인정보 보호정책", url: _privacyPolicyUrl);
           },
         ),
       ],
