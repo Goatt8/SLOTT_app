@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 
 class PermissionSection extends StatefulWidget {
   const PermissionSection({super.key, required this.onPermissionChanged});
@@ -247,6 +248,12 @@ class _PermissionSectionState extends State<PermissionSection> {
         ),
 
         _buildAgreementRow(
+          text: "카메라 권한 동의 (필수)",
+          value: _cameraAgreed,
+          onTap: () => _requestCameraPermission(),
+        ),
+
+        _buildAgreementRow(
           text: "이용약관 동의 (필수)",
           value: _termsAgreed,
           onTap: () {
@@ -254,7 +261,11 @@ class _PermissionSectionState extends State<PermissionSection> {
             _notify();
           },
           onArrowPressed: () {
-            _showWebViewDialog(title: "바바밤 이용약관", url: _usageTermsUrl);
+            if (_usageTermsUrl.isNotEmpty) {
+              _showWebViewDialog(title: "바바밤 이용약관", url: _usageTermsUrl);
+            } else {
+              WarningSnackBar.showWarning(context, '약관을 불러오는중입니다. 다시 시도해주세요.');
+            }
           },
         ),
         _buildAgreementRow(
@@ -265,7 +276,15 @@ class _PermissionSectionState extends State<PermissionSection> {
             _notify();
           },
           onArrowPressed: () {
-            _showWebViewDialog(title: "바바밤 개인정보 보호정책", url: _privacyPolicyUrl);
+            // 2️⃣ 방어 코드: 주소가 로드되었을 때만 웹뷰 오픈
+            if (_privacyPolicyUrl.isNotEmpty) {
+              _showWebViewDialog(
+                title: "바바밤 개인정보 보호정책",
+                url: _privacyPolicyUrl,
+              );
+            } else {
+              WarningSnackBar.showWarning(context, '약관을 불러오는중입니다. 다시 시도해주세요.');
+            }
           },
         ),
       ],
