@@ -42,9 +42,7 @@ class TodayGroupVideoCacheService {
       for (final url in urls) {
         try {
           await _cacheManager.downloadFile(url);
-        } catch (_) {
-          // Ignore individual download failures. The player can still fall back.
-        }
+        } catch (_) {}
       }
     });
   }

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class PermissionSection extends StatefulWidget {
   const PermissionSection({super.key, required this.onPermissionChanged});
@@ -14,6 +13,11 @@ class PermissionSection extends StatefulWidget {
 }
 
 class _PermissionSectionState extends State<PermissionSection> {
+  static const String _defaultUsageTermsUrl =
+      'https://doc-hosting.flycricket.io/bababam-terms-of-use/807e91b4-6b11-44b7-ab31-f6a0f1bd69fc/terms';
+  static const String _defaultPrivacyPolicyUrl =
+      'https://doc-hosting.flycricket.io/bababam-privacy-policy/3af0cab3-9f97-4aa7-87fd-72c59c1dae20/privacy';
+
   bool _cameraAgreed = false;
   bool _termsAgreed = false;
   bool _privacyAgreed = false;
@@ -21,8 +25,8 @@ class _PermissionSectionState extends State<PermissionSection> {
   bool get _isAllChecked => _cameraAgreed && _termsAgreed && _privacyAgreed;
 
   String _currentTermsVersion = "v1.0.0";
-  String _usageTermsUrl = "";
-  String _privacyPolicyUrl = "";
+  String _usageTermsUrl = _defaultUsageTermsUrl;
+  String _privacyPolicyUrl = _defaultPrivacyPolicyUrl;
 
   @override
   void initState() {
@@ -31,8 +35,12 @@ class _PermissionSectionState extends State<PermissionSection> {
       if (setting != null && mounted) {
         setState(() {
           _currentTermsVersion = setting.currentVersion;
-          _usageTermsUrl = setting.usageTermsUrl;
-          _privacyPolicyUrl = setting.privacyPolicyUrl;
+          _usageTermsUrl = setting.usageTermsUrl.isNotEmpty
+              ? setting.usageTermsUrl
+              : _defaultUsageTermsUrl;
+          _privacyPolicyUrl = setting.privacyPolicyUrl.isNotEmpty
+              ? setting.privacyPolicyUrl
+              : _defaultPrivacyPolicyUrl;
         });
       }
     });
@@ -51,14 +59,16 @@ class _PermissionSectionState extends State<PermissionSection> {
     setState(() {
       _termsAgreed = targetState;
       _privacyAgreed = targetState;
-
-      if (targetState) {
-        _requestCameraPermission();
-      } else {
+      if (!targetState) {
         _cameraAgreed = false;
       }
     });
-    _notify();
+
+    if (targetState && !_cameraAgreed) {
+      _requestCameraPermission();
+    } else {
+      _notify();
+    }
   }
 
   //MARK: Request
@@ -96,31 +106,19 @@ class _PermissionSectionState extends State<PermissionSection> {
     _notify();
   }
 
-  void _showSettingsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('카메라 권한 필요'),
-        content: const Text('카메라 기능 사용을 위해 스마트폰 설정에서 카메라 권한을 허용해주세요.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              //MARK: App Setting
-              openAppSettings();
-            },
-            child: const Text('설정으로 이동'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showWebViewDialog({required String title, required String url}) {
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        !uri.hasScheme ||
+        !['http', 'https'].contains(uri.scheme)) {
+      WarningSnackBar.showWarning(context, '약관 페이지 주소가 올바르지 않습니다.');
+      return;
+    }
+
+    final controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..loadRequest(uri);
+
     showDialog(
       context: context,
       builder: (context) {
@@ -135,9 +133,7 @@ class _PermissionSectionState extends State<PermissionSection> {
             height: MediaQuery.of(context).size.height * 0.6,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: InAppWebView(
-                initialUrlRequest: URLRequest(url: WebUri(url)),
-              ),
+              child: WebViewWidget(controller: controller),
             ),
           ),
           actions: [
@@ -276,7 +272,6 @@ class _PermissionSectionState extends State<PermissionSection> {
             _notify();
           },
           onArrowPressed: () {
-            // 2️⃣ 방어 코드: 주소가 로드되었을 때만 웹뷰 오픈
             if (_privacyPolicyUrl.isNotEmpty) {
               _showWebViewDialog(
                 title: "바바밤 개인정보 보호정책",
