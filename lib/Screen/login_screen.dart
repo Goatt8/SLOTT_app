@@ -213,6 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   elevation: 0,
+                  splashFactory: InkSparkle.splashFactory,
                 ),
                 child: Text(
                   _currentPage == 2 ? "시작하기" : "다음으로",

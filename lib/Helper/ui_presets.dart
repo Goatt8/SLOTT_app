@@ -205,7 +205,7 @@ class GroupUiPreset {
 }
 
 class AppLayoutPolicy {
-  static const double previewVideoAspectRatio = 16 / 9;
+  static const double previewVideoAspectRatio = 9 / 16;
 
   static bool supportsVerticalLayout(int memberCount) {
     return memberCount == 2 ||
@@ -238,7 +238,7 @@ class AppLayoutPolicy {
         useGrid: false,
         crossAxisCount: 1,
         gridChildAspectRatio: 1,
-        videoAspectRatio: 16 / 9,
+        videoAspectRatio: 9 / 16,
         compactVerticalCards: true,
       );
     }

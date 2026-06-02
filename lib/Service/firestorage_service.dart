@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:video_compress/video_compress.dart';
 
 class FireStorageService {
   static const String simulatorTestVideoPath = 'assets/video/test_video.mp4';
@@ -70,7 +69,6 @@ class FireStorageService {
   }
 
   Future<String?> uploadVideo(String filePath) async {
-    MediaInfo? compressedInfo;
     try {
       File file = File(filePath);
       if (!file.existsSync()) {
@@ -78,27 +76,14 @@ class FireStorageService {
         return null;
       }
 
-      compressedInfo = await VideoCompress.compressVideo(
-        filePath,
-        quality: VideoQuality.MediumQuality,
-        deleteOrigin: false,
-        includeAudio: true,
-        frameRate: 30,
-      );
-
-      final String uploadPath = compressedInfo?.path ?? filePath;
-      final File uploadFile = File(uploadPath);
-      if (!uploadFile.existsSync()) {
-        debugPrint("압축 결과 파일이 없어 원본으로 업로드합니다: $filePath");
-      }
-
       String fileName =
-          "${DateTime.now().millisecondsSinceEpoch}${_fileExtension(uploadPath)}";
+          "${DateTime.now().millisecondsSinceEpoch}${_fileExtension(filePath)}";
 
       Reference ref = _storage.ref().child('temp_uploads').child(fileName);
 
       UploadTask uploadTask = ref.putFile(
-        uploadFile.existsSync() ? uploadFile : file,
+        file,
+        SettableMetadata(contentType: 'video/mp4'),
       );
 
       TaskSnapshot snapshot = await uploadTask;
@@ -106,8 +91,6 @@ class FireStorageService {
     } catch (e) {
       debugPrint("FireStorageService 업로드 에러: $e");
       return null;
-    } finally {
-      await VideoCompress.deleteAllCache();
     }
   }
 }

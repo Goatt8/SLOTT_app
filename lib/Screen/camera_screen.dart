@@ -127,7 +127,7 @@ class _CameraScreenState extends State<CameraScreen>
       _cameras = await availableCameras();
 
       if (_cameras != null && _cameras!.isNotEmpty) {
-        _controller = CameraController(_cameras![0], ResolutionPreset.veryHigh);
+        _controller = CameraController(_cameras![0], ResolutionPreset.max);
         await _controller!.initialize();
         await _controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
 
