@@ -119,10 +119,8 @@ class _GroupListScreenState extends State<GroupListScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SocialGroupScreen(
-                        group: group, // 전체 그룹 객체
-                        groupId: group.id, // 그룹의 ID 값 (String)
-                      ),
+                      builder: (context) =>
+                          SocialGroupScreen(group: group, groupId: group.id),
                     ),
                   );
                 },

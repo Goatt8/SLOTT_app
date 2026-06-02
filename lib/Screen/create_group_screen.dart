@@ -133,7 +133,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // - Button
                 _buildCounterButton(
                   icon: Icons.remove,
                   onPressed: _memberCount > 2
@@ -160,7 +159,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ),
                 ),
 
-                // + Button
                 _buildCounterButton(
                   icon: Icons.add,
                   onPressed: _memberCount < 10

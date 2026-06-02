@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Widget/post_comment_overlay.dart';
@@ -61,9 +62,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   void _sendPost() async {
     if (_isSending) return;
     if (_selectedGroupIds.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('보낼 그룹을 먼저 선택해주세요.')));
+      WarningSnackBar.showWarning(context, '보낼 그룹을 먼저 선택해주세요.');
       return;
     }
 
@@ -94,8 +93,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
       if (uploadedVideoUrl == null || uploadedVideoUrl.isEmpty) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('영상 업로드가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.')),
+        WarningSnackBar.showWarning(
+          context,
+          '영상 업로드가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.',
         );
         setState(() => _isSending = false);
         return;
@@ -120,11 +120,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
-      print("전송 실패: $e");
+      debugPrint("전송 실패: $e");
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('업로드/전송 실패: $e')));
+      WarningSnackBar.showWarning(context, '업로드/전송에 실패했습니다.');
     } finally {
       if (mounted) {
         setState(() => _isSending = false);

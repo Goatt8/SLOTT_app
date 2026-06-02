@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:bababam_app/Model/current_post_preview.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
@@ -13,16 +14,12 @@ class FireStoreService {
 
   static const String _userCollection = 'user';
   static const String _groupCollection = 'group';
-  static const String _postCollection = 'post';
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection(_userCollection);
 
   CollectionReference<Map<String, dynamic>> get _groups =>
       _firestore.collection(_groupCollection);
-
-  CollectionReference<Map<String, dynamic>> get _posts =>
-      _firestore.collection(_postCollection);
 
   // MARK: - User
   Future<void> createUser(AppUser user) async {
@@ -93,16 +90,6 @@ class FireStoreService {
 
   Future<void> clearUserCurrentPost(String userId) async {
     await updateUserCurrentPost(userId: userId, currentPost: null);
-  }
-
-  Future<void> deleteUserDoc(String userId) async {
-    try {
-      // 컬렉션 규칙에 맞춰 유저 문서 삭제
-      await _users.doc(userId).delete();
-    } catch (e) {
-      print("Firestore 유저 문서 삭제 실패: $e");
-      rethrow; // 스크린(UI)단으로 에러를 던져서 팝업을 띄울 수 있게 합니다.
-    }
   }
 
   Future<void> anonymizeDeletedUser(String userId) async {
@@ -191,24 +178,6 @@ class FireStoreService {
   }
 
   // MARK: - Post
-  Future<void> createPost(Post post) async {
-    final postRef = _posts.doc(post.id);
-    final userRef = _users.doc(post.authorId);
-
-    final batch = _firestore.batch();
-
-    batch.set(postRef, post.toMap());
-    batch.update(userRef, {
-      'currentPost': CurrentPostPreview(
-        postId: post.id,
-        videoUrl: post.videoUrl,
-        createdAt: post.createdAt,
-      ).toMap(),
-    });
-
-    await batch.commit();
-  }
-
   Future<void> uploadPost(Post post) async {
     try {
       await _firestore
@@ -217,9 +186,9 @@ class FireStoreService {
           .collection('posts')
           .add(post.toMap());
 
-      print("전송 성공: 그룹 ${post.groupId}에 포스트가 추가되었습니다.");
+      debugPrint("전송 성공: 그룹 ${post.groupId}에 포스트가 추가되었습니다.");
     } catch (e) {
-      print("전송 에러: $e");
+      debugPrint("전송 에러: $e");
       rethrow;
     }
   }
@@ -274,10 +243,7 @@ class FireStoreService {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map(
-                (doc) =>
-                    Post.fromMap(doc.id, doc.data() as Map<String, dynamic>),
-              )
+              .map((doc) => Post.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }
@@ -294,9 +260,9 @@ class FireStoreService {
           .collection('posts')
           .doc(postId)
           .update({'comment': newComment});
-      print("코멘트 수정 성공!");
+      debugPrint("코멘트 수정 성공!");
     } catch (e) {
-      print("코멘트 수정 에러: $e");
+      debugPrint("코멘트 수정 에러: $e");
       rethrow;
     }
   }
@@ -384,7 +350,7 @@ class FireStoreService {
       }
       return null;
     } catch (e) {
-      print("파이어스토어에서 약관 주소 로딩 실패: $e");
+      debugPrint("파이어스토어에서 약관 주소 로딩 실패: $e");
       return null;
     }
   }

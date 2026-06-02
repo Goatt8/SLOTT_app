@@ -6,6 +6,7 @@ import 'package:preload_page_view/preload_page_view.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Model/group.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/today_group_video_cache_service.dart';
@@ -209,9 +210,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('텍스트 수정 실패: $error')));
+      WarningSnackBar.showWarning(context, '텍스트 수정에 실패했습니다.');
       rethrow;
     }
   }

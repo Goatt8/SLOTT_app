@@ -17,7 +17,7 @@ class AuthService {
         await _auth.signInWithCredential(credential);
       },
       verificationFailed: (FirebaseAuthException e) {
-        print("인증 실패: ${e.message}");
+        debugPrint("인증 실패: ${e.message}");
       },
       codeSent: (String verificationId, int? resendToken) {
         _verificationId = verificationId;
@@ -53,7 +53,7 @@ class AuthService {
         return {"user": user, "isExistingUser": userDoc.exists};
       }
     } catch (e) {
-      print("인증 또는 Firestore 조회 오류: $e");
+      debugPrint("인증 또는 Firestore 조회 오류: $e");
     }
     return null;
   }
@@ -113,12 +113,12 @@ class AuthService {
     return null;
   }
 
-  //Mark: Logout
+  //MARK: Logout
   Future<void> signOut() async {
     try {
       await _auth.signOut();
     } catch (e) {
-      print("로그아웃 오류: $e");
+      debugPrint("로그아웃 오류: $e");
       rethrow;
     }
   }
@@ -133,7 +133,7 @@ class AuthService {
         throw Exception("로그인된 인증 정보가 없습니다.");
       }
     } catch (e) {
-      print("Firebase Auth 계정 삭제 오류: $e");
+      debugPrint("Firebase Auth 계정 삭제 오류: $e");
       rethrow;
     }
   }

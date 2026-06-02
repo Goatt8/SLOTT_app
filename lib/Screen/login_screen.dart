@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ).pushReplacementNamed('/home');
                             }
                           } catch (e) {
-                            print("Error: $e");
+                            debugPrint("회원 생성 실패: $e");
                           }
                         } else {
                           _nextPage();

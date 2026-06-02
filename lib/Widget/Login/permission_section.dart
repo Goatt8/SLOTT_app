@@ -71,34 +71,7 @@ class _PermissionSectionState extends State<PermissionSection> {
     }
   }
 
-  //MARK: Request
-  // Future<void> _requestCameraPermission() async {
-  //   if (_cameraAgreed) {
-  //     setState(() => _cameraAgreed = false);
-  //     _notify();
-  //     return;
-  //   }
-
-  //   PermissionStatus status = await Permission.camera.status;
-  //   //MARK: User Reject
-  //   if (status.isPermanentlyDenied) {
-  //     if (mounted) {
-  //       _showSettingsDialog();
-  //     }
-  //     return;
-  //   }
-
-  //   status = await Permission.camera.request();
-
-  //   if (status.isGranted) {
-  //     setState(() => _cameraAgreed = true);
-  //   } else if (status.isPermanentlyDenied || status.isRestricted) {
-  //     if (mounted) _showSettingsDialog();
-  //   }
-  //   _notify();
-  // }
-
-  //MARK: 테스트용 카메라 동의로직
+  //MARK: Camera Agreement
   Future<void> _requestCameraPermission() async {
     setState(() {
       _cameraAgreed = !_cameraAgreed;

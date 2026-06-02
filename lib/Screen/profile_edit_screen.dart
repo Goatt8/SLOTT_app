@@ -60,9 +60,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('유저 정보를 불러오지 못했습니다: $e')));
+      WarningSnackBar.showWarning(context, '유저 정보를 불러오지 못했습니다.');
     }
   }
 

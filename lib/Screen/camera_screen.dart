@@ -28,9 +28,6 @@ class _CameraScreenState extends State<CameraScreen>
   Offset? _focusPoint;
   Timer? _focusIndicatorTimer;
 
-  double _currentZoomLevel = 1.0;
-  double _maxZoomLevel = 1.0;
-
   String testVideoPath = 'assets/video/test_video.mp4';
 
   @override
@@ -51,7 +48,7 @@ class _CameraScreenState extends State<CameraScreen>
     super.dispose();
   }
 
-  Future<void> _upLoadToFirestoragAndMove(String path) async {
+  Future<void> _uploadToFireStorageAndMove(String path) async {
     final uploadFuture = _storageService.uploadVideo(path);
     _moveToPreviewScreen(
       recordedPath: path,
@@ -76,15 +73,9 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
-  Future<void> _setZoom(double zoom) async {
-    if (zoom < 1.0 || zoom > _maxZoomLevel) return;
-    await _controller!.setZoomLevel(zoom);
-    setState(() => _currentZoomLevel = zoom);
-  }
-
   Future<void> _recordVideo() async {
     if (_controller == null || !_controller!.value.isInitialized) {
-      print("컨트롤러가 없으므로 테스트 영상으로 즉시 이동합니다.");
+      debugPrint("컨트롤러가 없으므로 테스트 영상으로 즉시 이동합니다.");
       _moveToPreviewScreen(recordedPath: 'assets/video/test_video.mp4');
       return;
     }
@@ -112,10 +103,10 @@ class _CameraScreenState extends State<CameraScreen>
 
         final String finalPath = rawVideo?.path ?? testVideoPath;
 
-        _upLoadToFirestoragAndMove(finalPath);
+        _uploadToFireStorageAndMove(finalPath);
       }
     } catch (e) {
-      print("4초 자동 녹화 에러: $e");
+      debugPrint("4초 자동 녹화 에러: $e");
       _animationController.reset();
       setState(() => _isRecording = false);
     }
@@ -130,28 +121,19 @@ class _CameraScreenState extends State<CameraScreen>
         _controller = CameraController(_cameras![0], ResolutionPreset.veryHigh);
         await _controller!.initialize();
         await _controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
-        _maxZoomLevel = await _controller!.getMaxZoomLevel();
 
         if (!mounted) return;
         setState(() {
           _isInitialized = true;
         });
       } else {
-        print("카메라 리스트가 비어있음");
-        //MARK: test
-        // _moveToPreviewScreen(testVideoPath);
-
-        print("카메라 리스트가 비어있음 -> UI 점검을 위해 화면 유지");
+        debugPrint("카메라 리스트가 비어있음 -> UI 점검을 위해 화면 유지");
         setState(() {
-          _isInitialized = true; //MARK: test목적으로 true설정
+          _isInitialized = true;
         });
       }
     } catch (e) {
-      print("카메라 초기화 중 예외 발생 (시뮬레이터 예상): $e");
-      //MARK: test
-      // _moveToPreviewScreen(testVideoPath);
-
-      print("카메라 초기화 예외 발생 -> UI 점검을 위해 화면 유지: $e");
+      debugPrint("카메라 초기화 예외 발생 -> UI 점검을 위해 화면 유지: $e");
       setState(() {
         _isInitialized = true;
       });
@@ -181,7 +163,7 @@ class _CameraScreenState extends State<CameraScreen>
 
       HapticFeedback.lightImpact();
     } catch (e) {
-      print("초점 맞추기 실패: $e");
+      debugPrint("초점 맞추기 실패: $e");
     }
   }
 
