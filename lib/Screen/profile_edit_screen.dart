@@ -1,12 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:bababam_app/Model/app_user.dart';
+import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
+import 'package:bababam_app/Widget/code_input_dialog.dart';
 import 'package:bababam_app/Widget/post_text_style_picker_dialog.dart';
+import 'package:bababam_app/Widget/confirm_dialog.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final String currentUserId;
@@ -20,6 +24,7 @@ class ProfileEditScreen extends StatefulWidget {
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
   final TextEditingController _nameController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  final AuthService _authService = AuthService();
   final FireStoreService _firestoreService = FireStoreService();
   final FireStorageService _firestorageService = FireStorageService();
 
@@ -318,6 +323,135 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     }
   }
 
+  //MARK: Delete Account
+  Future<T> _runDeleteStep<T>(
+    String stepName,
+    Future<T> Function() action,
+  ) async {
+    try {
+      return await action();
+    } catch (error) {
+      debugPrint('회원탈퇴 오류[$stepName]: $error');
+      rethrow;
+    }
+  }
+
+  Future<void> _tryCleanupStep(
+    String stepName,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action();
+    } catch (error) {
+      debugPrint('회원탈퇴 정리 실패[$stepName], 계속 진행: $error');
+    }
+  }
+
+  //MARK: Re Auth For Delete
+  Future<bool> _reauthenticateForAccountDeletion() async {
+    await _authService.sendReauthCode((_) {});
+
+    if (!mounted) return false;
+
+    final smsCode = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const CodeInputDialog(
+        title: '회원탈퇴 본인 확인',
+        hintText: '인증번호 6자리',
+        confirmText: '확인',
+        prefixText: null,
+      ),
+    );
+
+    if (smsCode == null || smsCode.isEmpty) {
+      return false;
+    }
+
+    await _authService.reauthenticateWithCode(smsCode);
+    return true;
+  }
+
+  Future<void> _executeDeleteAccount() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final userId = _authService.currentUser?.uid;
+
+      if (userId == null) {
+        throw Exception("유저 정보를 찾을 수 없습니다.");
+      }
+
+      final didReauthenticate = await _runDeleteStep(
+        'Firebase Auth 재인증',
+        _reauthenticateForAccountDeletion,
+      );
+
+      if (!didReauthenticate) {
+        if (!mounted) return;
+
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final videoUrls = await _runDeleteStep(
+        '포스트 영상 URL 조회',
+        () => _firestoreService.getVideoUrlsForUserPosts(userId),
+      );
+
+      await _tryCleanupStep(
+        'Storage 영상 파일 삭제',
+        () => _firestorageService.deleteFilesByUrls(videoUrls),
+      );
+      await _tryCleanupStep(
+        'Storage 프로필 이미지 삭제',
+        () => _firestorageService.deleteProfileImage(uid: userId),
+      );
+      await _runDeleteStep(
+        'Firestore 포스트 삭제',
+        () => _firestoreService.deletePostsByUser(userId),
+      );
+      await _runDeleteStep(
+        'Firestore 유저 익명화',
+        () => _firestoreService.anonymizeDeletedUser(userId),
+      );
+      await _runDeleteStep('Firebase Auth 계정 삭제', _authService.deleteAccount);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("회원탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.")),
+      );
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } on FirebaseAuthException catch (error) {
+      debugPrint('회원탈퇴 Auth 오류: ${error.code} ${error.message}');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      WarningSnackBar.showWarning(context, '회원탈퇴 중 오류가 발생하였습니다.');
+    } catch (error) {
+      debugPrint('회원탈퇴 오류: $error');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+      WarningSnackBar.showWarning(context, '회원탈퇴 중 오류가 발생하였습니다.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -362,7 +496,22 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             width: double.infinity,
             height: 50,
             child: TextButton(
-              onPressed: () {},
+              onPressed: () async {
+                bool? isConfirmed = await showDialog<bool>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const ConfirmDialog(
+                    title: "정말 탈퇴하시겠습니까?",
+                    message: "계정 정보와 작성한 게시물이 삭제되며\n프로필은 탈퇴한 사용자로 표시됩니다.",
+                    isDangerous: true,
+                    confirmText: "탈퇴",
+                  ),
+                );
+
+                if (isConfirmed == true) {
+                  _executeDeleteAccount();
+                }
+              },
               style: TextButton.styleFrom(
                 backgroundColor: Colors.grey[900],
                 shape: RoundedRectangleBorder(
@@ -371,7 +520,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
               child: const Text(
                 "회원탈퇴",
-                style: TextStyle(color: Colors.redAccent, fontSize: 14),
+                style: TextStyle(color: Colors.redAccent),
               ),
             ),
           ),

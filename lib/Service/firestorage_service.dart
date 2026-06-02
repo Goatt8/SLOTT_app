@@ -29,6 +29,33 @@ class FireStorageService {
     }
   }
 
+  Future<void> deleteProfileImage({required String uid}) async {
+    try {
+      await _storage.ref().child('user_profile').child('$uid.jpg').delete();
+    } on FirebaseException catch (e) {
+      if (e.code != 'object-not-found') {
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> deleteFilesByUrls(Iterable<String> urls) async {
+    for (final url in urls.toSet()) {
+      if (url.isEmpty) continue;
+      if (!url.startsWith('https://') && !url.startsWith('gs://')) {
+        continue;
+      }
+
+      try {
+        await _storage.refFromURL(url).delete();
+      } on FirebaseException catch (e) {
+        if (e.code != 'object-not-found') {
+          rethrow;
+        }
+      }
+    }
+  }
+
   Future<String?> uploadVideo(String filePath) async {
     MediaInfo? compressedInfo;
     try {

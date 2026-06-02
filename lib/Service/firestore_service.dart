@@ -46,14 +46,12 @@ class FireStoreService {
     }
 
     final users = <AppUser>[];
-
     for (final userId in userIds) {
       final user = await getUser(userId);
       if (user != null) {
         users.add(user);
       }
     }
-
     return users;
   }
 
@@ -95,6 +93,28 @@ class FireStoreService {
 
   Future<void> clearUserCurrentPost(String userId) async {
     await updateUserCurrentPost(userId: userId, currentPost: null);
+  }
+
+  Future<void> deleteUserDoc(String userId) async {
+    try {
+      // 컬렉션 규칙에 맞춰 유저 문서 삭제
+      await _users.doc(userId).delete();
+    } catch (e) {
+      print("Firestore 유저 문서 삭제 실패: $e");
+      rethrow; // 스크린(UI)단으로 에러를 던져서 팝업을 띄울 수 있게 합니다.
+    }
+  }
+
+  Future<void> anonymizeDeletedUser(String userId) async {
+    await _users.doc(userId).set({
+      'name': '탈퇴한 사용자',
+      'phoneNumber': '',
+      'profileUrl': null,
+      'currentPost': null,
+      'termsInfo': {'hasAgreed': false, 'version': null},
+      'isDeleted': true,
+      'deletedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   // MARK: - Group
@@ -291,6 +311,64 @@ class FireStoreService {
         .collection('posts')
         .doc(postId)
         .delete();
+  }
+
+  Future<List<String>> getVideoUrlsForUserPosts(String userId) async {
+    final videoUrls = <String>{};
+
+    final groups = await getGroupsByUser(userId);
+    for (final group in groups) {
+      final groupPosts = await _groups
+          .doc(group.id)
+          .collection('posts')
+          .where('authorId', isEqualTo: userId)
+          .get();
+
+      for (final post in groupPosts.docs) {
+        final videoUrl = post.data()['videoUrl'] as String?;
+        if (videoUrl != null && videoUrl.isNotEmpty) {
+          videoUrls.add(videoUrl);
+        }
+      }
+    }
+
+    return videoUrls.toList();
+  }
+
+  Future<void> deletePostsByUser(String userId) async {
+    final groups = await getGroupsByUser(userId);
+    for (final group in groups) {
+      final groupPosts = await _groups
+          .doc(group.id)
+          .collection('posts')
+          .where('authorId', isEqualTo: userId)
+          .get();
+      await _deleteDocuments(groupPosts.docs);
+    }
+  }
+
+  Future<void> _deleteDocuments(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
+  ) async {
+    if (documents.isEmpty) return;
+
+    var batch = _firestore.batch();
+    var operationCount = 0;
+
+    for (final document in documents) {
+      batch.delete(document.reference);
+      operationCount++;
+
+      if (operationCount == 450) {
+        await batch.commit();
+        batch = _firestore.batch();
+        operationCount = 0;
+      }
+    }
+
+    if (operationCount > 0) {
+      await batch.commit();
+    }
   }
 
   //MARK: App_Setting

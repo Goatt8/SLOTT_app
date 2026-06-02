@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
 
 class CodeInputDialog extends StatefulWidget {
-  const CodeInputDialog({super.key});
+  final String title;
+  final String hintText;
+  final String confirmText;
+  final String? prefixText;
+
+  const CodeInputDialog({
+    super.key,
+    this.title = '그룹 참여하기',
+    this.hintText = 'abc123',
+    this.confirmText = '참여하기',
+    this.prefixText = '# ',
+  });
 
   @override
   State<CodeInputDialog> createState() => _CodeInputDialogState();
@@ -22,9 +33,9 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
       backgroundColor: const Color(0xFF1A1A1A),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: const Text(
-        '그룹 참여하기',
-        style: TextStyle(
+      title: Text(
+        widget.title,
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 19,
           fontWeight: FontWeight.bold,
@@ -48,14 +59,14 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
               autofocus: true,
               style: const TextStyle(color: Colors.white, fontSize: 16),
               cursorColor: const Color(0xFF7C3AED),
-              decoration: const InputDecoration(
-                prefixText: '# ',
-                prefixStyle: TextStyle(
+              decoration: InputDecoration(
+                prefixText: widget.prefixText,
+                prefixStyle: const TextStyle(
                   color: Color(0xFF7C3AED),
                   fontWeight: FontWeight.bold,
                 ),
-                hintText: 'abc123',
-                hintStyle: TextStyle(color: Colors.white24),
+                hintText: widget.hintText,
+                hintStyle: const TextStyle(color: Colors.white24),
                 border: InputBorder.none,
               ),
             ),
@@ -94,9 +105,9 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: const Text(
-                  '참여하기',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                child: Text(
+                  widget.confirmText,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),

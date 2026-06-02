@@ -1,11 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   User? get currentUser => _auth.currentUser;
   String? _verificationId;
+  String? _reauthVerificationId;
 
   //MARK: Send Code
   Future<void> sendCode(String phoneNumber, Function(String) onCodeSent) async {
@@ -56,6 +58,48 @@ class AuthService {
     return null;
   }
 
+  Future<void> sendReauthCode(Function(String) onCodeSent) async {
+    final phoneNumber = currentUser?.phoneNumber;
+    if (phoneNumber == null || phoneNumber.isEmpty) {
+      throw Exception("재인증할 전화번호가 없습니다.");
+    }
+
+    await _auth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await currentUser?.reauthenticateWithCredential(credential);
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        debugPrint("재인증 실패: ${e.message}");
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        _reauthVerificationId = verificationId;
+        onCodeSent(verificationId);
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        _reauthVerificationId = verificationId;
+      },
+    );
+  }
+
+  Future<void> reauthenticateWithCode(String smsCode) async {
+    if (_reauthVerificationId == null) {
+      throw Exception("재인증 정보가 없습니다.");
+    }
+
+    final credential = PhoneAuthProvider.credential(
+      verificationId: _reauthVerificationId!,
+      smsCode: smsCode,
+    );
+
+    final user = currentUser;
+    if (user == null) {
+      throw Exception("로그인된 인증 정보가 없습니다.");
+    }
+
+    await user.reauthenticateWithCredential(credential);
+  }
+
   //MARK: CurrentUser Check
   Future<Map<String, dynamic>?> checkCurrentUserStatus() async {
     User? user = currentUser;
@@ -75,6 +119,21 @@ class AuthService {
       await _auth.signOut();
     } catch (e) {
       print("로그아웃 오류: $e");
+      rethrow;
+    }
+  }
+
+  //MARK: Delete Account
+  Future<void> deleteAccount() async {
+    try {
+      User? user = currentUser;
+      if (user != null) {
+        await user.delete();
+      } else {
+        throw Exception("로그인된 인증 정보가 없습니다.");
+      }
+    } catch (e) {
+      print("Firebase Auth 계정 삭제 오류: $e");
       rethrow;
     }
   }

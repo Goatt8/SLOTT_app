@@ -3,34 +3,51 @@ import 'package:flutter/material.dart';
 class ConfirmDialog extends StatelessWidget {
   final String title;
   final String message;
+  final bool isDangerous;
+  final String confirmText;
 
-  const ConfirmDialog({super.key, required this.title, required this.message});
+  const ConfirmDialog({
+    super.key,
+    required this.title,
+    required this.message,
+    this.isDangerous = false,
+    this.confirmText = '확인',
+  });
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: const Color(0xFF1A1A1A),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 70),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 40),
       title: Text(
         title,
-        style: const TextStyle(color: Colors.white, fontSize: 18),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        textAlign: TextAlign.center,
       ),
-      content: Text(message, style: const TextStyle(color: Colors.white70)),
+      content: Text(
+        message,
+        style: const TextStyle(color: Colors.white70),
+        textAlign: TextAlign.center,
+      ),
       actionsAlignment: MainAxisAlignment.spaceEvenly,
       actions: [
-        // cancel
         TextButton(
-          onPressed: () {
-            Navigator.pop(context, false);
-          },
+          onPressed: () => Navigator.pop(context, false),
           child: const Text('취소', style: TextStyle(color: Colors.grey)),
         ),
-        // ok
         TextButton(
-          onPressed: () {
-            Navigator.pop(context, true);
-          },
-          child: const Text('확인', style: TextStyle(color: Color(0xFF7C3AED))),
+          onPressed: () => Navigator.pop(context, true),
+          child: Text(
+            confirmText,
+            style: TextStyle(
+              color: isDangerous ? Colors.redAccent : const Color(0xFF7C3AED),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
