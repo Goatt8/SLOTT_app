@@ -255,8 +255,15 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 44,
         title: Text(widget.group.title),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+        ),
         centerTitle: true,
+        titleSpacing: 0,
         actions: [_buildLayoutToggleButton()],
       ),
       body: SafeArea(
@@ -304,17 +311,23 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     final forcedDice = AppLayoutPolicy.isDiceOnlyMemberCount(memberCount);
     final usingDice = forcedDice || _useDiceLayout;
 
-    return IconButton(
-      tooltip: usingDice ? '기본 레이아웃' : '주사위 레이아웃',
-      onPressed: canToggle
-          ? () {
-              setState(() {
-                _useDiceLayout = !_useDiceLayout;
-              });
-            }
-          : null,
-      icon: Icon(
-        usingDice ? Icons.view_agenda_rounded : Icons.grid_view_rounded,
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: IconButton(
+        tooltip: usingDice ? '기본 레이아웃' : '주사위 레이아웃',
+        padding: EdgeInsets.zero,
+        onPressed: canToggle
+            ? () {
+                setState(() {
+                  _useDiceLayout = !_useDiceLayout;
+                });
+              }
+            : null,
+        icon: Icon(
+          usingDice ? Icons.view_agenda_rounded : Icons.grid_view_rounded,
+          size: 21,
+        ),
       ),
     );
   }
@@ -380,7 +393,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     required int memberCount,
   }) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
       child: Row(
         children: [
           NavigationTriangleButton(
@@ -490,34 +503,6 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     int slotCount,
     GroupUiPreset preset,
   ) {
-    final layoutSpec = preset.layoutSpec;
-    if (layoutSpec.compactVerticalCards) {
-      return ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-        children: List.generate(slotCount, (index) {
-          final hasMember = index < members.length;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: AspectRatio(
-              aspectRatio: layoutSpec.videoAspectRatio,
-              child: hasMember
-                  ? _buildMemberPostCard(
-                      user: members[index],
-                      selectedPosts: selectedPosts,
-                      selectedHour: selectedHour,
-                      preset: preset,
-                    )
-                  : _buildInviteSlotCard(
-                      slotIndex: index,
-                      selectedHour: selectedHour,
-                      preset: preset,
-                    ),
-            ),
-          );
-        }),
-      );
-    }
-
     return Column(
       children: List.generate(slotCount, (index) {
         final hasMember = index < members.length;

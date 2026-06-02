@@ -205,7 +205,8 @@ class GroupUiPreset {
 }
 
 class AppLayoutPolicy {
-  static const double previewVideoAspectRatio = 9 / 16;
+  static const double previewVideoAspectRatio = 16 / 9;
+  static const double diceVideoAspectRatio = 9 / 16;
 
   static bool supportsVerticalLayout(int memberCount) {
     return memberCount == 2 ||
@@ -238,7 +239,7 @@ class AppLayoutPolicy {
         useGrid: false,
         crossAxisCount: 1,
         gridChildAspectRatio: 1,
-        videoAspectRatio: 9 / 16,
+        videoAspectRatio: previewVideoAspectRatio,
         compactVerticalCards: true,
       );
     }
@@ -247,7 +248,7 @@ class AppLayoutPolicy {
       useGrid: false,
       crossAxisCount: 1,
       gridChildAspectRatio: 1,
-      videoAspectRatio: 9 / 16,
+      videoAspectRatio: previewVideoAspectRatio,
       compactVerticalCards: false,
     );
   }
@@ -257,8 +258,8 @@ class AppLayoutPolicy {
       return const GroupVideoLayoutSpec(
         useGrid: true,
         crossAxisCount: 2,
-        gridChildAspectRatio: 0.56,
-        videoAspectRatio: 9 / 16,
+        gridChildAspectRatio: diceVideoAspectRatio,
+        videoAspectRatio: diceVideoAspectRatio,
         compactVerticalCards: false,
         fixedSlotCount: 4,
       );
@@ -268,8 +269,8 @@ class AppLayoutPolicy {
       return const GroupVideoLayoutSpec(
         useGrid: true,
         crossAxisCount: 2,
-        gridChildAspectRatio: 0.56,
-        videoAspectRatio: 9 / 16,
+        gridChildAspectRatio: diceVideoAspectRatio,
+        videoAspectRatio: diceVideoAspectRatio,
         compactVerticalCards: false,
         fixedSlotCount: 6,
       );
@@ -279,8 +280,8 @@ class AppLayoutPolicy {
       return const GroupVideoLayoutSpec(
         useGrid: true,
         crossAxisCount: 2,
-        gridChildAspectRatio: 0.56,
-        videoAspectRatio: 9 / 16,
+        gridChildAspectRatio: diceVideoAspectRatio,
+        videoAspectRatio: diceVideoAspectRatio,
         compactVerticalCards: false,
         fixedSlotCount: 8,
       );
@@ -290,8 +291,8 @@ class AppLayoutPolicy {
       return const GroupVideoLayoutSpec(
         useGrid: true,
         crossAxisCount: 3,
-        gridChildAspectRatio: 0.56,
-        videoAspectRatio: 9 / 16,
+        gridChildAspectRatio: diceVideoAspectRatio,
+        videoAspectRatio: diceVideoAspectRatio,
         compactVerticalCards: false,
         fixedSlotCount: 9,
       );
@@ -300,8 +301,8 @@ class AppLayoutPolicy {
     return const GroupVideoLayoutSpec(
       useGrid: true,
       crossAxisCount: 3,
-      gridChildAspectRatio: 0.56,
-      videoAspectRatio: 9 / 16,
+      gridChildAspectRatio: diceVideoAspectRatio,
+      videoAspectRatio: diceVideoAspectRatio,
       compactVerticalCards: false,
       fixedSlotCount: 12,
     );
@@ -324,17 +325,16 @@ class AppLayoutPolicy {
         ? diceSpecByMemberCount(memberCount)
         : verticalSpecByMemberCount(memberCount);
 
-    final bool fillGridViewport = willUseDice && memberCount >= 6;
     final double radius = willUseDice ? 16 : 24;
 
     return GroupUiPreset(
       layoutSpec: layoutSpec,
       cardRadius: radius,
-      cardOuterMargin: willUseDice ? 0 : 4,
-      gridHorizontalPadding: 8,
-      gridVerticalPadding: 8,
-      gridSpacing: 8,
-      fillGridViewport: fillGridViewport,
+      cardOuterMargin: willUseDice ? 0 : 1,
+      gridHorizontalPadding: 2,
+      gridVerticalPadding: 2,
+      gridSpacing: 2,
+      fillGridViewport: false,
     );
   }
 }

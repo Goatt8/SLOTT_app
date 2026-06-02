@@ -56,15 +56,15 @@ class _NavigationTriangleButtonState extends State<NavigationTriangleButton> {
           : null,
       onTap: widget.enabled ? widget.onTap : null,
       child: SizedBox(
-        width: 44,
-        height: 44,
+        width: 34,
+        height: 32,
         child: Center(
           child: AnimatedScale(
             scale: _isPressed ? 1.2 : 1.0,
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeOutBack,
             child: CustomPaint(
-              size: const Size(20, 20),
+              size: const Size(16, 16),
               painter: _TriangleOutlinePainter(
                 color: lineColor,
                 isLeft: widget.isLeft,
