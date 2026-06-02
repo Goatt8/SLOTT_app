@@ -396,22 +396,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         return;
       }
 
-      final videoUrls = await _runDeleteStep(
-        '포스트 영상 URL 조회',
-        () => _firestoreService.getVideoUrlsForUserPosts(userId),
-      );
-
-      await _tryCleanupStep(
-        'Storage 영상 파일 삭제',
-        () => _firestorageService.deleteFilesByUrls(videoUrls),
-      );
       await _tryCleanupStep(
         'Storage 프로필 이미지 삭제',
         () => _firestorageService.deleteProfileImage(uid: userId),
-      );
-      await _runDeleteStep(
-        'Firestore 포스트 삭제',
-        () => _firestoreService.deletePostsByUser(userId),
       );
       await _runDeleteStep(
         'Firestore 유저 익명화',

@@ -28,8 +28,6 @@ class _CameraScreenState extends State<CameraScreen>
   Offset? _focusPoint;
   Timer? _focusIndicatorTimer;
 
-  String testVideoPath = 'assets/video/test_video.mp4';
-
   @override
   void initState() {
     super.initState();
@@ -56,6 +54,15 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
+  void _moveToSimulatorTestPreview() {
+    debugPrint("컨트롤러가 없으므로 테스트 영상 프리뷰로 이동합니다.");
+
+    _moveToPreviewScreen(
+      recordedPath: FireStorageService.simulatorTestVideoPath,
+      uploadedVideoUrlFuture: _storageService.getSimulatorTestVideoUrl(),
+    );
+  }
+
   //MARK: MoveToPreview
   void _moveToPreviewScreen({
     required String recordedPath,
@@ -75,8 +82,7 @@ class _CameraScreenState extends State<CameraScreen>
 
   Future<void> _recordVideo() async {
     if (_controller == null || !_controller!.value.isInitialized) {
-      debugPrint("컨트롤러가 없으므로 테스트 영상으로 즉시 이동합니다.");
-      _moveToPreviewScreen(recordedPath: 'assets/video/test_video.mp4');
+      _moveToSimulatorTestPreview();
       return;
     }
 
@@ -101,9 +107,12 @@ class _CameraScreenState extends State<CameraScreen>
         _animationController.reset();
         setState(() => _isRecording = false);
 
-        final String finalPath = rawVideo?.path ?? testVideoPath;
+        if (rawVideo == null) {
+          _moveToSimulatorTestPreview();
+          return;
+        }
 
-        _uploadToFireStorageAndMove(finalPath);
+        _uploadToFireStorageAndMove(rawVideo.path);
       }
     } catch (e) {
       debugPrint("4초 자동 녹화 에러: $e");

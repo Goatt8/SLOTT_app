@@ -51,6 +51,25 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     _currentHour = DateTime.now().hour;
   }
 
+  bool _isRemoteVideo(String path) {
+    return path.startsWith('http://') || path.startsWith('https://');
+  }
+
+  Future<String?> _uploadVideoForPost() async {
+    if (_isRemoteVideo(widget.videoPath)) {
+      return widget.videoPath;
+    }
+
+    if (widget.uploadedVideoUrlFuture != null) {
+      final uploadedUrl = await widget.uploadedVideoUrlFuture;
+      if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
+        return uploadedUrl;
+      }
+    }
+
+    return _fireStorageService.uploadVideo(widget.videoPath);
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -72,24 +91,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     try {
       setState(() => _isSending = true);
 
-      String? uploadedVideoUrl;
-      if (widget.uploadedVideoUrlFuture != null) {
-        uploadedVideoUrl = await widget.uploadedVideoUrlFuture;
-        if ((uploadedVideoUrl == null || uploadedVideoUrl.isEmpty) &&
-            !widget.videoPath.startsWith('http://') &&
-            !widget.videoPath.startsWith('https://')) {
-          uploadedVideoUrl = await _fireStorageService.uploadVideo(
-            widget.videoPath,
-          );
-        }
-      } else if (widget.videoPath.startsWith('http://') ||
-          widget.videoPath.startsWith('https://')) {
-        uploadedVideoUrl = widget.videoPath;
-      } else {
-        uploadedVideoUrl = await _fireStorageService.uploadVideo(
-          widget.videoPath,
-        );
-      }
+      final uploadedVideoUrl = await _uploadVideoForPost();
 
       if (uploadedVideoUrl == null || uploadedVideoUrl.isEmpty) {
         if (!mounted) return;

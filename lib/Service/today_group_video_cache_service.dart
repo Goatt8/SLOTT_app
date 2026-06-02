@@ -22,7 +22,6 @@ class TodayGroupVideoCacheService {
       await controller.dispose();
     }
     _controllerPool.clear();
-    await CachedVideoPlayerPlusController.clearAllCache();
   }
 
   void warmPosts(List<Post> posts) {
@@ -41,7 +40,8 @@ class TodayGroupVideoCacheService {
     _downloadChain = _downloadChain.then((_) async {
       for (final url in urls) {
         try {
-          await _cacheManager.downloadFile(url);
+          await _cacheManager.getFileFromCache(url) ??
+              await _cacheManager.downloadFile(url);
         } catch (_) {}
       }
     });

@@ -163,14 +163,13 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     required List<int> timelineHours,
     required int currentIndex,
   }) {
-    _videoCacheService.warmPosts(groupPosts);
-    _videoCacheService.prepareControllersForPosts(
-      _postsAroundActiveHour(
-        groupPosts: groupPosts,
-        timelineHours: timelineHours,
-        currentIndex: currentIndex,
-      ),
+    final preloadPosts = _postsAroundActiveHour(
+      groupPosts: groupPosts,
+      timelineHours: timelineHours,
+      currentIndex: currentIndex,
     );
+    _videoCacheService.warmPosts(preloadPosts);
+    _videoCacheService.prepareControllersForPosts(preloadPosts);
   }
 
   List<Post> _postsAroundActiveHour({
@@ -604,7 +603,9 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     required int selectedHour,
     required GroupUiPreset preset,
   }) {
-    final post = _findPostForUser(selectedPosts, user.id, selectedHour);
+    final post = user.isDeleted
+        ? null
+        : _findPostForUser(selectedPosts, user.id, selectedHour);
     final layoutSpec = preset.layoutSpec;
 
     return MemberPostCard(

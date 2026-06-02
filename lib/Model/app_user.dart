@@ -12,6 +12,7 @@ class AppUser {
 
   final bool hasAgreedTerms;
   final String? termsVersion;
+  final bool isDeleted;
 
   AppUser({
     required this.id,
@@ -23,6 +24,7 @@ class AppUser {
     this.currentPost,
     this.hasAgreedTerms = false,
     this.termsVersion,
+    this.isDeleted = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -34,6 +36,7 @@ class AppUser {
       'colorId': colorId,
       'currentPost': currentPost?.toMap(),
       'termsInfo': {'hasAgreed': hasAgreedTerms, 'version': termsVersion},
+      'isDeleted': isDeleted,
     };
   }
 
@@ -61,6 +64,7 @@ class AppUser {
 
       hasAgreedTerms: termsInfo?['hasAgreed'] as bool? ?? false,
       termsVersion: termsInfo?['version'] as String?,
+      isDeleted: map['isDeleted'] as bool? ?? false,
     );
   }
 

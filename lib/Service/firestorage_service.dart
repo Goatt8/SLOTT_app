@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:video_compress/video_compress.dart';
 
 class FireStorageService {
+  static const String simulatorTestVideoPath = 'assets/video/test_video.mp4';
+
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   String _fileExtension(String path) {
@@ -40,20 +43,29 @@ class FireStorageService {
     }
   }
 
-  Future<void> deleteFilesByUrls(Iterable<String> urls) async {
-    for (final url in urls.toSet()) {
-      if (url.isEmpty) continue;
-      if (!url.startsWith('https://') && !url.startsWith('gs://')) {
-        continue;
-      }
+  Future<String?> getSimulatorTestVideoUrl() async {
+    final ref = _storage.ref(simulatorTestVideoPath);
 
-      try {
-        await _storage.refFromURL(url).delete();
-      } on FirebaseException catch (e) {
-        if (e.code != 'object-not-found') {
-          rethrow;
-        }
+    try {
+      return await ref.getDownloadURL();
+    } on FirebaseException catch (e) {
+      if (e.code != 'object-not-found') {
+        debugPrint("테스트 영상 URL 조회 에러: $e");
+        return null;
       }
+    }
+
+    try {
+      final byteData = await rootBundle.load(simulatorTestVideoPath);
+      final snapshot = await ref.putData(
+        byteData.buffer.asUint8List(),
+        SettableMetadata(contentType: 'video/mp4'),
+      );
+
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      debugPrint("테스트 영상 업로드 에러: $e");
+      return null;
     }
   }
 
