@@ -72,62 +72,83 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   //MARK: Glass card
-  Widget _buildStepCard(String title, String subtitle, Widget content) {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 24),
-        child: ContainerShadow(
-          borderRadius: 32,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(32),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                    child: Container(color: Colors.transparent),
+  Widget _buildStepCard(
+    String title,
+    String subtitle,
+    Widget content, {
+    required bool isKeyboardVisible,
+  }) {
+    final cardPadding = isKeyboardVisible ? 24.0 : 32.0;
+    final contentGap = isKeyboardVisible ? 20.0 : 32.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Container(
+                margin: EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: isKeyboardVisible ? 12 : 24,
+                ),
+                child: ContainerShadow(
+                  borderRadius: 32,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(32),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                            child: Container(color: Colors.transparent),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.all(cardPadding),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              subtitle,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 15,
+                                height: 1.4,
+                              ),
+                            ),
+                            SizedBox(height: contentGap),
+                            content,
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    content,
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -211,76 +232,85 @@ class _LoginScreenState extends State<LoginScreen> {
   //MARK: Background
   @override
   Widget build(BuildContext context) {
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.8,
-              child: Image.network(
-                'https://i.pinimg.com/736x/dc/af/1d/dcaf1da24d63cefd2204ae13960536d4.jpg',
-                fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.8,
+                child: Image.network(
+                  'https://i.pinimg.com/736x/dc/af/1d/dcaf1da24d63cefd2204ae13960536d4.jpg',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-          ),
-
-          //MARK: PageView Clouum
-          SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    onPageChanged: (i) => setState(() => _currentPage = i),
-                    children: [
-                      _buildStepCard(
-                        "휴대폰 번호 인증",
-                        "인증번호를 받기 위해\n번호를 입력해주세요\n(-없이 010xxxxxxxx)",
-                        AuthSection(
-                          authService: _authService,
-                          onVerificationChanged: (result) =>
-                              _handleUserRouting(result),
+            //MARK: PageView Column
+            SafeArea(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      onPageChanged: (i) => setState(() => _currentPage = i),
+                      children: [
+                        _buildStepCard(
+                          "휴대폰 번호 인증",
+                          "인증번호를 받기 위해\n번호를 입력해주세요\n(-없이 010xxxxxxxx)",
+                          AuthSection(
+                            authService: _authService,
+                            onVerificationChanged: (result) =>
+                                _handleUserRouting(result),
+                          ),
+                          isKeyboardVisible: isKeyboardVisible,
                         ),
-                      ),
-                      _buildStepCard(
-                        "권한 동의",
-                        "원활한 이용을 위해\n다음 권한이 필요합니다",
-                        PermissionSection(
-                          onPermissionChanged: (isCompleted, version) {
-                            setState(() {
-                              _pageCompleted[1] = isCompleted;
-                              _agreedTermsVersion = version;
-                            });
-                          },
+                        _buildStepCard(
+                          "권한 동의",
+                          "원활한 이용을 위해\n다음 권한이 필요합니다",
+                          PermissionSection(
+                            onPermissionChanged: (isCompleted, version) {
+                              setState(() {
+                                _pageCompleted[1] = isCompleted;
+                                _agreedTermsVersion = version;
+                              });
+                            },
+                          ),
+                          isKeyboardVisible: isKeyboardVisible,
                         ),
-                      ),
-                      _buildStepCard(
-                        "프로필 설정",
-                        "프로필 사진과\n사용할 닉네임을 정해주세요",
-                        ProfileSection(
-                          key: _profileKey,
-                          termsVersion: _agreedTermsVersion,
-                          onProfileChanged: (isCompleted) {
-                            setState(() => _pageCompleted[2] = isCompleted);
-                          },
+                        _buildStepCard(
+                          "프로필 설정",
+                          "프로필 사진과\n사용할 닉네임을 정해주세요",
+                          ProfileSection(
+                            key: _profileKey,
+                            termsVersion: _agreedTermsVersion,
+                            onProfileChanged: (isCompleted) {
+                              setState(() => _pageCompleted[2] = isCompleted);
+                            },
+                          ),
+                          isKeyboardVisible: isKeyboardVisible,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                _buildBottomIndicator(),
-              ],
+                  if (!isKeyboardVisible) _buildBottomIndicator(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

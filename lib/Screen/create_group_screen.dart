@@ -82,6 +82,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       title: _nameController.text.isEmpty ? '새 그룹' : _nameController.text,
       memberIds: [currentUser.uid],
       ownerId: currentUser.uid,
+      memberCount: _memberCount,
     );
 
     setState(() => _isCreating = true);

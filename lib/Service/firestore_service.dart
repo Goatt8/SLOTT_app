@@ -159,6 +159,12 @@ class FireStoreService {
       throw Exception('Group not found');
     }
 
+    final group = Group.fromMap(snapshot.id, snapshot.data()!);
+    if (group.memberIds.contains(userId)) return;
+    if (group.memberIds.length >= group.memberCount) {
+      throw Exception('Group is full');
+    }
+
     await groupRef.update({
       'memberIds': FieldValue.arrayUnion([userId]),
     });

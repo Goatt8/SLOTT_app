@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_video_player_plus/cached_video_player_plus.dart';
 import 'package:preload_page_view/preload_page_view.dart';
@@ -194,6 +195,20 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     return _videoCacheService.controllerFor(post.videoUrl);
   }
 
+  void _copyInviteCode() {
+    Clipboard.setData(ClipboardData(text: widget.group.id));
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('그룹 ID를 복사했습니다.'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
   bool _canEditPost(Post post) {
     return FirebaseAuth.instance.currentUser?.uid == post.authorId;
   }
@@ -281,7 +296,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   }
 
   Widget _buildLayoutToggleButton() {
-    final memberCount = widget.group.memberIds.length;
+    final memberCount = widget.group.slotCount;
     final canToggle =
         AppLayoutPolicy.supportsVerticalLayout(memberCount) &&
         AppLayoutPolicy.supportsDiceLayout(memberCount) &&
@@ -306,10 +321,11 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
   //MARK: Group Content UI
   Widget _buildGroupContent(List<AppUser> members, List<Post> groupPosts) {
+    final slotCount = widget.group.slotCount;
     final timelineHours = _buildTimelineHours(groupPosts);
     final activeHour = _resolveActiveHour(timelineHours);
     final currentIndex = timelineHours.indexOf(activeHour);
-    final preset = _resolvePreset(members.length);
+    final preset = _resolvePreset(slotCount);
 
     _syncPageToIndex(currentIndex);
     _prepareVideos(
@@ -324,7 +340,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
           timelineHours: timelineHours,
           currentIndex: currentIndex,
           groupPosts: groupPosts,
-          memberCount: members.length,
+          memberCount: slotCount,
         ),
         Expanded(
           child: PreloadPageView.builder(
@@ -346,6 +362,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                 members: members,
                 selectedPosts: posts,
                 selectedHour: hour,
+                slotCount: slotCount,
                 preset: preset,
               );
             },
@@ -444,50 +461,25 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     required List<AppUser> members,
     required List<Post> selectedPosts,
     required int selectedHour,
+    required int slotCount,
     required GroupUiPreset preset,
   }) {
     final layoutSpec = preset.layoutSpec;
-    if (selectedPosts.isEmpty) {
-      return _buildMembersWithoutPosts(members, selectedHour);
-    }
     return layoutSpec.useGrid
-        ? _buildGridLayout(members, selectedPosts, selectedHour, preset)
-        : _buildVerticalLayout(members, selectedPosts, selectedHour, preset);
-  }
-
-  Widget _buildMembersWithoutPosts(List<AppUser> members, int targetHour) {
-    if (members.isEmpty) {
-      return const Center(
-        child: Text(
-          '아직 올라온 시간대가 없어요',
-          style: TextStyle(color: Colors.white54, fontSize: 13),
-        ),
-      );
-    }
-
-    final preset = _resolvePreset(members.length);
-    final layoutSpec = preset.layoutSpec;
-
-    if (layoutSpec.useGrid) {
-      return _buildGridLayout(members, const <Post>[], targetHour, preset);
-    }
-
-    return Column(
-      children: members
-          .map(
-            (user) => Expanded(
-              child: MemberPostCard(
-                key: ValueKey('${user.id}_$targetHour'),
-                member: user,
-                post: null,
-                hourSlot: targetHour,
-                cardRadius: preset.cardRadius,
-                cardOuterMargin: preset.cardOuterMargin,
-              ),
-            ),
+        ? _buildGridLayout(
+            members,
+            selectedPosts,
+            selectedHour,
+            slotCount,
+            preset,
           )
-          .toList(),
-    );
+        : _buildVerticalLayout(
+            members,
+            selectedPosts,
+            selectedHour,
+            slotCount,
+            preset,
+          );
   }
 
   //MARK: Vertical Layout UI
@@ -495,44 +487,87 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     List<AppUser> members,
     List<Post> selectedPosts,
     int selectedHour,
+    int slotCount,
     GroupUiPreset preset,
   ) {
     final layoutSpec = preset.layoutSpec;
     if (layoutSpec.compactVerticalCards) {
       return ListView(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-        children: members
-            .map(
-              (user) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: AspectRatio(
-                  aspectRatio: layoutSpec.videoAspectRatio,
-                  child: _buildMemberPostCard(
-                    user: user,
-                    selectedPosts: selectedPosts,
-                    selectedHour: selectedHour,
-                    preset: preset,
-                  ),
-                ),
-              ),
-            )
-            .toList(),
+        children: List.generate(slotCount, (index) {
+          final hasMember = index < members.length;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: AspectRatio(
+              aspectRatio: layoutSpec.videoAspectRatio,
+              child: hasMember
+                  ? _buildMemberPostCard(
+                      user: members[index],
+                      selectedPosts: selectedPosts,
+                      selectedHour: selectedHour,
+                      preset: preset,
+                    )
+                  : _buildInviteSlotCard(
+                      slotIndex: index,
+                      selectedHour: selectedHour,
+                      preset: preset,
+                    ),
+            ),
+          );
+        }),
       );
     }
 
     return Column(
-      children: members
-          .map(
-            (user) => Expanded(
-              child: _buildMemberPostCard(
-                user: user,
-                selectedPosts: selectedPosts,
-                selectedHour: selectedHour,
-                preset: preset,
-              ),
+      children: List.generate(slotCount, (index) {
+        final hasMember = index < members.length;
+        return Expanded(
+          child: hasMember
+              ? _buildMemberPostCard(
+                  user: members[index],
+                  selectedPosts: selectedPosts,
+                  selectedHour: selectedHour,
+                  preset: preset,
+                )
+              : _buildInviteSlotCard(
+                  slotIndex: index,
+                  selectedHour: selectedHour,
+                  preset: preset,
+                ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildInviteSlotCard({
+    required int slotIndex,
+    required int selectedHour,
+    required GroupUiPreset preset,
+  }) {
+    return Container(
+      key: ValueKey('invite_${slotIndex}_$selectedHour'),
+      margin: EdgeInsets.all(preset.cardOuterMargin),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(preset.cardRadius),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Center(
+        child: OutlinedButton(
+          onPressed: _copyInviteCode,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white70,
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+            minimumSize: Size.zero,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            textStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
-          )
-          .toList(),
+          ),
+          child: const Text('초대링크복사'),
+        ),
+      ),
     );
   }
 
@@ -541,10 +576,11 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     List<AppUser> members,
     List<Post> selectedPosts,
     int selectedHour,
+    int slotCount,
     GroupUiPreset preset,
   ) {
     final layoutSpec = preset.layoutSpec;
-    final slotCount = layoutSpec.fixedSlotCount ?? members.length;
+    final gridSlotCount = layoutSpec.fixedSlotCount ?? slotCount;
     return LayoutBuilder(
       builder: (context, constraints) {
         final horizontalPadding = preset.gridHorizontalPadding;
@@ -552,7 +588,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
         final spacing = preset.gridSpacing;
 
         final columns = layoutSpec.crossAxisCount;
-        final rows = (slotCount / columns).ceil();
+        final rows = (gridSlotCount / columns).ceil();
         final availableWidth =
             constraints.maxWidth -
             (horizontalPadding * 2) -
@@ -580,10 +616,18 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
             crossAxisSpacing: spacing,
             childAspectRatio: childAspectRatio,
           ),
-          itemCount: slotCount,
+          itemCount: gridSlotCount,
           itemBuilder: (context, index) {
-            if (index >= members.length) {
+            if (index >= slotCount) {
               return const SizedBox.shrink();
+            }
+
+            if (index >= members.length) {
+              return _buildInviteSlotCard(
+                slotIndex: index,
+                selectedHour: selectedHour,
+                preset: preset,
+              );
             }
             return _buildMemberPostCard(
               user: members[index],

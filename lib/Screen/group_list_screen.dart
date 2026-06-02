@@ -162,9 +162,12 @@ class _GroupListScreenState extends State<GroupListScreen> {
         groupId: groupId,
         userId: currentUser.uid,
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      WarningSnackBar.showWarning(context, '그룹 참여에 실패했습니다.');
+      final message = error.toString().contains('Group is full')
+          ? '그룹 정원이 가득 찼습니다.'
+          : '그룹 참여에 실패했습니다.';
+      WarningSnackBar.showWarning(context, message);
     }
   }
 
