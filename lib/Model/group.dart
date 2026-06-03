@@ -7,6 +7,7 @@ class Group {
   final String ownerId;
   final List<String> memberIds;
   final int memberCount;
+  final List<String?> slotOwnerIds;
   final List<Post>? post;
 
   Group({
@@ -15,11 +16,46 @@ class Group {
     required this.memberIds,
     required this.ownerId,
     required this.memberCount,
+    required this.slotOwnerIds,
     this.post,
   });
 
-  int get slotCount =>
-      memberCount > memberIds.length ? memberCount : memberIds.length;
+  int get slotCount {
+    var count = memberCount;
+    if (slotOwnerIds.length > count) count = slotOwnerIds.length;
+    if (memberIds.length > count) count = memberIds.length;
+    return count;
+  }
+
+  List<String?> get effectiveSlotOwnerIds {
+    return List<String?>.generate(slotCount, (index) {
+      if (index < slotOwnerIds.length && slotOwnerIds[index] != null) {
+        return slotOwnerIds[index];
+      }
+      if (index < memberIds.length) {
+        return memberIds[index];
+      }
+      return null;
+    });
+  }
+
+  Group copyWith({
+    String? title,
+    String? ownerId,
+    List<String>? memberIds,
+    int? memberCount,
+    List<String?>? slotOwnerIds,
+  }) {
+    return Group(
+      id: id,
+      title: title ?? this.title,
+      ownerId: ownerId ?? this.ownerId,
+      memberIds: memberIds ?? this.memberIds,
+      memberCount: memberCount ?? this.memberCount,
+      slotOwnerIds: slotOwnerIds ?? this.slotOwnerIds,
+      post: post,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -28,6 +64,7 @@ class Group {
       'ownerId': ownerId,
       'memberIds': memberIds,
       'memberCount': memberCount,
+      'slotOwnerIds': effectiveSlotOwnerIds,
       'createdAt': FieldValue.serverTimestamp(),
     };
   }
@@ -38,6 +75,15 @@ class Group {
         (map['memberCount'] as num?)?.toInt() ??
         (map['memberLimit'] as num?)?.toInt() ??
         memberIds.length;
+    final rawSlotOwnerIds = map['slotOwnerIds'] as List<dynamic>?;
+    final slotOwnerIds =
+        rawSlotOwnerIds
+            ?.map((value) => value == null ? null : value as String)
+            .toList() ??
+        List<String?>.generate(
+          memberCount,
+          (index) => index < memberIds.length ? memberIds[index] : null,
+        );
 
     return Group(
       id: docId,
@@ -45,6 +91,7 @@ class Group {
       ownerId: map['ownerId'] ?? '',
       memberIds: memberIds,
       memberCount: memberCount,
+      slotOwnerIds: slotOwnerIds,
     );
   }
 }

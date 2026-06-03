@@ -164,20 +164,64 @@ class FireStoreService {
     required String userId,
   }) async {
     final groupRef = _groups.doc(groupId);
-    final snapshot = await groupRef.get();
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(groupRef);
+      final data = snapshot.data();
 
-    if (!snapshot.exists) {
-      throw Exception('Group not found');
-    }
+      if (!snapshot.exists || data == null) {
+        throw Exception('Group not found');
+      }
 
-    final group = Group.fromMap(snapshot.id, snapshot.data()!);
-    if (group.memberIds.contains(userId)) return;
-    if (group.memberIds.length >= group.memberCount) {
-      throw Exception('Group is full');
-    }
+      final group = Group.fromMap(snapshot.id, data);
+      if (group.memberIds.contains(userId)) return;
 
-    await groupRef.update({
-      'memberIds': FieldValue.arrayUnion([userId]),
+      final slotOwnerIds = group.effectiveSlotOwnerIds;
+      final emptySlotIndex = slotOwnerIds.indexWhere(
+        (ownerId) => ownerId == null,
+      );
+      if (emptySlotIndex == -1) {
+        throw Exception('Group is full');
+      }
+
+      slotOwnerIds[emptySlotIndex] = userId;
+      transaction.update(groupRef, {
+        'memberIds': FieldValue.arrayUnion([userId]),
+        'slotOwnerIds': slotOwnerIds,
+      });
+    });
+  }
+
+  Future<void> claimGroupSlot({
+    required String groupId,
+    required String userId,
+    required int slotIndex,
+  }) async {
+    final groupRef = _groups.doc(groupId);
+
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(groupRef);
+      final data = snapshot.data();
+
+      if (!snapshot.exists || data == null) {
+        throw Exception('Group not found');
+      }
+
+      final group = Group.fromMap(snapshot.id, data);
+      final slotOwnerIds = group.effectiveSlotOwnerIds;
+      if (slotIndex < 0 || slotIndex >= slotOwnerIds.length) {
+        throw Exception('Invalid slot');
+      }
+
+      final currentSlotOwnerId = slotOwnerIds[slotIndex];
+      if (currentSlotOwnerId != null && currentSlotOwnerId != userId) {
+        throw Exception('Slot already occupied');
+      }
+
+      slotOwnerIds[slotIndex] = userId;
+      transaction.update(groupRef, {
+        'memberIds': FieldValue.arrayUnion([userId]),
+        'slotOwnerIds': slotOwnerIds,
+      });
     });
   }
 
@@ -185,8 +229,21 @@ class FireStoreService {
     required String groupId,
     required String userId,
   }) async {
-    await _groups.doc(groupId).update({
-      'memberIds': FieldValue.arrayRemove([userId]),
+    final groupRef = _groups.doc(groupId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(groupRef);
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) return;
+
+      final group = Group.fromMap(snapshot.id, data);
+      final slotOwnerIds = group.effectiveSlotOwnerIds
+          .map((ownerId) => ownerId == userId ? null : ownerId)
+          .toList();
+
+      transaction.update(groupRef, {
+        'memberIds': FieldValue.arrayRemove([userId]),
+        'slotOwnerIds': slotOwnerIds,
+      });
     });
   }
 
@@ -228,6 +285,25 @@ class FireStoreService {
     return Post.fromMap(snapshot.id, data);
   }
 
+  List<Post> _parsePosts(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    final posts = <Post>[];
+
+    for (final doc in snapshot.docs) {
+      try {
+        final post = Post.fromMap(doc.id, doc.data());
+        if (post.authorId.isEmpty || post.videoUrl.isEmpty) {
+          debugPrint('포스트 데이터 누락: ${doc.reference.path}');
+          continue;
+        }
+        posts.add(post);
+      } catch (error) {
+        debugPrint('포스트 파싱 실패(${doc.reference.path}): $error');
+      }
+    }
+
+    return posts;
+  }
+
   Stream<List<Post>> getPostsByHourStream({
     required String groupId,
     required String dayKey,
@@ -241,11 +317,7 @@ class FireStoreService {
         .where('hourSlot', isEqualTo: hourSlot)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Post.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+        .map(_parsePosts);
   }
 
   Stream<List<Post>> getPostsByDayStream({
@@ -258,11 +330,7 @@ class FireStoreService {
         .collection('posts')
         .where('dayKey', isEqualTo: dayKey)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Post.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+        .map(_parsePosts);
   }
 
   Future<void> updatePostComment({

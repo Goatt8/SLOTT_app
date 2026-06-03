@@ -103,22 +103,51 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
         return;
       }
 
-      for (String groupId in _selectedGroupIds) {
-        final newPost = Post(
-          id: '',
-          groupId: groupId,
-          authorId: FirebaseAuth.instance.currentUser!.uid,
-          videoUrl: uploadedVideoUrl,
-          comment: _commentController.text.trim(),
-          createdAt: now,
-          dayKey: dayKey,
-          hourSlot: now.hour,
-        );
+      final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+      final groups = await _firestoreService.getGroupsByUser(currentUserId);
+      final selectedGroups = groups.where(
+        (group) => _selectedGroupIds.contains(group.id),
+      );
+      var createdPostCount = 0;
 
-        await _firestoreService.uploadPost(newPost);
+      for (final group in selectedGroups) {
+        final slotOwnerIds = group.effectiveSlotOwnerIds;
+        final ownedSlotIndexes = <int>[];
+        for (var index = 0; index < slotOwnerIds.length; index++) {
+          if (slotOwnerIds[index] == currentUserId) {
+            ownedSlotIndexes.add(index);
+          }
+        }
+
+        if (ownedSlotIndexes.isEmpty) {
+          continue;
+        }
+
+        for (final slotIndex in ownedSlotIndexes) {
+          final newPost = Post(
+            id: '',
+            groupId: group.id,
+            authorId: currentUserId,
+            videoUrl: uploadedVideoUrl,
+            comment: _commentController.text.trim(),
+            createdAt: now,
+            dayKey: dayKey,
+            hourSlot: now.hour,
+            slotIndex: slotIndex,
+          );
+
+          await _firestoreService.uploadPost(newPost);
+          createdPostCount++;
+        }
       }
 
       if (!mounted) return;
+
+      if (createdPostCount == 0) {
+        WarningSnackBar.showWarning(context, '내가 들어간 슬롯이 있는 그룹을 선택해주세요.');
+        setState(() => _isSending = false);
+        return;
+      }
 
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {

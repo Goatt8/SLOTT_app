@@ -66,7 +66,7 @@ class PostCommentOverlay extends StatelessWidget {
           hourText,
           style: AppTypography.hourOverlay(
             color: hourTextColor,
-            fontSize: 40,
+            fontSize: 32,
           ).copyWith(height: AppTypography.postOverlayHourLineHeight),
         ),
         Padding(

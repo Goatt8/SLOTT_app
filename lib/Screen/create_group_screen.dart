@@ -85,6 +85,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       memberIds: [currentUser.uid],
       ownerId: currentUser.uid,
       memberCount: _memberCount,
+      slotOwnerIds: List<String?>.generate(
+        _memberCount,
+        (index) => index == 0 ? currentUser.uid : null,
+      ),
     );
 
     setState(() => _isCreating = true);

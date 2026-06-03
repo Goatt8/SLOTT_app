@@ -35,6 +35,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   late final PreloadPageController _pageController;
   late Stream<List<Post>> _postsStream;
   late Future<List<AppUser>> _membersFuture;
+  late Group _activeGroup;
   late int _currentHour;
   late String _todayKey;
 
@@ -52,6 +53,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
       },
     );
     _pageController = PreloadPageController();
+    _activeGroup = widget.group;
     _updateTime();
     _initData();
     _startClockTimer();
@@ -71,6 +73,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
     if (oldWidget.group.id != widget.group.id) {
       setState(() {
+        _activeGroup = widget.group;
         _selectedHourOverride = null;
         _updateTime();
         _initData();
@@ -80,7 +83,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
   //MARK: Init Data
   void _initData() {
-    _membersFuture = _firestoreService.getUsersByIds(widget.group.memberIds);
+    _membersFuture = _firestoreService.getUsersByIds(_activeGroup.memberIds);
     _postsStream = _firestoreService.getPostsByDayStream(
       groupId: widget.groupId,
       dayKey: _todayKey,
@@ -209,6 +212,37 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     );
   }
 
+  Future<void> _claimSlot(int slotIndex) async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    try {
+      await _firestoreService.claimGroupSlot(
+        groupId: widget.groupId,
+        userId: currentUserId,
+        slotIndex: slotIndex,
+      );
+
+      if (!mounted) return;
+      final slotOwnerIds = _activeGroup.effectiveSlotOwnerIds;
+      slotOwnerIds[slotIndex] = currentUserId;
+      final memberIds = _activeGroup.memberIds.contains(currentUserId)
+          ? _activeGroup.memberIds
+          : [..._activeGroup.memberIds, currentUserId];
+
+      setState(() {
+        _activeGroup = _activeGroup.copyWith(
+          memberIds: memberIds,
+          slotOwnerIds: slotOwnerIds,
+        );
+        _membersFuture = _firestoreService.getUsersByIds(memberIds);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, '빈 자리에 들어가지 못했습니다.');
+    }
+  }
+
   bool _canEditPost(Post post) {
     return FirebaseAuth.instance.currentUser?.uid == post.authorId;
   }
@@ -230,11 +264,19 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   }
 
   //MARK: Post Lookup
-  Post? _findPostForUser(List<Post> posts, String userId, int targetHour) {
+  Post? _findPostForSlot({
+    required List<Post> posts,
+    required int slotIndex,
+    required String ownerId,
+    required int targetHour,
+  }) {
     Post? targetPost;
     for (final post in posts) {
-      if (post.authorId != userId) continue;
       if (post.hourSlot != targetHour) continue;
+      final matchesSlot = post.slotIndex == slotIndex;
+      final legacyMatchesUser =
+          post.slotIndex == -1 && post.authorId == ownerId;
+      if (!matchesSlot && !legacyMatchesUser) continue;
 
       if (targetPost == null || post.createdAt.isAfter(targetPost.createdAt)) {
         targetPost = post;
@@ -274,10 +316,21 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
               return const Center(child: CircularProgressIndicator());
             }
 
+            if (memberSnapshot.hasError) {
+              debugPrint('소셜 그룹 멤버 로드 오류: ${memberSnapshot.error}');
+              return const Center(
+                child: Text(
+                  "멤버 데이터를 불러오지 못했습니다.",
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+              );
+            }
+
             return StreamBuilder<List<Post>>(
               stream: _postsStream,
               builder: (context, postSnapshot) {
                 if (postSnapshot.hasError) {
+                  debugPrint('소셜 그룹 포스트 로드 오류: ${postSnapshot.error}');
                   return const Center(
                     child: Text(
                       "데이터 로드 중 오류가 발생했습니다.",
@@ -334,7 +387,9 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
   //MARK: Group Content UI
   Widget _buildGroupContent(List<AppUser> members, List<Post> groupPosts) {
-    final slotCount = widget.group.slotCount;
+    final slotOwnerIds = _activeGroup.effectiveSlotOwnerIds;
+    final userById = {for (final member in members) member.id: member};
+    final slotCount = slotOwnerIds.length;
     final timelineHours = _buildTimelineHours(groupPosts);
     final activeHour = _resolveActiveHour(timelineHours);
     final currentIndex = timelineHours.indexOf(activeHour);
@@ -372,7 +427,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                   .where((post) => post.hourSlot == hour)
                   .toList();
               return _buildHourPage(
-                members: members,
+                slotOwnerIds: slotOwnerIds,
+                userById: userById,
                 selectedPosts: posts,
                 selectedHour: hour,
                 slotCount: slotCount,
@@ -472,7 +528,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
   //MARK: Hour Page UI
   Widget _buildHourPage({
-    required List<AppUser> members,
+    required List<String?> slotOwnerIds,
+    required Map<String, AppUser> userById,
     required List<Post> selectedPosts,
     required int selectedHour,
     required int slotCount,
@@ -481,14 +538,16 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     final layoutSpec = preset.layoutSpec;
     return layoutSpec.useGrid
         ? _buildGridLayout(
-            members,
+            slotOwnerIds,
+            userById,
             selectedPosts,
             selectedHour,
             slotCount,
             preset,
           )
         : _buildVerticalLayout(
-            members,
+            slotOwnerIds,
+            userById,
             selectedPosts,
             selectedHour,
             slotCount,
@@ -498,7 +557,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
   //MARK: Vertical Layout UI
   Widget _buildVerticalLayout(
-    List<AppUser> members,
+    List<String?> slotOwnerIds,
+    Map<String, AppUser> userById,
     List<Post> selectedPosts,
     int selectedHour,
     int slotCount,
@@ -506,11 +566,15 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   ) {
     return Column(
       children: List.generate(slotCount, (index) {
-        final hasMember = index < members.length;
+        final ownerId = index < slotOwnerIds.length
+            ? slotOwnerIds[index]
+            : null;
+        final user = ownerId == null ? null : userById[ownerId];
         return Expanded(
-          child: hasMember
+          child: user != null
               ? _buildMemberPostCard(
-                  user: members[index],
+                  user: user,
+                  slotIndex: index,
                   selectedPosts: selectedPosts,
                   selectedHour: selectedHour,
                   preset: preset,
@@ -539,19 +603,45 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Center(
-        child: OutlinedButton(
-          onPressed: _copyInviteCode,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.white70,
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-            minimumSize: Size.zero,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            textStyle: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OutlinedButton(
+              onPressed: _copyInviteCode,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white70,
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                minimumSize: Size.zero,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: const Text('초대링크복사'),
             ),
-          ),
-          child: const Text('초대링크복사'),
+            const SizedBox(width: 6),
+            FilledButton(
+              onPressed: () => _claimSlot(slotIndex),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                minimumSize: Size.zero,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: const Text('내가 들어가기'),
+            ),
+          ],
         ),
       ),
     );
@@ -559,7 +649,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
   //MARK: Grid Layout UI
   Widget _buildGridLayout(
-    List<AppUser> members,
+    List<String?> slotOwnerIds,
+    Map<String, AppUser> userById,
     List<Post> selectedPosts,
     int selectedHour,
     int slotCount,
@@ -608,7 +699,12 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
               return const SizedBox.shrink();
             }
 
-            if (index >= members.length) {
+            final ownerId = index < slotOwnerIds.length
+                ? slotOwnerIds[index]
+                : null;
+            final user = ownerId == null ? null : userById[ownerId];
+
+            if (user == null) {
               return _buildInviteSlotCard(
                 slotIndex: index,
                 selectedHour: selectedHour,
@@ -616,7 +712,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
               );
             }
             return _buildMemberPostCard(
-              user: members[index],
+              user: user,
+              slotIndex: index,
               selectedPosts: selectedPosts,
               selectedHour: selectedHour,
               preset: preset,
@@ -629,17 +726,23 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
 
   Widget _buildMemberPostCard({
     required AppUser user,
+    required int slotIndex,
     required List<Post> selectedPosts,
     required int selectedHour,
     required GroupUiPreset preset,
   }) {
     final post = user.isDeleted
         ? null
-        : _findPostForUser(selectedPosts, user.id, selectedHour);
+        : _findPostForSlot(
+            posts: selectedPosts,
+            slotIndex: slotIndex,
+            ownerId: user.id,
+            targetHour: selectedHour,
+          );
     final layoutSpec = preset.layoutSpec;
 
     return MemberPostCard(
-      key: ValueKey('${user.id}_$selectedHour'),
+      key: ValueKey('${user.id}_${slotIndex}_$selectedHour'),
       member: user,
       post: post,
       hourSlot: selectedHour,
