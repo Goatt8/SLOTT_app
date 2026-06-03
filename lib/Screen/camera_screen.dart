@@ -28,6 +28,18 @@ class _CameraScreenState extends State<CameraScreen>
   bool _isRecordTapped = false;
   bool _isSwitchingCamera = false;
   Offset? _focusPoint;
+  Offset? _exposureDragStartPoint;
+  double _exposureDragStartOffset = 0;
+  double _minExposureOffset = 0;
+  double _maxExposureOffset = 0;
+  double _currentExposureOffset = 0;
+  bool _supportsExposureOffset = false;
+  int _exposureRequestId = 0;
+  double _minZoomLevel = 1;
+  double _maxZoomLevel = 1;
+  double _currentZoomLevel = 1;
+  double _selectedLensFactor = 1;
+  int _zoomAnimationRequestId = 0;
   Timer? _focusIndicatorTimer;
 
   @override
@@ -129,10 +141,7 @@ class _CameraScreenState extends State<CameraScreen>
       _cameras = await availableCameras();
 
       if (_cameras != null && _cameras!.isNotEmpty) {
-        final backCameraIndex = _cameras!.indexWhere(
-          (camera) => camera.lensDirection == CameraLensDirection.back,
-        );
-        await _setActiveCamera(backCameraIndex == -1 ? 0 : backCameraIndex);
+        await _setActiveCamera(_defaultBackCameraIndex() ?? 0);
       } else {
         debugPrint("카메라 리스트가 비어있음 -> UI 점검을 위해 화면 유지");
         setState(() {
@@ -148,14 +157,55 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
-  Future<void> _setActiveCamera(int cameraIndex) async {
+  int? _findCameraIndex({
+    required CameraLensDirection lensDirection,
+    CameraLensType? lensType,
+  }) {
+    final cameras = _cameras;
+    if (cameras == null) return null;
+
+    final index = cameras.indexWhere((camera) {
+      final matchesDirection = camera.lensDirection == lensDirection;
+      final matchesType = lensType == null || camera.lensType == lensType;
+      return matchesDirection && matchesType;
+    });
+
+    return index == -1 ? null : index;
+  }
+
+  int? _defaultBackCameraIndex() {
+    return _findCameraIndex(
+          lensDirection: CameraLensDirection.back,
+          lensType: CameraLensType.wide,
+        ) ??
+        _findCameraIndex(lensDirection: CameraLensDirection.back);
+  }
+
+  int? _frontCameraIndex() {
+    return _findCameraIndex(lensDirection: CameraLensDirection.front);
+  }
+
+  int? _ultraWideBackCameraIndex() {
+    return _findCameraIndex(
+      lensDirection: CameraLensDirection.back,
+      lensType: CameraLensType.ultraWide,
+    );
+  }
+
+  Future<void> _setActiveCamera(
+    int cameraIndex, {
+    double? initialZoomLevel,
+    double? selectedLensFactor,
+  }) async {
     final cameras = _cameras;
     if (cameras == null || cameras.isEmpty) return;
 
     final previousController = _controller;
+    _focusIndicatorTimer?.cancel();
     if (mounted) {
       setState(() {
         _controller = null;
+        _focusPoint = null;
         _isSwitchingCamera = true;
       });
     }
@@ -169,6 +219,41 @@ class _CameraScreenState extends State<CameraScreen>
     await nextController.initialize();
     await nextController.lockCaptureOrientation(DeviceOrientation.portraitUp);
 
+    var minExposureOffset = 0.0;
+    var maxExposureOffset = 0.0;
+    var currentExposureOffset = 0.0;
+    var supportsExposureOffset = false;
+    var minZoomLevel = 1.0;
+    var maxZoomLevel = 1.0;
+    var currentZoomLevel = 1.0;
+
+    try {
+      minExposureOffset = await nextController.getMinExposureOffset();
+      maxExposureOffset = await nextController.getMaxExposureOffset();
+      supportsExposureOffset = maxExposureOffset > minExposureOffset;
+      currentExposureOffset = _currentExposureOffset
+          .clamp(minExposureOffset, maxExposureOffset)
+          .toDouble();
+      if (supportsExposureOffset) {
+        currentExposureOffset = await nextController.setExposureOffset(
+          currentExposureOffset,
+        );
+      }
+    } catch (e) {
+      debugPrint("노출 보정 초기화 실패: $e");
+    }
+
+    try {
+      minZoomLevel = await nextController.getMinZoomLevel();
+      maxZoomLevel = await nextController.getMaxZoomLevel();
+      currentZoomLevel = (initialZoomLevel ?? _currentZoomLevel)
+          .clamp(minZoomLevel, maxZoomLevel)
+          .toDouble();
+      await nextController.setZoomLevel(currentZoomLevel);
+    } catch (e) {
+      debugPrint("줌 초기화 실패: $e");
+    }
+
     if (!mounted) {
       await nextController.dispose();
       return;
@@ -179,6 +264,14 @@ class _CameraScreenState extends State<CameraScreen>
       _selectedCameraIndex = cameraIndex;
       _isInitialized = true;
       _isSwitchingCamera = false;
+      _minExposureOffset = minExposureOffset;
+      _maxExposureOffset = maxExposureOffset;
+      _currentExposureOffset = currentExposureOffset;
+      _supportsExposureOffset = supportsExposureOffset;
+      _minZoomLevel = minZoomLevel;
+      _maxZoomLevel = maxZoomLevel;
+      _currentZoomLevel = currentZoomLevel;
+      _selectedLensFactor = selectedLensFactor ?? currentZoomLevel;
     });
   }
 
@@ -194,33 +287,126 @@ class _CameraScreenState extends State<CameraScreen>
     HapticFeedback.lightImpact();
 
     final currentCamera = cameras[_selectedCameraIndex];
-    final nextLensDirection =
+    final nextCameraIndex =
         currentCamera.lensDirection == CameraLensDirection.front
-        ? CameraLensDirection.back
-        : CameraLensDirection.front;
-    final nextCameraIndex = cameras.indexWhere(
-      (camera) => camera.lensDirection == nextLensDirection,
-    );
+        ? _defaultBackCameraIndex()
+        : _frontCameraIndex();
 
     try {
-      await _setActiveCamera(
-        nextCameraIndex == -1
-            ? (_selectedCameraIndex + 1) % cameras.length
-            : nextCameraIndex,
-      );
+      await _setActiveCamera(nextCameraIndex ?? 0);
     } catch (e) {
       debugPrint("카메라 전환 실패: $e");
+      await _recoverDefaultCamera();
       if (!mounted) return;
       setState(() => _isSwitchingCamera = false);
     }
   }
 
+  Future<void> _selectLensFactor(double factor) async {
+    final defaultBackCameraIndex = _defaultBackCameraIndex();
+    final isAlreadySelectedBackLens =
+        factor == _selectedLensFactor &&
+        (factor == 0.5 || _selectedCameraIndex == defaultBackCameraIndex);
+
+    if (_isRecording || _isSwitchingCamera || isAlreadySelectedBackLens) {
+      return;
+    }
+
+    try {
+      HapticFeedback.lightImpact();
+
+      if (factor == 0.5) {
+        final ultraWideIndex = _ultraWideBackCameraIndex();
+        if (ultraWideIndex == null) return;
+        await _setActiveCamera(
+          ultraWideIndex,
+          initialZoomLevel: 1,
+          selectedLensFactor: 0.5,
+        );
+        return;
+      }
+
+      if (defaultBackCameraIndex == null) return;
+
+      if (_selectedCameraIndex != defaultBackCameraIndex) {
+        await _setActiveCamera(
+          defaultBackCameraIndex,
+          initialZoomLevel: factor,
+          selectedLensFactor: factor,
+        );
+        return;
+      }
+
+      await _animateZoomTo(factor);
+    } catch (e) {
+      debugPrint("렌즈/줌 전환 실패: $e");
+      await _recoverDefaultCamera();
+      if (!mounted) return;
+      setState(() => _isSwitchingCamera = false);
+    }
+  }
+
+  Future<void> _recoverDefaultCamera() async {
+    if (_controller != null) return;
+
+    final fallbackCameraIndex = _defaultBackCameraIndex() ?? 0;
+    try {
+      await _setActiveCamera(
+        fallbackCameraIndex,
+        initialZoomLevel: 1,
+        selectedLensFactor: 1,
+      );
+    } catch (error) {
+      debugPrint("기본 카메라 복구 실패: $error");
+    }
+  }
+
+  Future<void> _animateZoomTo(double targetZoomLevel) async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    final requestId = ++_zoomAnimationRequestId;
+    final startZoomLevel = _currentZoomLevel;
+    final endZoomLevel = targetZoomLevel
+        .clamp(_minZoomLevel, _maxZoomLevel)
+        .toDouble();
+
+    setState(() => _selectedLensFactor = targetZoomLevel);
+
+    const stepCount = 12;
+    for (var step = 1; step <= stepCount; step++) {
+      if (requestId != _zoomAnimationRequestId || !mounted) return;
+
+      final progress = step / stepCount;
+      final easedProgress = Curves.easeOutCubic.transform(progress);
+      final zoomLevel =
+          startZoomLevel + ((endZoomLevel - startZoomLevel) * easedProgress);
+
+      try {
+        await controller.setZoomLevel(zoomLevel);
+      } catch (e) {
+        debugPrint("줌 변경 실패: $e");
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() => _currentZoomLevel = zoomLevel);
+      await Future.delayed(const Duration(milliseconds: 14));
+    }
+
+    if (!mounted || requestId != _zoomAnimationRequestId) return;
+    setState(() => _currentZoomLevel = endZoomLevel);
+  }
+
   //MARK: Focus
-  Future<void> _onTapToFocus(TapUpDetails details, Size previewSize) async {
+  Future<void> _focusAt(
+    Offset localOffset,
+    Size previewSize, {
+    bool autoDismiss = true,
+  }) async {
     if (_controller == null || !_controller!.value.isInitialized) return;
 
     try {
-      final Offset localOffset = details.localPosition;
       final Offset relativeOffset = Offset(
         (localOffset.dx / previewSize.width).clamp(0.0, 1.0),
         (localOffset.dy / previewSize.height).clamp(0.0, 1.0),
@@ -230,15 +416,62 @@ class _CameraScreenState extends State<CameraScreen>
       await _controller!.setExposurePoint(relativeOffset);
       if (!mounted) return;
       setState(() => _focusPoint = localOffset);
-      _focusIndicatorTimer?.cancel();
-      _focusIndicatorTimer = Timer(const Duration(milliseconds: 800), () {
-        if (!mounted) return;
-        setState(() => _focusPoint = null);
-      });
+      if (autoDismiss) _scheduleFocusIndicatorDismiss();
 
       HapticFeedback.lightImpact();
     } catch (e) {
       debugPrint("초점 맞추기 실패: $e");
+    }
+  }
+
+  void _scheduleFocusIndicatorDismiss() {
+    _focusIndicatorTimer?.cancel();
+    _focusIndicatorTimer = Timer(const Duration(milliseconds: 900), () {
+      if (!mounted) return;
+      setState(() => _focusPoint = null);
+    });
+  }
+
+  void _onExposureDragStart(DragStartDetails details, Size previewSize) {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+
+    _focusIndicatorTimer?.cancel();
+    _exposureDragStartPoint = details.localPosition;
+    _exposureDragStartOffset = _currentExposureOffset;
+    _focusAt(details.localPosition, previewSize, autoDismiss: false);
+  }
+
+  void _onExposureDragUpdate(DragUpdateDetails details) {
+    final startPoint = _exposureDragStartPoint;
+    if (startPoint == null || !_supportsExposureOffset) return;
+
+    final deltaY = details.localPosition.dy - startPoint.dy;
+    final nextOffset = (_exposureDragStartOffset - (deltaY / 90))
+        .clamp(_minExposureOffset, _maxExposureOffset)
+        .toDouble();
+    _setExposureOffset(nextOffset);
+  }
+
+  void _onExposureDragEnd() {
+    _exposureDragStartPoint = null;
+    _scheduleFocusIndicatorDismiss();
+  }
+
+  Future<void> _setExposureOffset(double offset) async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    final requestId = ++_exposureRequestId;
+    if (mounted) {
+      setState(() => _currentExposureOffset = offset);
+    }
+
+    try {
+      final actualOffset = await controller.setExposureOffset(offset);
+      if (!mounted || requestId != _exposureRequestId) return;
+      setState(() => _currentExposureOffset = actualOffset);
+    } catch (e) {
+      debugPrint("노출 보정 실패: $e");
     }
   }
 
@@ -340,6 +573,130 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
+  Widget _buildLensSelector() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 144),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildLensTextButton(
+              label: '0.5',
+              factor: 0.5,
+              canUse: _ultraWideBackCameraIndex() != null,
+            ),
+            _buildLensTextButton(
+              label: '1',
+              factor: 1,
+              canUse: _defaultBackCameraIndex() != null,
+            ),
+            _buildLensTextButton(
+              label: '2',
+              factor: 2,
+              canUse: _defaultBackCameraIndex() != null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLensTextButton({
+    required String label,
+    required double factor,
+    required bool canUse,
+  }) {
+    final isEnabled = canUse && !_isRecording && !_isSwitchingCamera;
+    final isSelected = _selectedLensFactor == factor;
+
+    return GestureDetector(
+      onTap: isEnabled ? () => _selectLensFactor(factor) : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        constraints: const BoxConstraints(minWidth: 42),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.white.withValues(alpha: 0.14)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: !isEnabled
+                ? Colors.white.withValues(alpha: 0.25)
+                : isSelected
+                ? Colors.orangeAccent
+                : Colors.white,
+            fontSize: isSelected ? 16 : 14,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+            letterSpacing: -0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExposureIndicator() {
+    final exposureRange = _maxExposureOffset - _minExposureOffset;
+    final normalized = exposureRange <= 0
+        ? 0.5
+        : ((_currentExposureOffset - _minExposureOffset) / exposureRange)
+              .clamp(0.0, 1.0)
+              .toDouble();
+
+    return Container(
+      width: 34,
+      height: 86,
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.wb_sunny_rounded, color: Colors.white, size: 14),
+          const SizedBox(height: 5),
+          Expanded(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 2,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                Positioned(
+                  bottom: normalized * 38,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.28),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   //MARK: Screen UI
   @override
   Widget build(BuildContext context) {
@@ -372,8 +729,17 @@ class _CameraScreenState extends State<CameraScreen>
                                   _controller!.value.isInitialized)
                               ? GestureDetector(
                                   behavior: HitTestBehavior.opaque,
-                                  onTapUp: (details) =>
-                                      _onTapToFocus(details, previewSize),
+                                  onTapUp: (details) => _focusAt(
+                                    details.localPosition,
+                                    previewSize,
+                                  ),
+                                  onPanStart: (details) => _onExposureDragStart(
+                                    details,
+                                    previewSize,
+                                  ),
+                                  onPanUpdate: _onExposureDragUpdate,
+                                  onPanEnd: (_) => _onExposureDragEnd(),
+                                  onPanCancel: _onExposureDragEnd,
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(26),
                                     child: ClipRect(
@@ -477,6 +843,17 @@ class _CameraScreenState extends State<CameraScreen>
                             ),
                           ),
                         ),
+                      if (_focusPoint != null && _supportsExposureOffset)
+                        Positioned(
+                          left:
+                              (previewHorizontalPadding + _focusPoint!.dx + 42)
+                                  .clamp(12.0, constraints.maxWidth - 46)
+                                  .toDouble(),
+                          top: (previewTopPadding + _focusPoint!.dy - 43)
+                              .clamp(12.0, constraints.maxHeight - 98)
+                              .toDouble(),
+                          child: _buildExposureIndicator(),
+                        ),
                       Positioned(
                         top: 10,
                         right: 20,
@@ -496,6 +873,7 @@ class _CameraScreenState extends State<CameraScreen>
                           ),
                         ),
                       ),
+                      _buildLensSelector(),
                       _buildRecordButton(),
                       _buildSwitchCameraButton(),
                     ],
