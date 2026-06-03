@@ -624,11 +624,11 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
               child: const Text('초대링크복사'),
             ),
             const SizedBox(width: 6),
-            FilledButton(
+            OutlinedButton(
               onPressed: () => _claimSlot(slotIndex),
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white70,
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                 minimumSize: Size.zero,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,

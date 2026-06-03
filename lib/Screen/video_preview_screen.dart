@@ -25,7 +25,7 @@ class VideoPreviewScreen extends StatefulWidget {
 }
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
-  final Set<String> _selectedGroupIds = {};
+  final Map<String, Set<int>> _selectedSlotIndexesByGroupId = {};
   final FireStoreService _firestoreService = FireStoreService();
   final FireStorageService _fireStorageService = FireStorageService();
   final TextEditingController _commentController = TextEditingController();
@@ -80,8 +80,8 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   //MARK: SendPost
   void _sendPost() async {
     if (_isSending) return;
-    if (_selectedGroupIds.isEmpty) {
-      WarningSnackBar.showWarning(context, '보낼 그룹을 먼저 선택해주세요.');
+    if (_selectedSlotIndexesByGroupId.isEmpty) {
+      WarningSnackBar.showWarning(context, '보낼 슬롯을 먼저 선택해주세요.');
       return;
     }
 
@@ -106,24 +106,25 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
       final currentUserId = FirebaseAuth.instance.currentUser!.uid;
       final groups = await _firestoreService.getGroupsByUser(currentUserId);
       final selectedGroups = groups.where(
-        (group) => _selectedGroupIds.contains(group.id),
+        (group) => _selectedSlotIndexesByGroupId.containsKey(group.id),
       );
       var createdPostCount = 0;
 
       for (final group in selectedGroups) {
         final slotOwnerIds = group.effectiveSlotOwnerIds;
-        final ownedSlotIndexes = <int>[];
-        for (var index = 0; index < slotOwnerIds.length; index++) {
-          if (slotOwnerIds[index] == currentUserId) {
-            ownedSlotIndexes.add(index);
-          }
-        }
-
-        if (ownedSlotIndexes.isEmpty) {
+        final selectedSlotIndexes =
+            _selectedSlotIndexesByGroupId[group.id] ?? {};
+        if (selectedSlotIndexes.isEmpty) {
           continue;
         }
 
-        for (final slotIndex in ownedSlotIndexes) {
+        for (final slotIndex in selectedSlotIndexes) {
+          final isOwnedSlot =
+              slotIndex >= 0 &&
+              slotIndex < slotOwnerIds.length &&
+              slotOwnerIds[slotIndex] == currentUserId;
+          if (!isOwnedSlot) continue;
+
           final newPost = Post(
             id: '',
             groupId: group.id,
@@ -144,7 +145,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
       if (!mounted) return;
 
       if (createdPostCount == 0) {
-        WarningSnackBar.showWarning(context, '내가 들어간 슬롯이 있는 그룹을 선택해주세요.');
+        WarningSnackBar.showWarning(context, '내가 들어간 슬롯만 선택할 수 있습니다.');
         setState(() => _isSending = false);
         return;
       }
@@ -161,12 +162,38 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     }
   }
 
-  void _toggleGroup(String groupId) {
+  void _toggleSlot(String groupId, int slotIndex) {
     setState(() {
-      if (_selectedGroupIds.contains(groupId)) {
-        _selectedGroupIds.remove(groupId);
+      final selectedSlotIndexes =
+          _selectedSlotIndexesByGroupId[groupId] ?? <int>{};
+      if (selectedSlotIndexes.contains(slotIndex)) {
+        selectedSlotIndexes.remove(slotIndex);
       } else {
-        _selectedGroupIds.add(groupId);
+        selectedSlotIndexes.add(slotIndex);
+      }
+
+      if (selectedSlotIndexes.isEmpty) {
+        _selectedSlotIndexesByGroupId.remove(groupId);
+      } else {
+        _selectedSlotIndexesByGroupId[groupId] = selectedSlotIndexes;
+      }
+    });
+  }
+
+  void _toggleOwnedSlots(String groupId, List<int> ownedSlotIndexes) {
+    if (ownedSlotIndexes.isEmpty) return;
+
+    setState(() {
+      final selectedSlotIndexes =
+          _selectedSlotIndexesByGroupId[groupId] ?? <int>{};
+      final hasSelectedAll = ownedSlotIndexes.every(
+        selectedSlotIndexes.contains,
+      );
+
+      if (hasSelectedAll) {
+        _selectedSlotIndexesByGroupId.remove(groupId);
+      } else {
+        _selectedSlotIndexesByGroupId[groupId] = ownedSlotIndexes.toSet();
       }
     });
   }
@@ -209,25 +236,85 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
           itemCount: groups.length,
           itemBuilder: (context, index) {
             final group = groups[index];
-            final isSelected = _selectedGroupIds.contains(group.id);
+            final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+            final slotOwnerIds = group.effectiveSlotOwnerIds;
+            final ownedSlotIndexes = <int>[];
+            for (
+              var slotIndex = 0;
+              slotIndex < slotOwnerIds.length;
+              slotIndex++
+            ) {
+              if (slotOwnerIds[slotIndex] == currentUserId) {
+                ownedSlotIndexes.add(slotIndex);
+              }
+            }
+            final selectedSlotIndexes =
+                _selectedSlotIndexesByGroupId[group.id] ?? {};
+            final selectedCount = selectedSlotIndexes.length;
 
-            return ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Colors.blueGrey,
-                child: Icon(Icons.group, color: Colors.white),
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Colors.blueGrey,
+                  child: Icon(Icons.group, color: Colors.white),
+                ),
+                title: Text(
+                  group.title,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: ownedSlotIndexes.isEmpty
+                      ? const Text(
+                          '내가 들어간 슬롯이 없습니다.',
+                          style: TextStyle(color: Colors.white38, fontSize: 12),
+                        )
+                      : Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: ownedSlotIndexes.map((slotIndex) {
+                            final isSelected = selectedSlotIndexes.contains(
+                              slotIndex,
+                            );
+                            return FilterChip(
+                              label: Text('${slotIndex + 1}번 칸'),
+                              selected: isSelected,
+                              onSelected: (_) =>
+                                  _toggleSlot(group.id, slotIndex),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.06,
+                              ),
+                              selectedColor: Colors.white.withValues(
+                                alpha: 0.18,
+                              ),
+                              checkmarkColor: Colors.white,
+                              side: BorderSide(
+                                color: Colors.white.withValues(
+                                  alpha: isSelected ? 0.5 : 0.16,
+                                ),
+                              ),
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                ),
+                trailing: Text(
+                  selectedCount == 0 ? '' : '$selectedCount',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                onTap: () => _toggleOwnedSlots(group.id, ownedSlotIndexes),
               ),
-              title: Text(
-                group.title,
-                style: const TextStyle(color: Colors.white),
-              ),
-              trailing: Checkbox(
-                value: isSelected,
-                activeColor: Colors.blue,
-                checkColor: Colors.white,
-                side: const BorderSide(color: Colors.white54),
-                onChanged: (bool? value) => _toggleGroup(group.id),
-              ),
-              onTap: () => _toggleGroup(group.id),
             );
           },
         );
@@ -320,7 +407,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
             const Padding(
               padding: EdgeInsets.all(16.0),
               child: Text(
-                "보낼 로그방:",
+                "보낼 슬롯:",
                 style: TextStyle(
                   color: Colors.white70,
                   fontWeight: FontWeight.bold,
