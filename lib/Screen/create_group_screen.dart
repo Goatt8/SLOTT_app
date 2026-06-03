@@ -34,14 +34,16 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     required IconData icon,
     VoidCallback? onPressed,
   }) {
+    final accentColor = Theme.of(context).colorScheme.primary;
+
     return IconButton(
       onPressed: onPressed,
       icon: Icon(icon),
-      color: Color(0xFF7C3AED),
+      color: accentColor,
       disabledColor: Colors.white10,
       style: IconButton.styleFrom(
         side: BorderSide(
-          color: onPressed != null ? Color(0xFF7C3AED) : Colors.white10,
+          color: onPressed != null ? accentColor : Colors.white10,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -109,7 +111,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         actions: [
           //MARK: Create Complete Button
           IconButton(
-            icon: const Icon(Icons.check, color: Color(0xFF7C3AED)),
+            icon: Icon(
+              Icons.check,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             onPressed: _isCreating ? null : _showConfirmDialog,
           ),
         ],

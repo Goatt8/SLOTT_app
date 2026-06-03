@@ -35,7 +35,7 @@ class PostCommentOverlay extends StatelessWidget {
     required this.hourText,
     this.hourTextColor = Colors.white10,
     this.emptyAssetPath = 'assets/emoji/zzz.png',
-    this.emptyAssetSize = 50,
+    this.emptyAssetSize = 36,
     this.emptyAssetOpacity = 0.6,
     this.controller = null,
     this.comment = null,

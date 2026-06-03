@@ -26,7 +26,7 @@ class _NavigationTriangleButtonState extends State<NavigationTriangleButton> {
     if (!widget.enabled) {
       lineColor = Colors.white24;
     } else if (_isPressed) {
-      lineColor = const Color(0xFF7C3AED);
+      lineColor = Theme.of(context).colorScheme.primary;
     } else {
       lineColor = Colors.white54;
     }

@@ -22,6 +22,8 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = AppAccentColor.fromColorId(_selection.colorId);
+
     return Dialog(
       backgroundColor: const Color(0xD6242428),
       insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 48),
@@ -46,6 +48,7 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () => Navigator.of(context).pop(_selection),
+                  style: TextButton.styleFrom(foregroundColor: accentColor),
                   child: const Text('완료'),
                 ),
               ),
@@ -57,6 +60,8 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
   }
 
   Widget _buildFontGrid() {
+    final accentColor = AppAccentColor.fromColorId(_selection.colorId);
+
     return GridView.count(
       crossAxisCount: 4,
       crossAxisSpacing: 9,
@@ -68,6 +73,7 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
         final isSelected = _selection.fontId == preset.id;
         return _PickerTile(
           isSelected: isSelected,
+          selectedColor: accentColor,
           onTap: () {
             setState(() {
               _selection = _selection.copyWith(fontId: preset.id);
@@ -86,6 +92,8 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
   }
 
   Widget _buildColorGrid() {
+    final accentColor = AppAccentColor.fromColorId(_selection.colorId);
+
     return Wrap(
       spacing: 9,
       runSpacing: 9,
@@ -103,7 +111,7 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? const Color(0xFF6A6DFF) : Colors.white10,
+                color: isSelected ? accentColor : Colors.white10,
                 width: isSelected ? 1.4 : 1,
               ),
               gradient: preset.colors.length > 1
@@ -140,11 +148,13 @@ class _PickerTile extends StatelessWidget {
   const _PickerTile({
     required this.child,
     required this.isSelected,
+    required this.selectedColor,
     required this.onTap,
   });
 
   final Widget child;
   final bool isSelected;
+  final Color selectedColor;
   final VoidCallback onTap;
 
   @override
@@ -158,7 +168,7 @@ class _PickerTile extends StatelessWidget {
           color: const Color(0xB32B2B30),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF6A6DFF) : Colors.white10,
+            color: isSelected ? selectedColor : Colors.white10,
             width: isSelected ? 1.4 : 1,
           ),
         ),

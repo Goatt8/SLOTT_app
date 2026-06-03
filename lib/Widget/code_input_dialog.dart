@@ -29,6 +29,8 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = Theme.of(context).colorScheme.primary;
+
     return AlertDialog(
       backgroundColor: const Color(0xFF1A1A1A),
       surfaceTintColor: Colors.transparent,
@@ -58,11 +60,11 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
               controller: _codeController,
               autofocus: true,
               style: const TextStyle(color: Colors.white, fontSize: 16),
-              cursorColor: const Color(0xFF7C3AED),
+              cursorColor: accentColor,
               decoration: InputDecoration(
                 prefixText: widget.prefixText,
-                prefixStyle: const TextStyle(
-                  color: Color(0xFF7C3AED),
+                prefixStyle: TextStyle(
+                  color: accentColor,
                   fontWeight: FontWeight.bold,
                 ),
                 hintText: widget.hintText,
@@ -97,7 +99,7 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
                 onPressed: () =>
                     Navigator.of(context).pop(_codeController.text.trim()),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
+                  backgroundColor: accentColor,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(

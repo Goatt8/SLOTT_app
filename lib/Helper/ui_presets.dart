@@ -166,6 +166,20 @@ class AppTypography {
   }
 }
 
+class AppAccentColor {
+  static const Color defaultColor = Color(0xFF7C3AED);
+
+  static Color fromColorId(String? colorId) {
+    if (colorId == null ||
+        colorId == AppTypography.defaultPostColorId ||
+        colorId == 'black') {
+      return defaultColor;
+    }
+
+    return AppTypography.postColorPreset(colorId).colors.first;
+  }
+}
+
 class GroupVideoLayoutSpec {
   const GroupVideoLayoutSpec({
     required this.useGrid,

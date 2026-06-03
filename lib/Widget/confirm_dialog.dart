@@ -44,7 +44,9 @@ class ConfirmDialog extends StatelessWidget {
           child: Text(
             confirmText,
             style: TextStyle(
-              color: isDangerous ? Colors.redAccent : const Color(0xFF7C3AED),
+              color: isDangerous
+                  ? Colors.redAccent
+                  : Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
           ),

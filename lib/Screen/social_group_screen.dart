@@ -440,13 +440,14 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     final postCount = groupPosts.where((post) => post.hourSlot == hour).length;
     final isComplete = postCount == memberCount && postCount > 0;
     final isSelected = index == currentIndex;
+    final accentColor = Theme.of(context).colorScheme.primary;
 
     final Color indicatorColor;
     if (isSelected) {
-      indicatorColor = isComplete ? const Color(0xFF7C3AED) : Colors.white;
+      indicatorColor = isComplete ? accentColor : Colors.white;
     } else {
       indicatorColor = isComplete
-          ? const Color(0xFF7C3AED).withValues(alpha: 0.5)
+          ? accentColor.withValues(alpha: 0.5)
           : Colors.white24;
     }
 

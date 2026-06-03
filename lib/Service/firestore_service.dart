@@ -37,6 +37,17 @@ class FireStoreService {
     return AppUser.fromMap(snapshot.id, data);
   }
 
+  Stream<AppUser?> watchUser(String userId) {
+    return _users.doc(userId).snapshots().map((snapshot) {
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) {
+        return null;
+      }
+
+      return AppUser.fromMap(snapshot.id, data);
+    });
+  }
+
   Future<List<AppUser>> getUsersByIds(List<String> userIds) async {
     if (userIds.isEmpty) {
       return [];
