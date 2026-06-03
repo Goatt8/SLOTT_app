@@ -18,6 +18,10 @@ class VideoPlayerWidget extends StatefulWidget {
 
 class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   CachedVideoPlayerPlusController? _internalController;
+  CachedVideoPlayerPlusController? _loopGuardController;
+  VoidCallback? _loopGuardListener;
+  bool _isRestartingLoop = false;
+
   CachedVideoPlayerPlusController get _controller =>
       widget.externalController ?? _internalController!;
 
@@ -26,6 +30,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     super.initState();
     if (widget.externalController == null) {
       _initializeInternalController();
+    } else {
+      _configureController(widget.externalController!);
     }
   }
 
@@ -33,12 +39,19 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void didUpdateWidget(covariant VideoPlayerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.externalController != null && _internalController != null) {
+      _detachLoopGuard();
       _internalController?.dispose();
       _internalController = null;
     }
 
+    if (oldWidget.externalController != widget.externalController &&
+        widget.externalController != null) {
+      _configureController(widget.externalController!);
+    }
+
     if (oldWidget.videoUrl != widget.videoUrl &&
         widget.externalController == null) {
+      _detachLoopGuard();
       _internalController?.dispose();
       _internalController = null;
       _initializeInternalController();
@@ -52,6 +65,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   void dispose() {
+    _detachLoopGuard();
     _internalController?.dispose();
     super.dispose();
   }
@@ -72,14 +86,57 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       );
     }
 
-    _internalController!.initialize().then((_) {
-      if (mounted) {
-        _controller.setLooping(true);
-        _controller.play();
-        _controller.setVolume(0);
-        setState(() {});
-      }
+    final controller = _internalController!;
+    controller.initialize().then((_) async {
+      if (!mounted) return;
+      await _configureController(controller);
+      if (mounted) setState(() {});
     });
+  }
+
+  Future<void> _configureController(
+    CachedVideoPlayerPlusController controller,
+  ) async {
+    if (!controller.value.isInitialized) return;
+
+    _attachLoopGuard(controller);
+    await controller.setLooping(true);
+    await controller.setVolume(0);
+    await controller.play();
+  }
+
+  void _attachLoopGuard(CachedVideoPlayerPlusController controller) {
+    if (_loopGuardController == controller) return;
+
+    _detachLoopGuard();
+    _loopGuardController = controller;
+    _loopGuardListener = () {
+      final value = controller.value;
+      if (!value.isInitialized || value.duration == Duration.zero) return;
+      if (value.isPlaying || _isRestartingLoop) return;
+
+      final isAtEnd =
+          value.position >= value.duration - const Duration(milliseconds: 120);
+      if (!isAtEnd) return;
+
+      _isRestartingLoop = true;
+      controller
+          .seekTo(Duration.zero)
+          .then((_) => controller.play())
+          .whenComplete(() => _isRestartingLoop = false);
+    };
+    controller.addListener(_loopGuardListener!);
+  }
+
+  void _detachLoopGuard() {
+    final controller = _loopGuardController;
+    final listener = _loopGuardListener;
+    if (controller != null && listener != null) {
+      controller.removeListener(listener);
+    }
+    _loopGuardController = null;
+    _loopGuardListener = null;
+    _isRestartingLoop = false;
   }
 
   @override

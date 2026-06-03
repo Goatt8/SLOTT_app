@@ -22,9 +22,11 @@ class _CameraScreenState extends State<CameraScreen>
   late AnimationController _animationController;
   CameraController? _controller;
   List<CameraDescription>? _cameras;
+  int _selectedCameraIndex = 0;
   bool _isInitialized = false;
   bool _isRecording = false;
   bool _isRecordTapped = false;
+  bool _isSwitchingCamera = false;
   Offset? _focusPoint;
   Timer? _focusIndicatorTimer;
 
@@ -127,14 +129,10 @@ class _CameraScreenState extends State<CameraScreen>
       _cameras = await availableCameras();
 
       if (_cameras != null && _cameras!.isNotEmpty) {
-        _controller = CameraController(_cameras![0], ResolutionPreset.max);
-        await _controller!.initialize();
-        await _controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
-
-        if (!mounted) return;
-        setState(() {
-          _isInitialized = true;
-        });
+        final backCameraIndex = _cameras!.indexWhere(
+          (camera) => camera.lensDirection == CameraLensDirection.back,
+        );
+        await _setActiveCamera(backCameraIndex == -1 ? 0 : backCameraIndex);
       } else {
         debugPrint("카메라 리스트가 비어있음 -> UI 점검을 위해 화면 유지");
         setState(() {
@@ -145,7 +143,75 @@ class _CameraScreenState extends State<CameraScreen>
       debugPrint("카메라 초기화 예외 발생 -> UI 점검을 위해 화면 유지: $e");
       setState(() {
         _isInitialized = true;
+        _isSwitchingCamera = false;
       });
+    }
+  }
+
+  Future<void> _setActiveCamera(int cameraIndex) async {
+    final cameras = _cameras;
+    if (cameras == null || cameras.isEmpty) return;
+
+    final previousController = _controller;
+    if (mounted) {
+      setState(() {
+        _controller = null;
+        _isSwitchingCamera = true;
+      });
+    }
+
+    await previousController?.dispose();
+
+    final nextController = CameraController(
+      cameras[cameraIndex],
+      ResolutionPreset.veryHigh,
+    );
+    await nextController.initialize();
+    await nextController.lockCaptureOrientation(DeviceOrientation.portraitUp);
+
+    if (!mounted) {
+      await nextController.dispose();
+      return;
+    }
+
+    setState(() {
+      _controller = nextController;
+      _selectedCameraIndex = cameraIndex;
+      _isInitialized = true;
+      _isSwitchingCamera = false;
+    });
+  }
+
+  Future<void> _switchCamera() async {
+    final cameras = _cameras;
+    if (_isRecording ||
+        _isSwitchingCamera ||
+        cameras == null ||
+        cameras.length < 2) {
+      return;
+    }
+
+    HapticFeedback.lightImpact();
+
+    final currentCamera = cameras[_selectedCameraIndex];
+    final nextLensDirection =
+        currentCamera.lensDirection == CameraLensDirection.front
+        ? CameraLensDirection.back
+        : CameraLensDirection.front;
+    final nextCameraIndex = cameras.indexWhere(
+      (camera) => camera.lensDirection == nextLensDirection,
+    );
+
+    try {
+      await _setActiveCamera(
+        nextCameraIndex == -1
+            ? (_selectedCameraIndex + 1) % cameras.length
+            : nextCameraIndex,
+      );
+    } catch (e) {
+      debugPrint("카메라 전환 실패: $e");
+      if (!mounted) return;
+      setState(() => _isSwitchingCamera = false);
     }
   }
 
@@ -239,6 +305,41 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
+  Widget _buildSwitchCameraButton() {
+    final canSwitch =
+        (_cameras?.length ?? 0) > 1 && !_isRecording && !_isSwitchingCamera;
+
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 34, bottom: 58),
+        child: Opacity(
+          opacity: canSwitch ? 1 : 0.35,
+          child: GestureDetector(
+            onTap: canSwitch ? _switchCamera : null,
+            child: Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.28),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.22),
+                  width: 1.2,
+                ),
+              ),
+              child: const Icon(
+                Icons.cameraswitch_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   //MARK: Screen UI
   @override
   Widget build(BuildContext context) {
@@ -306,10 +407,12 @@ class _CameraScreenState extends State<CameraScreen>
                                 )
                               : Container(
                                   color: const Color(0xFF2C2C2C),
-                                  child: const Center(
+                                  child: Center(
                                     child: Text(
-                                      "시뮬레이터: 카메라 없음",
-                                      style: TextStyle(
+                                      _isSwitchingCamera
+                                          ? "카메라 전환 중"
+                                          : "시뮬레이터: 카메라 없음",
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 16,
                                       ),
@@ -394,6 +497,7 @@ class _CameraScreenState extends State<CameraScreen>
                         ),
                       ),
                       _buildRecordButton(),
+                      _buildSwitchCameraButton(),
                     ],
                   );
                 },

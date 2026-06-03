@@ -39,6 +39,10 @@ class Group {
     });
   }
 
+  int get occupiedSlotCount {
+    return effectiveSlotOwnerIds.where((ownerId) => ownerId != null).length;
+  }
+
   Group copyWith({
     String? title,
     String? ownerId,

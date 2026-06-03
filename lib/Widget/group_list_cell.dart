@@ -37,7 +37,7 @@ class GroupListCell extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '${group.memberIds.length}/${group.memberCount}명',
+              '${group.occupiedSlotCount}/${group.memberCount}명',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],

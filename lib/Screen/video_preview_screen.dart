@@ -85,6 +85,10 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
       return;
     }
 
+    final selectedSlotIndexesByGroupId = {
+      for (final entry in _selectedSlotIndexesByGroupId.entries)
+        entry.key: Set<int>.from(entry.value),
+    };
     final now = DateTime.now();
     final String dayKey = _generateDayKey(now);
 
@@ -105,15 +109,20 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
       final currentUserId = FirebaseAuth.instance.currentUser!.uid;
       final groups = await _firestoreService.getGroupsByUser(currentUserId);
-      final selectedGroups = groups.where(
-        (group) => _selectedSlotIndexesByGroupId.containsKey(group.id),
-      );
+      final groupsById = {for (final group in groups) group.id: group};
       var createdPostCount = 0;
+      var failedPostCount = 0;
 
-      for (final group in selectedGroups) {
+      for (final entry in selectedSlotIndexesByGroupId.entries) {
+        final group = groupsById[entry.key];
+        if (group == null) {
+          debugPrint('전송 실패: 선택한 그룹을 찾을 수 없습니다. groupId=${entry.key}');
+          failedPostCount++;
+          continue;
+        }
+
         final slotOwnerIds = group.effectiveSlotOwnerIds;
-        final selectedSlotIndexes =
-            _selectedSlotIndexesByGroupId[group.id] ?? {};
+        final selectedSlotIndexes = entry.value.toList()..sort();
         if (selectedSlotIndexes.isEmpty) {
           continue;
         }
@@ -123,7 +132,13 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
               slotIndex >= 0 &&
               slotIndex < slotOwnerIds.length &&
               slotOwnerIds[slotIndex] == currentUserId;
-          if (!isOwnedSlot) continue;
+          if (!isOwnedSlot) {
+            debugPrint(
+              '전송 실패: 내가 소유한 슬롯이 아닙니다. groupId=${group.id}, slotIndex=$slotIndex',
+            );
+            failedPostCount++;
+            continue;
+          }
 
           final newPost = Post(
             id: '',
@@ -137,17 +152,28 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
             slotIndex: slotIndex,
           );
 
-          await _firestoreService.uploadPost(newPost);
-          createdPostCount++;
+          try {
+            await _firestoreService.uploadPost(newPost);
+            createdPostCount++;
+          } catch (error) {
+            debugPrint(
+              '전송 실패: groupId=${group.id}, slotIndex=$slotIndex, error=$error',
+            );
+            failedPostCount++;
+          }
         }
       }
 
       if (!mounted) return;
 
       if (createdPostCount == 0) {
-        WarningSnackBar.showWarning(context, '내가 들어간 슬롯만 선택할 수 있습니다.');
+        WarningSnackBar.showWarning(context, '선택한 슬롯에 전송하지 못했습니다.');
         setState(() => _isSending = false);
         return;
+      }
+
+      if (failedPostCount > 0) {
+        debugPrint('일부 슬롯 전송 실패: $failedPostCount개');
       }
 
       Navigator.of(context).popUntil((route) => route.isFirst);
