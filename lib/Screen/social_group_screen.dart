@@ -269,19 +269,31 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     required int slotIndex,
     required String ownerId,
     required int targetHour,
+    required bool allowLegacyUserFallback,
   }) {
     Post? targetPost;
     for (final post in posts) {
       if (post.hourSlot != targetHour) continue;
-      final matchesSlot = post.slotIndex == slotIndex;
-      final legacyMatchesUser =
-          post.slotIndex == -1 && post.authorId == ownerId;
-      if (!matchesSlot && !legacyMatchesUser) continue;
+      if (post.slotIndex != slotIndex) continue;
 
       if (targetPost == null || post.createdAt.isAfter(targetPost.createdAt)) {
         targetPost = post;
       }
     }
+
+    if (targetPost != null || !allowLegacyUserFallback) {
+      return targetPost;
+    }
+
+    for (final post in posts) {
+      if (post.hourSlot != targetHour) continue;
+      if (post.slotIndex != -1 || post.authorId != ownerId) continue;
+
+      if (targetPost == null || post.createdAt.isAfter(targetPost.createdAt)) {
+        targetPost = post;
+      }
+    }
+
     return targetPost;
   }
 
@@ -738,6 +750,11 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
             slotIndex: slotIndex,
             ownerId: user.id,
             targetHour: selectedHour,
+            allowLegacyUserFallback:
+                _activeGroup.effectiveSlotOwnerIds
+                    .where((ownerId) => ownerId == user.id)
+                    .length ==
+                1,
           );
     final layoutSpec = preset.layoutSpec;
 

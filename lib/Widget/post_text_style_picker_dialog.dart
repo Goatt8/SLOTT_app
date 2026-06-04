@@ -12,6 +12,8 @@ class PostTextStylePickerDialog extends StatefulWidget {
 }
 
 class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
+  static const double _fontTileLabelSize = 14;
+
   late PostTextStyleSelection _selection;
 
   @override
@@ -84,11 +86,14 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
             });
           },
           child: Text(
-            'Gg',
+            preset.label,
             style: AppTypography.postCommentOverlay(
               selection: _selection.copyWith(fontId: preset.id),
-              fontSize: 23,
+              fontSize: _fontTileLabelSize,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
           ),
         );
       }).toList(),
@@ -153,7 +158,7 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
             preset.label,
             style: AppTypography.hourOverlay(
               fontId: preset.id,
-              fontSize: 18,
+              fontSize: _fontTileLabelSize,
               color: Colors.white,
             ),
             maxLines: 1,

@@ -6,11 +6,13 @@ class PostFontPreset {
     required this.id,
     required this.label,
     required this.fontFamily,
+    this.fontSizeScale = 1,
   });
 
   final String id;
   final String label;
   final String fontFamily;
+  final double fontSizeScale;
 }
 
 class HourFontPreset {
@@ -18,11 +20,13 @@ class HourFontPreset {
     required this.id,
     required this.label,
     required this.fontFamily,
+    this.fontSizeScale = 1,
   });
 
   final String id;
   final String label;
   final String fontFamily;
+  final double fontSizeScale;
 }
 
 class PostColorPreset {
@@ -68,9 +72,9 @@ class PostTextStyleSelection {
 }
 
 class AppTypography {
-  static const String defaultPostFontId = 'Noto Sans KR';
+  static const String defaultPostFontId = 'doHyeon';
   static const String defaultPostColorId = 'white';
-  static const String defaultHourFontId = 'inter';
+  static const String defaultHourFontId = 'doHyeon';
   static const double defaultHourFontSize = 32;
   static const double defaultHourLineHeight = 0.95;
   static const Color defaultHourActiveColor = Colors.white;
@@ -83,37 +87,64 @@ class AppTypography {
       );
 
   static const List<PostFontPreset> postFontPresets = [
+    PostFontPreset(id: 'doHyeon', label: 'basic', fontFamily: 'Do Hyeon'),
     PostFontPreset(
-      id: 'notosans',
-      label: 'Noto Sans',
-      fontFamily: 'Noto Sans KR',
-    ),
-    PostFontPreset(
-      id: 'londrina',
-      label: 'Londrina',
-      fontFamily: 'Londrina Solid',
-    ),
-    PostFontPreset(id: 'fredoka', label: 'Fredoka', fontFamily: 'Fredoka'),
-    PostFontPreset(id: 'gugi', label: 'Gugi', fontFamily: 'Gugi'),
-    PostFontPreset(id: 'bagel', label: 'Bagel', fontFamily: 'Bagel Fat One'),
-    PostFontPreset(id: 'gaegu', label: 'Gaegu', fontFamily: 'Gaegu'),
-    PostFontPreset(id: 'press', label: 'Pixel', fontFamily: 'Press Start 2P'),
-    PostFontPreset(
-      id: 'blackhan',
-      label: 'Black Han',
+      id: 'blacHanSans',
+      label: 'bold',
       fontFamily: 'Black Han Sans',
+    ),
+    PostFontPreset(
+      id: 'bagelfatOne',
+      label: 'bagel',
+      fontFamily: 'Bagel Fat One',
+    ),
+    PostFontPreset(
+      id: 'nanumPenScript',
+      label: 'hand',
+      fontFamily: 'Nanum Pen Script',
+      fontSizeScale: 1.22,
+    ),
+    PostFontPreset(
+      id: 'silkscreen',
+      label: 'Pixel',
+      fontFamily: 'Silkscreen',
+      fontSizeScale: 0.78,
+    ),
+    PostFontPreset(id: 'blackOpsOne', label: 'SF', fontFamily: 'Black Ops One'),
+    PostFontPreset(
+      id: 'noto serif kr',
+      label: 'city',
+      fontFamily: 'Noto Serif KR',
+    ),
+    PostFontPreset(
+      id: 'gowunBatang',
+      label: 'classic',
+      fontFamily: 'Gowun Batang',
     ),
   ];
 
   static const List<HourFontPreset> hourFontPresets = [
-    HourFontPreset(id: 'anton', label: 'basic', fontFamily: 'Do Hyeon'),
-    HourFontPreset(id: 'black', label: 'bold', fontFamily: 'Black Han Sans'),
-    HourFontPreset(id: 'bagel', label: 'bagel', fontFamily: 'Bagel Fat One'),
-    HourFontPreset(id: 'fredoka', label: 'fred', fontFamily: 'Fredoka'),
-    HourFontPreset(id: 'press', label: 'pixel', fontFamily: 'Press Start 2P'),
+    HourFontPreset(id: 'doHyeon', label: 'basic', fontFamily: 'Do Hyeon'),
+    HourFontPreset(
+      id: 'blacHanSans',
+      label: 'bold',
+      fontFamily: 'Black Han Sans',
+    ),
+    HourFontPreset(
+      id: 'bagelfatOne',
+      label: 'bagel',
+      fontFamily: 'Bagel Fat One',
+    ),
+    HourFontPreset(id: 'fredoka', label: 'cute', fontFamily: 'Fredoka'),
+    HourFontPreset(
+      id: 'PressStart2P',
+      label: 'pixel',
+      fontFamily: 'Press Start 2P',
+      fontSizeScale: 0.82,
+    ),
     HourFontPreset(id: 'orbitron', label: 'SF', fontFamily: 'Orbitron'),
     HourFontPreset(
-      id: 'playfair display',
+      id: 'playfairDisplay',
       label: 'city',
       fontFamily: 'Playfair Display',
     ),
@@ -151,10 +182,12 @@ class AppTypography {
     double lineHeight = defaultHourLineHeight,
     String fontId = defaultHourFontId,
   }) {
+    final preset = hourFontPreset(fontId);
+
     return GoogleFonts.getFont(
-      hourFontPreset(fontId).fontFamily,
+      preset.fontFamily,
       color: color,
-      fontSize: fontSize,
+      fontSize: fontSize * preset.fontSizeScale,
       fontWeight: FontWeight.w800,
       height: lineHeight,
     );
@@ -172,10 +205,11 @@ class AppTypography {
     double fontSize = 20,
   }) {
     final color = postTextColor(selection);
+    final preset = postFontPreset(selection.fontId);
 
     return GoogleFonts.getFont(
-      postFontPreset(selection.fontId).fontFamily,
-      fontSize: fontSize,
+      preset.fontFamily,
+      fontSize: fontSize * preset.fontSizeScale,
       fontWeight: FontWeight.w700,
       height: 1,
       color: color,
