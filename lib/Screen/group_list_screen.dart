@@ -4,6 +4,7 @@ import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
+import 'package:bababam_app/Service/post_video_cleanup_service.dart';
 import 'package:bababam_app/Screen/create_group_screen.dart';
 import 'package:bababam_app/Screen/social_group_screen.dart';
 import 'package:bababam_app/Screen/profile_edit_screen.dart';
@@ -23,6 +24,27 @@ class GroupListScreen extends StatefulWidget {
 class _GroupListScreenState extends State<GroupListScreen> {
   final AuthService _authService = AuthService();
   final FireStoreService _firestoreService = FireStoreService();
+  final PostVideoCleanupService _postVideoCleanupService =
+      PostVideoCleanupService();
+  bool _didRunStartupVideoCleanup = false;
+
+  void _runStartupVideoCleanup(List<Group> groups) {
+    if (_didRunStartupVideoCleanup || groups.isEmpty) return;
+    _didRunStartupVideoCleanup = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      for (final group in groups) {
+        try {
+          await _postVideoCleanupService.deleteGroupPostVideosOlderThan(
+            groupId: group.id,
+          );
+        } catch (error) {
+          debugPrint('오래된 그룹 영상 정리 실패(${group.id}): $error');
+        }
+      }
+    });
+  }
+
   //MARK: Navigation Create Grouo
   void _navigateAndAddGroup() async {
     await Navigator.push(
@@ -74,6 +96,8 @@ class _GroupListScreenState extends State<GroupListScreen> {
         }
 
         final groups = snapshot.data ?? [];
+        _runStartupVideoCleanup(groups);
+
         if (groups.isEmpty) {
           return const Center(
             child: Text(

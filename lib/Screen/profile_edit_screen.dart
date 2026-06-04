@@ -398,6 +398,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         return;
       }
 
+      var postVideoUrls = <String>[];
+
+      await _tryCleanupStep('Firestore 작성 게시물 삭제', () async {
+        postVideoUrls = await _firestoreService.deletePostsByAuthor(userId);
+      });
+      await _tryCleanupStep(
+        'Storage 게시물 영상 삭제',
+        () => _firestorageService.deleteVideosByUrls(postVideoUrls),
+      );
       await _tryCleanupStep(
         'Storage 프로필 이미지 삭제',
         () => _firestorageService.deleteProfileImage(uid: userId),

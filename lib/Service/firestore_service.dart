@@ -313,6 +313,61 @@ class FireStoreService {
     return posts;
   }
 
+  Future<List<String>> deletePostsByAuthor(String userId) async {
+    final snapshot = await _firestore
+        .collectionGroup('posts')
+        .where('authorId', isEqualTo: userId)
+        .get();
+
+    final videoUrls = <String>{};
+    WriteBatch batch = _firestore.batch();
+    var operationCount = 0;
+
+    for (final doc in snapshot.docs) {
+      final videoUrl = doc.data()['videoUrl'] as String?;
+      if (videoUrl != null && videoUrl.isNotEmpty) {
+        videoUrls.add(videoUrl);
+      }
+
+      batch.delete(doc.reference);
+      operationCount++;
+
+      if (operationCount == 450) {
+        await batch.commit();
+        batch = _firestore.batch();
+        operationCount = 0;
+      }
+    }
+
+    if (operationCount > 0) {
+      await batch.commit();
+    }
+
+    return videoUrls.toList();
+  }
+
+  Future<List<String>> getGroupPostVideoUrlsOlderThan({
+    required String groupId,
+    required Duration retention,
+  }) async {
+    final cutoff = DateTime.now().subtract(retention);
+    final snapshot = await _groups
+        .doc(groupId)
+        .collection('posts')
+        .where('createdAt', isLessThan: Timestamp.fromDate(cutoff))
+        .get();
+
+    final videoUrls = <String>{};
+    for (final doc in snapshot.docs) {
+      final videoUrl = doc.data()['videoUrl'] as String?;
+      if (videoUrl != null && videoUrl.isNotEmpty) {
+        videoUrls.add(videoUrl);
+      }
+    }
+
+    return videoUrls.toList();
+  }
+
   Stream<List<Post>> getPostsByHourStream({
     required String groupId,
     required String dayKey,

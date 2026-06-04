@@ -42,6 +42,28 @@ class FireStorageService {
     }
   }
 
+  Future<void> deleteVideoByUrl(String videoUrl) async {
+    if (videoUrl.isEmpty || videoUrl.startsWith('assets/')) {
+      return;
+    }
+
+    try {
+      await _storage.refFromURL(videoUrl).delete();
+    } on FirebaseException catch (e) {
+      if (e.code != 'object-not-found') {
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> deleteVideosByUrls(Iterable<String> videoUrls) async {
+    final uniqueVideoUrls = videoUrls.toSet();
+
+    for (final videoUrl in uniqueVideoUrls) {
+      await deleteVideoByUrl(videoUrl);
+    }
+  }
+
   Future<String?> getSimulatorTestVideoUrl() async {
     final ref = _storage.ref(simulatorTestVideoPath);
 

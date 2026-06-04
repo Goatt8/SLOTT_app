@@ -264,12 +264,10 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
   }
 
   //MARK: Post Lookup
-  Post? _findPostForSlot({
+  Post? _findExactPostForSlot({
     required List<Post> posts,
     required int slotIndex,
-    required String ownerId,
     required int targetHour,
-    required bool allowLegacyUserFallback,
   }) {
     Post? targetPost;
     for (final post in posts) {
@@ -280,6 +278,21 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
         targetPost = post;
       }
     }
+    return targetPost;
+  }
+
+  Post? _findPostForSlot({
+    required List<Post> posts,
+    required int slotIndex,
+    required String ownerId,
+    required int targetHour,
+    required bool allowLegacyUserFallback,
+  }) {
+    Post? targetPost = _findExactPostForSlot(
+      posts: posts,
+      slotIndex: slotIndex,
+      targetHour: targetHour,
+    );
 
     if (targetPost != null || !allowLegacyUserFallback) {
       return targetPost;
@@ -651,7 +664,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              child: const Text('내가 들어가기'),
+              child: const Text('내 슬롯으로 채우기'),
             ),
           ],
         ),
@@ -743,6 +756,13 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
     required int selectedHour,
     required GroupUiPreset preset,
   }) {
+    final exactSlotPost = user.isDeleted
+        ? null
+        : _findExactPostForSlot(
+            posts: selectedPosts,
+            slotIndex: slotIndex,
+            targetHour: selectedHour,
+          );
     final post = user.isDeleted
         ? null
         : _findPostForSlot(
@@ -790,8 +810,8 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
               .catchError((_) {});
         }
       },
-      onSaveComment: post != null && _canEditPost(post)
-          ? (comment) => _updatePostComment(post, comment)
+      onSaveComment: exactSlotPost != null && _canEditPost(exactSlotPost)
+          ? (comment) => _updatePostComment(exactSlotPost, comment)
           : null,
     );
   }
