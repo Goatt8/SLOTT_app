@@ -53,6 +53,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           _selectedTextStyle = AppTypography.postTextStyleSelection(
             fontId: user.fontId,
             colorId: user.colorId,
+            hourFontId: user.hourFontId,
           );
         }
         _isLoading = false;
@@ -162,7 +163,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           Container(width: 1, height: 30, color: Colors.white10),
           _buildStatButton(
             "폰트",
-            '${AppTypography.postFontLabel(_selectedTextStyle.fontId)} · ${AppTypography.postColorLabel(_selectedTextStyle.colorId)}',
+            '${AppTypography.postFontLabel(_selectedTextStyle.fontId)} · ${AppTypography.hourFontLabel(_selectedTextStyle.hourFontId)} · ${AppTypography.postColorLabel(_selectedTextStyle.colorId)}',
             () {
               _showFontPicker();
             },
@@ -300,6 +301,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         profileUrl: newProfileUrl,
         fontId: _selectedTextStyle.fontId,
         colorId: _selectedTextStyle.colorId,
+        hourFontId: _selectedTextStyle.hourFontId,
       );
 
       if (mounted) {

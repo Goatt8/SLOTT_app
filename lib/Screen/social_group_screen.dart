@@ -749,12 +749,14 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
       videoAspectRatio: layoutSpec.videoAspectRatio,
       cardRadius: preset.cardRadius,
       cardOuterMargin: preset.cardOuterMargin,
+      hourOverlaySpec: preset.hourOverlaySpec,
       externalVideoController: _controllerForPost(post),
       initialStyleSelection:
           _memberTextStyleSelections[user.id] ??
           AppTypography.postTextStyleSelection(
             fontId: user.fontId,
             colorId: user.colorId,
+            hourFontId: user.hourFontId,
           ),
       onStyleSelectionChanged: (selection) {
         setState(() {
@@ -766,6 +768,7 @@ class _SocialGroupScreenState extends State<SocialGroupScreen> {
                 userId: user.id,
                 fontId: selection.fontId,
                 colorId: selection.colorId,
+                hourFontId: selection.hourFontId,
               )
               .catchError((_) {});
         }

@@ -8,6 +8,7 @@ class AppUser {
   final String? profileUrl;
   final String fontId;
   final String colorId;
+  final String hourFontId;
   final CurrentPostPreview? currentPost;
 
   final bool hasAgreedTerms;
@@ -20,6 +21,7 @@ class AppUser {
     required this.phoneNumber,
     this.fontId = AppTypography.defaultPostFontId,
     this.colorId = AppTypography.defaultPostColorId,
+    this.hourFontId = AppTypography.defaultHourFontId,
     this.profileUrl,
     this.currentPost,
     this.hasAgreedTerms = false,
@@ -34,6 +36,7 @@ class AppUser {
       'profileUrl': profileUrl,
       'fontId': fontId,
       'colorId': colorId,
+      'hourFontId': hourFontId,
       'currentPost': currentPost?.toMap(),
       'termsInfo': {'hasAgreed': hasAgreedTerms, 'version': termsVersion},
       'isDeleted': isDeleted,
@@ -56,6 +59,10 @@ class AppUser {
           map['colorId'] as String? ??
           map['defaultPostColorId'] as String? ??
           AppTypography.defaultPostColorId,
+      hourFontId:
+          map['hourFontId'] as String? ??
+          map['defaultHourFontId'] as String? ??
+          AppTypography.defaultHourFontId,
       currentPost: map['currentPost'] != null
           ? CurrentPostPreview.fromMap(
               map['currentPost'] as Map<String, dynamic>,

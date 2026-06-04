@@ -13,6 +13,18 @@ class PostFontPreset {
   final String fontFamily;
 }
 
+class HourFontPreset {
+  const HourFontPreset({
+    required this.id,
+    required this.label,
+    required this.fontFamily,
+  });
+
+  final String id;
+  final String label;
+  final String fontFamily;
+}
+
 class PostColorPreset {
   const PostColorPreset({required this.id, required this.colors});
 
@@ -21,15 +33,25 @@ class PostColorPreset {
 }
 
 class PostTextStyleSelection {
-  const PostTextStyleSelection({required this.fontId, required this.colorId});
+  const PostTextStyleSelection({
+    required this.fontId,
+    required this.colorId,
+    required this.hourFontId,
+  });
 
   final String fontId;
   final String colorId;
+  final String hourFontId;
 
-  PostTextStyleSelection copyWith({String? fontId, String? colorId}) {
+  PostTextStyleSelection copyWith({
+    String? fontId,
+    String? colorId,
+    String? hourFontId,
+  }) {
     return PostTextStyleSelection(
       fontId: fontId ?? this.fontId,
       colorId: colorId ?? this.colorId,
+      hourFontId: hourFontId ?? this.hourFontId,
     );
   }
 
@@ -37,24 +59,35 @@ class PostTextStyleSelection {
   bool operator ==(Object other) {
     return other is PostTextStyleSelection &&
         other.fontId == fontId &&
-        other.colorId == colorId;
+        other.colorId == colorId &&
+        other.hourFontId == hourFontId;
   }
 
   @override
-  int get hashCode => Object.hash(fontId, colorId);
+  int get hashCode => Object.hash(fontId, colorId, hourFontId);
 }
 
 class AppTypography {
-  static const double postOverlayHourLineHeight = 0.95;
-  static const String defaultPostFontId = 'londrina';
+  static const String defaultPostFontId = 'Noto Sans KR';
   static const String defaultPostColorId = 'white';
+  static const String defaultHourFontId = 'inter';
+  static const double defaultHourFontSize = 32;
+  static const double defaultHourLineHeight = 0.95;
+  static const Color defaultHourActiveColor = Colors.white;
+  static const Color defaultHourEmptyColor = Colors.white10;
   static const PostTextStyleSelection defaultPostTextStyleSelection =
       PostTextStyleSelection(
         fontId: defaultPostFontId,
         colorId: defaultPostColorId,
+        hourFontId: defaultHourFontId,
       );
 
   static const List<PostFontPreset> postFontPresets = [
+    PostFontPreset(
+      id: 'notosans',
+      label: 'Noto Sans',
+      fontFamily: 'Noto Sans KR',
+    ),
     PostFontPreset(
       id: 'londrina',
       label: 'Londrina',
@@ -70,7 +103,21 @@ class AppTypography {
       label: 'Black Han',
       fontFamily: 'Black Han Sans',
     ),
-    PostFontPreset(id: 'serif', label: 'Serif', fontFamily: 'Noto Serif KR'),
+  ];
+
+  static const List<HourFontPreset> hourFontPresets = [
+    HourFontPreset(id: 'anton', label: 'basic', fontFamily: 'Do Hyeon'),
+    HourFontPreset(id: 'black', label: 'bold', fontFamily: 'Black Han Sans'),
+    HourFontPreset(id: 'bagel', label: 'bagel', fontFamily: 'Bagel Fat One'),
+    HourFontPreset(id: 'fredoka', label: 'fred', fontFamily: 'Fredoka'),
+    HourFontPreset(id: 'press', label: 'pixel', fontFamily: 'Press Start 2P'),
+    HourFontPreset(id: 'orbitron', label: 'SF', fontFamily: 'Orbitron'),
+    HourFontPreset(
+      id: 'playfair display',
+      label: 'city',
+      fontFamily: 'Playfair Display',
+    ),
+    HourFontPreset(id: 'cinzel', label: 'classic', fontFamily: 'Cinzel'),
   ];
 
   static const List<PostColorPreset> postColorPresets = [
@@ -87,16 +134,36 @@ class AppTypography {
       id: 'green',
       colors: [Color(0xFF8A43D3), Color(0xFF36D893)],
     ),
+    PostColorPreset(
+      id: 'mid Night',
+      colors: [
+        Color(0xFF443199),
+        Color(0xFF792CA2),
+        Color(0xFFC13383),
+        Color(0xFFE05454),
+      ],
+    ),
   ];
 
   static TextStyle hourOverlay({
     Color color = Colors.white,
-    double fontSize = 40,
+    double fontSize = defaultHourFontSize,
+    double lineHeight = defaultHourLineHeight,
+    String fontId = defaultHourFontId,
   }) {
-    return GoogleFonts.londrinaSolid(
+    return GoogleFonts.getFont(
+      hourFontPreset(fontId).fontFamily,
       color: color,
       fontSize: fontSize,
       fontWeight: FontWeight.w800,
+      height: lineHeight,
+    );
+  }
+
+  static HourFontPreset hourFontPreset(String id) {
+    return hourFontPresets.firstWhere(
+      (preset) => preset.id == id,
+      orElse: () => hourFontPresets.first,
     );
   }
 
@@ -125,10 +192,12 @@ class AppTypography {
   static PostTextStyleSelection postTextStyleSelection({
     String? fontId,
     String? colorId,
+    String? hourFontId,
   }) {
     return PostTextStyleSelection(
       fontId: postFontPreset(fontId ?? defaultPostFontId).id,
       colorId: postColorPreset(colorId ?? defaultPostColorId).id,
+      hourFontId: hourFontPreset(hourFontId ?? defaultHourFontId).id,
     );
   }
 
@@ -145,6 +214,10 @@ class AppTypography {
 
   static String postColorLabel(String? colorId) {
     return postColorPreset(colorId ?? defaultPostColorId).id;
+  }
+
+  static String hourFontLabel(String? hourFontId) {
+    return hourFontPreset(hourFontId ?? defaultHourFontId).label;
   }
 
   static Color postTextColor(PostTextStyleSelection selection) {
@@ -198,9 +271,42 @@ class GroupVideoLayoutSpec {
   final int? fixedSlotCount;
 }
 
+class GroupHourOverlaySpec {
+  const GroupHourOverlaySpec({
+    required this.fontId,
+    required this.fontSize,
+    required this.lineHeight,
+    required this.activeColor,
+    required this.emptyColor,
+  });
+
+  final String fontId;
+  final double fontSize;
+  final double lineHeight;
+  final Color activeColor;
+  final Color emptyColor;
+
+  GroupHourOverlaySpec copyWith({
+    String? fontId,
+    double? fontSize,
+    double? lineHeight,
+    Color? activeColor,
+    Color? emptyColor,
+  }) {
+    return GroupHourOverlaySpec(
+      fontId: fontId ?? this.fontId,
+      fontSize: fontSize ?? this.fontSize,
+      lineHeight: lineHeight ?? this.lineHeight,
+      activeColor: activeColor ?? this.activeColor,
+      emptyColor: emptyColor ?? this.emptyColor,
+    );
+  }
+}
+
 class GroupUiPreset {
   const GroupUiPreset({
     required this.layoutSpec,
+    required this.hourOverlaySpec,
     required this.cardRadius,
     required this.cardOuterMargin,
     required this.gridHorizontalPadding,
@@ -210,6 +316,7 @@ class GroupUiPreset {
   });
 
   final GroupVideoLayoutSpec layoutSpec;
+  final GroupHourOverlaySpec hourOverlaySpec;
   final double cardRadius;
   final double cardOuterMargin;
   final double gridHorizontalPadding;
@@ -343,6 +450,13 @@ class AppLayoutPolicy {
 
     return GroupUiPreset(
       layoutSpec: layoutSpec,
+      hourOverlaySpec: const GroupHourOverlaySpec(
+        fontId: AppTypography.defaultHourFontId,
+        fontSize: AppTypography.defaultHourFontSize,
+        lineHeight: AppTypography.defaultHourLineHeight,
+        activeColor: AppTypography.defaultHourActiveColor,
+        emptyColor: AppTypography.defaultHourEmptyColor,
+      ),
       cardRadius: radius,
       cardOuterMargin: willUseDice ? 0 : 1,
       gridHorizontalPadding: 2,

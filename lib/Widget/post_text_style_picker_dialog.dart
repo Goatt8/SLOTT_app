@@ -36,6 +36,10 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _SectionTitle(label: '시간 폰트 선택하기'),
+              const SizedBox(height: 10),
+              _buildHourFontGrid(),
+              const SizedBox(height: 20),
               _SectionTitle(label: '폰트 선택하기'),
               const SizedBox(height: 10),
               _buildFontGrid(),
@@ -119,6 +123,42 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
                   : null,
               color: preset.colors.length == 1 ? preset.colors.first : null,
             ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildHourFontGrid() {
+    final accentColor = AppAccentColor.fromColorId(_selection.colorId);
+
+    return GridView.count(
+      crossAxisCount: 4,
+      crossAxisSpacing: 9,
+      mainAxisSpacing: 9,
+      childAspectRatio: 1.1,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: AppTypography.hourFontPresets.map((preset) {
+        final isSelected = _selection.hourFontId == preset.id;
+        return _PickerTile(
+          isSelected: isSelected,
+          selectedColor: accentColor,
+          onTap: () {
+            setState(() {
+              _selection = _selection.copyWith(hourFontId: preset.id);
+            });
+          },
+          child: Text(
+            preset.label,
+            style: AppTypography.hourOverlay(
+              fontId: preset.id,
+              fontSize: 18,
+              color: Colors.white,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
           ),
         );
       }).toList(),

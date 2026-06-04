@@ -8,6 +8,7 @@ class PostCommentOverlay extends StatelessWidget {
     super.key,
     required this.hourText,
     required this.controller,
+    this.hourOverlaySpec,
     this.hourTextColor = Colors.white,
     this.styleSelection = AppTypography.defaultPostTextStyleSelection,
     this.comment = null,
@@ -21,6 +22,7 @@ class PostCommentOverlay extends StatelessWidget {
     super.key,
     required this.hourText,
     required this.comment,
+    this.hourOverlaySpec,
     this.hourTextColor = Colors.white,
     this.styleSelection = AppTypography.defaultPostTextStyleSelection,
     this.controller = null,
@@ -33,6 +35,7 @@ class PostCommentOverlay extends StatelessWidget {
   const PostCommentOverlay.empty({
     super.key,
     required this.hourText,
+    this.hourOverlaySpec,
     this.hourTextColor = Colors.white10,
     this.emptyAssetPath = 'assets/emoji/zzz.png',
     this.emptyAssetSize = 36,
@@ -44,6 +47,7 @@ class PostCommentOverlay extends StatelessWidget {
   });
 
   final String hourText;
+  final GroupHourOverlaySpec? hourOverlaySpec;
   final Color hourTextColor;
   final TextEditingController? controller;
   final String? comment;
@@ -59,6 +63,7 @@ class PostCommentOverlay extends StatelessWidget {
   }
 
   Widget _buildTimeComment() {
+    final overlaySpec = hourOverlaySpec;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -66,8 +71,12 @@ class PostCommentOverlay extends StatelessWidget {
           hourText,
           style: AppTypography.hourOverlay(
             color: hourTextColor,
-            fontSize: 32,
-          ).copyWith(height: AppTypography.postOverlayHourLineHeight),
+            fontSize:
+                overlaySpec?.fontSize ?? AppTypography.defaultHourFontSize,
+            lineHeight:
+                overlaySpec?.lineHeight ?? AppTypography.defaultHourLineHeight,
+            fontId: overlaySpec?.fontId ?? AppTypography.defaultHourFontId,
+          ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),

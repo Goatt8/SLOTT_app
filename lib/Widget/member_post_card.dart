@@ -14,6 +14,7 @@ class MemberPostCard extends StatefulWidget {
   final double videoAspectRatio;
   final double cardRadius;
   final double cardOuterMargin;
+  final GroupHourOverlaySpec? hourOverlaySpec;
   final CachedVideoPlayerPlusController? externalVideoController;
   final PostTextStyleSelection initialStyleSelection;
   final ValueChanged<PostTextStyleSelection>? onStyleSelectionChanged;
@@ -26,6 +27,7 @@ class MemberPostCard extends StatefulWidget {
     this.videoAspectRatio = 4 / 3,
     this.cardRadius = 24,
     this.cardOuterMargin = 4,
+    this.hourOverlaySpec,
     this.externalVideoController,
     this.initialStyleSelection = AppTypography.defaultPostTextStyleSelection,
     this.onStyleSelectionChanged,
@@ -186,6 +188,9 @@ class _MemberPostCardState extends State<MemberPostCard> {
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final hourOverlaySpec = widget.hourOverlaySpec?.copyWith(
+      fontId: _textStyleSelection.hourFontId,
+    );
 
     return Container(
       width: double.infinity,
@@ -221,15 +226,26 @@ class _MemberPostCardState extends State<MemberPostCard> {
                   ? (_isEditingComment
                         ? PostCommentOverlay.editable(
                             hourText: '${widget.hourSlot}:00',
+                            hourOverlaySpec: hourOverlaySpec,
+                            hourTextColor:
+                                hourOverlaySpec?.activeColor ?? Colors.white,
                             controller: _commentController,
                             styleSelection: _textStyleSelection,
                           )
                         : PostCommentOverlay.readOnly(
                             hourText: '${widget.hourSlot}:00',
+                            hourOverlaySpec: hourOverlaySpec,
+                            hourTextColor:
+                                hourOverlaySpec?.activeColor ?? Colors.white,
                             comment: post.comment,
                             styleSelection: _textStyleSelection,
                           ))
-                  : PostCommentOverlay.empty(hourText: '${widget.hourSlot}:00'),
+                  : PostCommentOverlay.empty(
+                      hourText: '${widget.hourSlot}:00',
+                      hourOverlaySpec: hourOverlaySpec,
+                      hourTextColor:
+                          hourOverlaySpec?.emptyColor ?? Colors.white10,
+                    ),
             ),
             if (!_isEditingComment)
               Positioned(top: 15, left: 15, child: _buildProfile()),
