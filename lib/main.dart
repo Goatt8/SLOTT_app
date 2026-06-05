@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/app_user.dart';
-import 'package:bababam_app/Screen/group_list_screen.dart';
+import 'package:bababam_app/Screen/slot_list_screen.dart';
 import 'package:bababam_app/Screen/login_screen.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,17 +13,17 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const BababamApp());
+  runApp(const SLOTTApp());
 }
 
-class BababamApp extends StatefulWidget {
-  const BababamApp({super.key});
+class SLOTTApp extends StatefulWidget {
+  const SLOTTApp({super.key});
 
   @override
-  State<BababamApp> createState() => _BababamAppState();
+  State<SLOTTApp> createState() => _SLOTTAppState();
 }
 
-class _BababamAppState extends State<BababamApp> {
+class _SLOTTAppState extends State<SLOTTApp> {
   final FireStoreService _firestoreService = FireStoreService();
 
   @override
@@ -65,7 +65,7 @@ class _BababamAppState extends State<BababamApp> {
         progressIndicatorTheme: ProgressIndicatorThemeData(color: accentColor),
       ),
       routes: {
-        '/home': (context) => const GroupListScreen(),
+        '/home': (context) => const SlotListScreen(),
         '/login': (context) => const LoginScreen(),
       },
     );

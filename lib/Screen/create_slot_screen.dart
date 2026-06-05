@@ -7,14 +7,14 @@ import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
 
-class CreateGroupScreen extends StatefulWidget {
-  const CreateGroupScreen({super.key});
+class CreateSlotScreen extends StatefulWidget {
+  const CreateSlotScreen({super.key});
 
   @override
-  State<CreateGroupScreen> createState() => _CreateGroupScreenState();
+  State<CreateSlotScreen> createState() => _CreateSlotScreenState();
 }
 
-class _CreateGroupScreenState extends State<CreateGroupScreen> {
+class _CreateSlotScreenState extends State<CreateSlotScreen> {
   final _nameController = TextEditingController();
   late String _randomId;
 
@@ -67,7 +67,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     final isConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) =>
-          const ConfirmDialog(title: '그룹 생성', message: '그룹을 생성하시겠습니까?'),
+          const ConfirmDialog(title: '슬롯 생성', message: '슬롯을 생성하시겠습니까?'),
     );
     if (isConfirmed == true) {
       _completeGroupCreation();
@@ -81,7 +81,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
     final newGroup = Group(
       id: _randomId,
-      title: _nameController.text.isEmpty ? '새 그룹' : _nameController.text,
+      title: _nameController.text.isEmpty ? '새 슬롯' : _nameController.text,
       memberIds: [currentUser.uid],
       ownerId: currentUser.uid,
       memberCount: _memberCount,
@@ -100,7 +100,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       Navigator.pop(context, newGroup);
     } catch (error) {
       if (!mounted) return;
-      WarningSnackBar.showWarning(context, "그룹생성에 실패했습니다.");
+      WarningSnackBar.showWarning(context, "슬롯생성에 실패했습니다.");
     } finally {
       if (mounted) setState(() => _isCreating = false);
     }
@@ -128,11 +128,11 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('그룹 명 (Title)', style: TextStyle(color: Colors.white70)),
+            const Text('슬롯 명 (Title)', style: TextStyle(color: Colors.white70)),
             TextField(
               controller: _nameController,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(hintText: '그룹명을 입력하세요'),
+              decoration: const InputDecoration(hintText: '슬롯명을 입력하세요'),
             ),
             const SizedBox(height: 30),
             const Text(

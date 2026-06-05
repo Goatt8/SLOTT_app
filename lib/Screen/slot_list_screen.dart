@@ -5,8 +5,8 @@ import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/post_video_cleanup_service.dart';
-import 'package:bababam_app/Screen/create_group_screen.dart';
-import 'package:bababam_app/Screen/slots_screen.dart';
+import 'package:bababam_app/Screen/create_slot_screen.dart';
+import 'package:bababam_app/Screen/slot_group_screen.dart';
 import 'package:bababam_app/Screen/profile_edit_screen.dart';
 import 'package:bababam_app/Widget/group_list_cell.dart';
 import 'package:bababam_app/Widget/glass_popup_menu.dart';
@@ -14,14 +14,14 @@ import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Widget/code_input_dialog.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
 
-class GroupListScreen extends StatefulWidget {
-  const GroupListScreen({super.key});
+class SlotListScreen extends StatefulWidget {
+  const SlotListScreen({super.key});
 
   @override
-  State<GroupListScreen> createState() => _GroupListScreenState();
+  State<SlotListScreen> createState() => _SlotListScreenState();
 }
 
-class _GroupListScreenState extends State<GroupListScreen> {
+class _SlotListScreenState extends State<SlotListScreen> {
   final AuthService _authService = AuthService();
   final FireStoreService _firestoreService = FireStoreService();
   final PostVideoCleanupService _postVideoCleanupService =
@@ -49,7 +49,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
   void _navigateAndAddGroup() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
+      MaterialPageRoute(builder: (context) => const CreateSlotScreen()),
     );
   }
 
@@ -119,11 +119,11 @@ class _GroupListScreenState extends State<GroupListScreen> {
                       context: context,
                       builder: (context) => ConfirmDialog(
                         title: group.ownerId == currentUser.uid
-                            ? '그룹 삭제'
-                            : '그룹 나가기',
+                            ? '슬롯 그룹 삭제'
+                            : '슬롯 그룹 나가기',
                         message: group.ownerId == currentUser.uid
-                            ? '${group.title} 그룹을 삭제하시겠습니까?'
-                            : '${group.title} 그룹에서 나가시겠습니까?',
+                            ? '${group.title} 슬롯 그룹을 삭제하시겠습니까?'
+                            : '${group.title} 슬롯 그룹에서 나가시겠습니까?',
                       ),
                     ) ??
                     false;
@@ -144,7 +144,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          SlotsScreen(group: group, groupId: group.id),
+                          SlotGroupScreen(group: group, groupId: group.id),
                     ),
                   );
                 },
@@ -251,12 +251,12 @@ class _GroupListScreenState extends State<GroupListScreen> {
                 menu: GlassPopupMenu(
                   items: [
                     GlassMenuItem(
-                      title: '그룹 만들기',
+                      title: '슬롯 만들기',
                       icon: Icons.add_circle_outline,
                       onTap: _navigateAndAddGroup,
                     ),
                     GlassMenuItem(
-                      title: '그룹 참여하기',
+                      title: '슬롯 참여하기',
                       icon: Icons.group_add_outlined,
                       onTap: () async {
                         final String? code = await showDialog<String>(

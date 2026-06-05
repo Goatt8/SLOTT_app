@@ -14,17 +14,21 @@ import 'package:bababam_app/Service/today_group_video_cache_service.dart';
 import 'package:bababam_app/Widget/member_post_card.dart';
 import 'package:bababam_app/Widget/navigation_triangle_button.dart';
 
-class SlotsScreen extends StatefulWidget {
+class SlotGroupScreen extends StatefulWidget {
   final Group group;
   final String groupId;
 
-  const SlotsScreen({super.key, required this.group, required this.groupId});
+  const SlotGroupScreen({
+    super.key,
+    required this.group,
+    required this.groupId,
+  });
 
   @override
-  State<SlotsScreen> createState() => _SlotsScreenState();
+  State<SlotGroupScreen> createState() => _SlotGroupScreenState();
 }
 
-class _SlotsScreenState extends State<SlotsScreen> {
+class _SlotGroupScreenState extends State<SlotGroupScreen> {
   final FireStoreService _firestoreService = FireStoreService();
 
   late final TodayGroupVideoCacheService _videoCacheService;
@@ -64,7 +68,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
   }
 
   @override
-  void didUpdateWidget(covariant SlotsScreen oldWidget) {
+  void didUpdateWidget(covariant SlotGroupScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.group.id != widget.group.id) {
