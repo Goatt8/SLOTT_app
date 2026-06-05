@@ -111,7 +111,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: const Text('Bababam'),
+        title: const Text('SLOTT'),
         actions: [
           //MARK: Create Complete Button
           IconButton(

@@ -72,7 +72,7 @@ class _CameraScreenState extends State<CameraScreen>
     debugPrint("컨트롤러가 없으므로 테스트 영상 프리뷰로 이동합니다.");
 
     _moveToPreviewScreen(
-      recordedPath: FireStorageService.simulatorTestVideoPath,
+      recordedPath: FireStorageService.simulatorTestAssetVideoPath,
       uploadedVideoUrlFuture: _storageService.getSimulatorTestVideoUrl(),
     );
   }

@@ -51,7 +51,7 @@ class _BababamAppState extends State<BababamApp> {
 
   Widget _buildMaterialApp(Color accentColor) {
     return MaterialApp(
-      title: 'Bababam',
+      title: 'SLOTT',
       debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       theme: ThemeData.dark().copyWith(

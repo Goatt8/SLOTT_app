@@ -154,6 +154,8 @@ class AppTypography {
   static const List<PostColorPreset> postColorPresets = [
     PostColorPreset(id: 'white', colors: [Colors.white]),
     PostColorPreset(id: 'black', colors: [Colors.black]),
+    PostColorPreset(id: 'grey', colors: [Color(0xFF8E8E93)]),
+    PostColorPreset(id: 'red', colors: [Color(0xFFFF3B30)]),
     PostColorPreset(id: 'mint', colors: [Color(0xFF48D6A2), Color(0xFF7CE6F0)]),
     PostColorPreset(id: 'pink', colors: [Color(0xFFFFB3C7), Color(0xFFE86BD5)]),
     PostColorPreset(

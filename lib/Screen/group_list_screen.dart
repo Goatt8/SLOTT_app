@@ -6,7 +6,7 @@ import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/post_video_cleanup_service.dart';
 import 'package:bababam_app/Screen/create_group_screen.dart';
-import 'package:bababam_app/Screen/social_group_screen.dart';
+import 'package:bababam_app/Screen/slots_screen.dart';
 import 'package:bababam_app/Screen/profile_edit_screen.dart';
 import 'package:bababam_app/Widget/group_list_cell.dart';
 import 'package:bababam_app/Widget/glass_popup_menu.dart';
@@ -144,7 +144,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          SocialGroupScreen(group: group, groupId: group.id),
+                          SlotsScreen(group: group, groupId: group.id),
                     ),
                   );
                 },
@@ -238,7 +238,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: const Text('Bababam'),
+        title: const Text('SLOTT'),
         titleTextStyle: AppTypography.brandTitle(fontSize: 20),
         actions: [
           //MARK: Add Button
