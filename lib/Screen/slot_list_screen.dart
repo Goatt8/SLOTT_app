@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
@@ -190,7 +189,7 @@ class _SlotListScreenState extends State<SlotListScreen> {
       if (!mounted) return;
       final message = error.toString().contains('Group is full')
           ? '그룹 정원이 가득 찼습니다.'
-          : '그룹 참여에 실패했습니다.';
+          : '슬롯 참여에 실패했습니다.';
       WarningSnackBar.showWarning(context, message);
     }
   }
@@ -239,8 +238,15 @@ class _SlotListScreenState extends State<SlotListScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: const Text('SLOTT'),
-        titleTextStyle: AppTypography.brandTitle(fontSize: 20),
+        title: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.asset(
+            'assets/logo/logo.jpeg',
+            width: 34,
+            height: 34,
+            fit: BoxFit.cover,
+          ),
+        ),
         actions: [
           //MARK: Add Button
           IconButton(

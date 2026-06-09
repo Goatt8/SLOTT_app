@@ -231,7 +231,7 @@ class _PermissionSectionState extends State<PermissionSection> {
           },
           onArrowPressed: () {
             if (_usageTermsUrl.isNotEmpty) {
-              _showWebViewDialog(title: "바바밤 이용약관", url: _usageTermsUrl);
+              _showWebViewDialog(title: "SLOTT 이용약관", url: _usageTermsUrl);
             } else {
               WarningSnackBar.showWarning(context, '약관을 불러오는중입니다. 다시 시도해주세요.');
             }
@@ -247,7 +247,7 @@ class _PermissionSectionState extends State<PermissionSection> {
           onArrowPressed: () {
             if (_privacyPolicyUrl.isNotEmpty) {
               _showWebViewDialog(
-                title: "바바밤 개인정보 보호정책",
+                title: "SLOTT 개인정보 보호정책",
                 url: _privacyPolicyUrl,
               );
             } else {

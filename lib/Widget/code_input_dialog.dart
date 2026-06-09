@@ -8,7 +8,7 @@ class CodeInputDialog extends StatefulWidget {
 
   const CodeInputDialog({
     super.key,
-    this.title = '그룹 참여하기',
+    this.title = '슬롯 참여하기',
     this.hintText = 'abc123',
     this.confirmText = '참여하기',
     this.prefixText = '# ',
@@ -29,93 +29,100 @@ class _CodeInputDialogState extends State<CodeInputDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = Theme.of(context).colorScheme.primary;
-
-    return AlertDialog(
-      backgroundColor: const Color(0xFF1A1A1A),
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: Text(
-        widget.title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 19,
-          fontWeight: FontWeight.bold,
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: Colors.white,
+          selectionColor: Colors.white.withValues(alpha: 0.25),
+          selectionHandleColor: Colors.white,
         ),
       ),
-
-      //MARK: TextField
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-            ),
-            child: TextField(
-              controller: _codeController,
-              autofocus: true,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-              cursorColor: accentColor,
-              decoration: InputDecoration(
-                prefixText: widget.prefixText,
-                prefixStyle: TextStyle(
-                  color: accentColor,
-                  fontWeight: FontWeight.bold,
-                ),
-                hintText: widget.hintText,
-                hintStyle: const TextStyle(color: Colors.white24),
-                border: InputBorder.none,
-              ),
-            ),
+      child: AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          widget.title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 19,
+            fontWeight: FontWeight.bold,
           ),
-        ],
-      ),
+        ),
 
-      //MARK: Cancel, Join Button
-      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      actions: [
-        Row(
+        //MARK: TextField
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text(
-                  '취소',
-                  style: TextStyle(color: Colors.white54),
-                ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () =>
-                    Navigator.of(context).pop(_codeController.text.trim()),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: accentColor,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+              child: TextField(
+                controller: _codeController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                cursorColor: Colors.white,
+                decoration: InputDecoration(
+                  prefixText: widget.prefixText,
+                  prefixStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: Text(
-                  widget.confirmText,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  hintText: widget.hintText,
+                  hintStyle: const TextStyle(color: Colors.white24),
+                  border: InputBorder.none,
                 ),
               ),
             ),
           ],
         ),
-      ],
+
+        //MARK: Cancel, Join Button
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    '취소',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () =>
+                      Navigator.of(context).pop(_codeController.text.trim()),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(
+                    widget.confirmText,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
