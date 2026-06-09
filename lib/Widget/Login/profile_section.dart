@@ -26,7 +26,7 @@ class ProfileSectionState extends State<ProfileSection> {
   File? _pickedImage;
 
   bool get isReadyToSubmit {
-    return _nicknameController.text.trim().isNotEmpty && _pickedImage != null;
+    return _nicknameController.text.trim().isNotEmpty;
   }
 
   @override

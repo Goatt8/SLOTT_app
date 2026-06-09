@@ -14,9 +14,9 @@
       "ios": {
         "default": {
           "projectId": "bababam-935c8",
-          "appId": "1:657057182695:ios:976750cc1cc4e6a914c342",
+          "appId": "1:657057182695:ios:55e46e506d0d8e2314c342",
           "uploadDebugSymbols": false,
-          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+          "fileOutput": "ios/GoogleService-Info.plist"
         }
       },
       "dart": {
@@ -24,7 +24,7 @@
           "projectId": "bababam-935c8",
           "configurations": {
             "android": "1:657057182695:android:e7934658346f845b14c342",
-            "ios": "1:657057182695:ios:976750cc1cc4e6a914c342"
+            "ios": "1:657057182695:ios:55e46e506d0d8e2314c342"
           }
         }
       }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
@@ -10,6 +11,13 @@ class FireStorageService {
   ];
 
   final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  bool _isOwnedTempUpload(Reference ref, String userId) {
+    final pathSegments = ref.fullPath.split('/');
+    return pathSegments.length >= 3 &&
+        pathSegments.first == 'temp_uploads' &&
+        pathSegments[1] == userId;
+  }
 
   String _fileExtension(String path) {
     final int dotIndex = path.lastIndexOf('.');
@@ -56,6 +64,11 @@ class FireStorageService {
         return;
       }
 
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId == null || !_isOwnedTempUpload(ref, currentUserId)) {
+        return;
+      }
+
       await ref.delete();
     } on FirebaseException catch (e) {
       if (e.code != 'object-not-found') {
@@ -90,6 +103,12 @@ class FireStorageService {
 
   Future<String?> uploadVideo(String filePath) async {
     try {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId == null) {
+        debugPrint("로그인된 사용자만 영상을 업로드할 수 있습니다.");
+        return null;
+      }
+
       File file = File(filePath);
       if (!file.existsSync()) {
         debugPrint("파일이 존재하지 않습니다: $filePath");
@@ -99,7 +118,11 @@ class FireStorageService {
       String fileName =
           "${DateTime.now().millisecondsSinceEpoch}${_fileExtension(filePath)}";
 
-      Reference ref = _storage.ref().child('temp_uploads').child(fileName);
+      Reference ref = _storage
+          .ref()
+          .child('temp_uploads')
+          .child(currentUserId)
+          .child(fileName);
 
       UploadTask uploadTask = ref.putFile(
         file,

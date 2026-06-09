@@ -7,8 +7,15 @@ service firebase.storage {
       allow write: if false;
     }
 
+    match /temp_uploads/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
     match /temp_uploads/{fileName} {
-      allow read, write, delete: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write, delete: if false;
     }
 
     match /user_profile/{fileName} {

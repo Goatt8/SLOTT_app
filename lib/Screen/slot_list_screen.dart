@@ -198,7 +198,8 @@ class _SlotListScreenState extends State<SlotListScreen> {
   Future<void> _removeGroup(Group group, String userId) async {
     try {
       if (group.ownerId == userId) {
-        await _firestoreService.deleteGroup(group.id);
+        final videoUrls = await _firestoreService.deleteGroup(group.id);
+        await _postVideoCleanupService.deleteUnreferencedOwnedVideos(videoUrls);
       } else {
         await _firestoreService.leaveGroup(groupId: group.id, userId: userId);
       }

@@ -34,5 +34,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/video/test_video.mp4
-    - assets/emoji/face_in_cloud.png
     - assets/emoji/zzz.png

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:bababam_app/Model/current_post_preview.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/app_user.dart';
@@ -63,13 +62,6 @@ class FireStoreService {
     return users;
   }
 
-  Future<void> updateUserCurrentPost({
-    required String userId,
-    required CurrentPostPreview? currentPost,
-  }) async {
-    await _users.doc(userId).update({'currentPost': currentPost?.toMap()});
-  }
-
   Future<void> updateUser({
     required String userId,
     required String newName,
@@ -108,10 +100,6 @@ class FireStoreService {
     });
   }
 
-  Future<void> clearUserCurrentPost(String userId) async {
-    await updateUserCurrentPost(userId: userId, currentPost: null);
-  }
-
   Future<void> anonymizeDeletedUser(String userId) async {
     await _users.doc(userId).set({
       'name': '탈퇴한 사용자',
@@ -127,25 +115,6 @@ class FireStoreService {
   // MARK: - Group
   Future<void> createGroup(Group group) async {
     await _groups.doc(group.id).set(group.toMap());
-  }
-
-  Future<Group?> getGroup(String groupId) async {
-    final snapshot = await _groups.doc(groupId).get();
-    final data = snapshot.data();
-
-    if (!snapshot.exists || data == null) {
-      return null;
-    }
-
-    return Group.fromMap(snapshot.id, data);
-  }
-
-  Future<List<Group>> getGroups() async {
-    final snapshot = await _groups.get();
-
-    return snapshot.docs
-        .map((doc) => Group.fromMap(doc.id, doc.data()))
-        .toList();
   }
 
   Future<List<Group>> getGroupsByUser(String userId) async {
@@ -256,8 +225,11 @@ class FireStoreService {
     });
   }
 
-  Future<void> deleteGroup(String groupId) async {
+  Future<List<String>> deleteGroup(String groupId) async {
+    final postsSnapshot = await _groups.doc(groupId).collection('posts').get();
+    final videoUrls = await _deletePostDocuments(postsSnapshot.docs);
     await _groups.doc(groupId).delete();
+    return videoUrls.toList();
   }
 
   // MARK: - Post
@@ -274,24 +246,6 @@ class FireStoreService {
       debugPrint("전송 에러: $e");
       rethrow;
     }
-  }
-
-  Future<Post?> getPost({
-    required String groupId,
-    required String postId,
-  }) async {
-    final snapshot = await _firestore
-        .collection('group')
-        .doc(groupId)
-        .collection('posts')
-        .doc(postId)
-        .get();
-
-    final data = snapshot.data();
-    if (!snapshot.exists || data == null) {
-      return null;
-    }
-    return Post.fromMap(snapshot.id, data);
   }
 
   List<Post> _parsePosts(QuerySnapshot<Map<String, dynamic>> snapshot) {
@@ -346,7 +300,37 @@ class FireStoreService {
     return videoUrls.toList();
   }
 
-  Future<List<String>> getGroupPostVideoUrlsOlderThan({
+  Future<Set<String>> _deletePostDocuments(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
+  ) async {
+    final videoUrls = <String>{};
+    WriteBatch batch = _firestore.batch();
+    var operationCount = 0;
+
+    for (final document in documents) {
+      final videoUrl = document.data()['videoUrl'] as String?;
+      if (videoUrl != null && videoUrl.isNotEmpty) {
+        videoUrls.add(videoUrl);
+      }
+
+      batch.delete(document.reference);
+      operationCount++;
+
+      if (operationCount == 450) {
+        await batch.commit();
+        batch = _firestore.batch();
+        operationCount = 0;
+      }
+    }
+
+    if (operationCount > 0) {
+      await batch.commit();
+    }
+
+    return videoUrls;
+  }
+
+  Future<List<String>> deleteGroupPostsOlderThan({
     required String groupId,
     required Duration retention,
   }) async {
@@ -357,31 +341,19 @@ class FireStoreService {
         .where('createdAt', isLessThan: Timestamp.fromDate(cutoff))
         .get();
 
-    final videoUrls = <String>{};
-    for (final doc in snapshot.docs) {
-      final videoUrl = doc.data()['videoUrl'] as String?;
-      if (videoUrl != null && videoUrl.isNotEmpty) {
-        videoUrls.add(videoUrl);
-      }
-    }
-
+    final videoUrls = await _deletePostDocuments(snapshot.docs);
     return videoUrls.toList();
   }
 
-  Stream<List<Post>> getPostsByHourStream({
-    required String groupId,
-    required String dayKey,
-    required int hourSlot,
-  }) {
-    return _firestore
-        .collection('group')
-        .doc(groupId)
-        .collection('posts')
-        .where('dayKey', isEqualTo: dayKey)
-        .where('hourSlot', isEqualTo: hourSlot)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(_parsePosts);
+  Future<bool> hasPostReferenceToVideo(String videoUrl) async {
+    if (videoUrl.isEmpty) return false;
+
+    final snapshot = await _firestore
+        .collectionGroup('posts')
+        .where('videoUrl', isEqualTo: videoUrl)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
   }
 
   Stream<List<Post>> getPostsByDayStream({

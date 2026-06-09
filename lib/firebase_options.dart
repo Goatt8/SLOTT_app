@@ -59,10 +59,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyC8hN3R_nkxBwHo-1kyj-k99MN3C_M1b9g',
-    appId: '1:657057182695:ios:976750cc1cc4e6a914c342',
+    appId: '1:657057182695:ios:55e46e506d0d8e2314c342',
     messagingSenderId: '657057182695',
     projectId: 'bababam-935c8',
     storageBucket: 'bababam-935c8.firebasestorage.app',
-    iosBundleId: 'com.example.bababamApp',
+    iosBundleId: 'com.jonghwansong.slottapp',
   );
 }

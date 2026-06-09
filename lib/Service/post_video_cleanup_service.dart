@@ -17,12 +17,23 @@ class PostVideoCleanupService {
     required String groupId,
     Duration retention = defaultRetention,
   }) async {
-    final videoUrls = await _firestoreService.getGroupPostVideoUrlsOlderThan(
+    final videoUrls = await _firestoreService.deleteGroupPostsOlderThan(
       groupId: groupId,
       retention: retention,
     );
 
-    await _fireStorageService.deleteVideosByUrls(videoUrls);
+    await deleteUnreferencedOwnedVideos(videoUrls);
     return videoUrls.length;
+  }
+
+  Future<void> deleteUnreferencedOwnedVideos(Iterable<String> videoUrls) async {
+    for (final videoUrl in videoUrls.toSet()) {
+      final isStillReferenced = await _firestoreService.hasPostReferenceToVideo(
+        videoUrl,
+      );
+      if (!isStillReferenced) {
+        await _fireStorageService.deleteVideoByUrl(videoUrl);
+      }
+    }
   }
 }
