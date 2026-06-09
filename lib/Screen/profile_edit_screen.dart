@@ -30,7 +30,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   File? _pickedImageFile;
   String? _currentProfileUrl;
-  String _selectedTheme = "블랙";
+  // String _selectedTheme = "블랙";
   PostTextStyleSelection _selectedTextStyle =
       AppTypography.defaultPostTextStyleSelection;
 
@@ -154,13 +154,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       ),
       child: Row(
         children: [
-          _buildStatButton("테마", _selectedTheme, () {
-            _showSelectionSheet("테마 선택", [
-              "화이트",
-              "블랙",
-            ], (val) => setState(() => _selectedTheme = val));
-          }),
-          Container(width: 1, height: 30, color: Colors.white10),
+          // _buildStatButton("테마", _selectedTheme, () {
+          //   _showSelectionSheet("테마 선택", [
+          //     "화이트",
+          //     "블랙",
+          //   ], (val) => setState(() => _selectedTheme = val));
+          // }),
+          // Container(width: 1, height: 30, color: Colors.white10),
           _buildStatButton(
             "폰트",
             '${AppTypography.postFontLabel(_selectedTextStyle.fontId)} · ${AppTypography.hourFontLabel(_selectedTextStyle.hourFontId)} · ${AppTypography.postColorLabel(_selectedTextStyle.colorId)}',
@@ -190,51 +190,51 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   //MARK: Bottom Sheet
-  void _showSelectionSheet(
-    String title,
-    List<String> options,
-    Function(String) onSelect,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.black87,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const Divider(color: Colors.white10),
-              ...options.map(
-                (opt) => ListTile(
-                  title: Text(
-                    opt,
-                    style: const TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center,
-                  ),
-                  onTap: () {
-                    onSelect(opt);
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // void _showSelectionSheet(
+  //   String title,
+  //   List<String> options,
+  //   Function(String) onSelect,
+  // ) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     backgroundColor: Colors.black87,
+  //     shape: const RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  //     ),
+  //     builder: (context) {
+  //       return SafeArea(
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             const SizedBox(height: 10),
+  //             Text(
+  //               title,
+  //               style: const TextStyle(
+  //                 color: Colors.white,
+  //                 fontWeight: FontWeight.bold,
+  //                 fontSize: 16,
+  //               ),
+  //             ),
+  //             const Divider(color: Colors.white10),
+  //             ...options.map(
+  //               (opt) => ListTile(
+  //                 title: Text(
+  //                   opt,
+  //                   style: const TextStyle(color: Colors.white),
+  //                   textAlign: TextAlign.center,
+  //                 ),
+  //                 onTap: () {
+  //                   onSelect(opt);
+  //                   Navigator.pop(context);
+  //                 },
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   Widget _buildStatButton(String label, String value, VoidCallback onTap) {
     return Expanded(

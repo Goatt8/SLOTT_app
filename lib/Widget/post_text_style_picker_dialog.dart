@@ -42,7 +42,7 @@ class _PostTextStylePickerDialogState extends State<PostTextStylePickerDialog> {
               const SizedBox(height: 10),
               _buildHourFontGrid(),
               const SizedBox(height: 20),
-              _SectionTitle(label: '폰트 선택하기'),
+              _SectionTitle(label: '코멘트 폰트 선택하기'),
               const SizedBox(height: 10),
               _buildFontGrid(),
               const SizedBox(height: 20),

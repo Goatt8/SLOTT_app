@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>657057182695-1sekq0klksvitcic9ctgmghc9auojrej.apps.googleusercontent.com</string>
+	<string>657057182695-gt9schr08jos34g4rijobm4re249tc91.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.657057182695-1sekq0klksvitcic9ctgmghc9auojrej</string>
+	<string>com.googleusercontent.apps.657057182695-gt9schr08jos34g4rijobm4re249tc91</string>
 	<key>API_KEY</key>
 	<string>AIzaSyC8hN3R_nkxBwHo-1kyj-k99MN3C_M1b9g</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.jonghwansong.slott</string>
+	<string>com.jonghwansong.slottapp</string>
 	<key>PROJECT_ID</key>
 	<string>bababam-935c8</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:657057182695:ios:099653c3b8b67b9414c342</string>
+	<string>1:657057182695:ios:55e46e506d0d8e2314c342</string>
 </dict>
 </plist>
