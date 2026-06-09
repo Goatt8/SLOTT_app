@@ -35,3 +35,7 @@ flutter:
   assets:
     - assets/video/test_video.mp4
     - assets/emoji/zzz.png
+    - assets/emoji/ZanyFace.png
+    - assets/emoji/Heart.png
+    - assets/emoji/Ghost.png
+    - assets/emoji/NoSpeakMonkey.png

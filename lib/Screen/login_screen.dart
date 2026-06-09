@@ -12,6 +12,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const List<String> _backgroundEmojiAssets = [
+    'assets/emoji/ZanyFace.png',
+    'assets/emoji/Heart.png',
+    'assets/emoji/NoSpeakMonkey.png',
+    'assets/emoji/Ghost.png',
+  ];
+
   final PageController _pageController = PageController();
   final AuthService _authService = AuthService();
 
@@ -152,6 +159,83 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildBackgroundSlot(String assetPath) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF111111).withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Opacity(
+          opacity: 0.68,
+          child: Image.asset(assetPath, fit: BoxFit.contain),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlotBackground() {
+    return Positioned.fill(
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 0.9,
+            colors: [Color(0xFF242424), Colors.black],
+          ),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const horizontalPadding = 12.0;
+            const slotGap = 10.0;
+            const bottomReservedSpace = 148.0;
+            final availableWidth =
+                constraints.maxWidth - (horizontalPadding * 2);
+            final slotWidth = (availableWidth - slotGap) / 2;
+            final slotHeight = slotWidth * (16 / 9);
+            final boardHeight = (slotHeight * 2) + slotGap;
+            final availableHeight =
+                constraints.maxHeight - bottomReservedSpace - 24;
+            final scale = boardHeight > availableHeight
+                ? availableHeight / boardHeight
+                : 1.0;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: bottomReservedSpace),
+              child: Center(
+                child: SizedBox(
+                  width: availableWidth * scale,
+                  height: boardHeight * scale,
+                  child: GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: slotGap,
+                          crossAxisSpacing: slotGap,
+                          childAspectRatio: 9 / 16,
+                        ),
+                    itemCount: _backgroundEmojiAssets.length,
+                    itemBuilder: (context, index) {
+                      return _buildBackgroundSlot(
+                        _backgroundEmojiAssets[index],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   //MARK: Bottom Indicator Dot
   Widget _buildBottomIndicator() {
     return Padding(
@@ -249,15 +333,7 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.8,
-                child: Image.network(
-                  'https://i.pinimg.com/736x/dc/af/1d/dcaf1da24d63cefd2204ae13960536d4.jpg',
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
+            _buildSlotBackground(),
             //MARK: PageView Column
             SafeArea(
               child: Column(
