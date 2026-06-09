@@ -162,7 +162,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           // }),
           // Container(width: 1, height: 30, color: Colors.white10),
           _buildStatButton(
-            "폰트",
+            "폰트 및 스타일 변경",
             '${AppTypography.postFontLabel(_selectedTextStyle.fontId)} · ${AppTypography.hourFontLabel(_selectedTextStyle.hourFontId)} · ${AppTypography.postColorLabel(_selectedTextStyle.colorId)}',
             () {
               _showFontPicker();
@@ -243,6 +243,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         child: Column(
           children: [
             Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 13),
+            ),
+            const SizedBox(height: 4),
+            Text(
               value,
               style: const TextStyle(
                 color: Colors.white,
@@ -251,11 +256,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white54, fontSize: 13),
             ),
           ],
         ),
