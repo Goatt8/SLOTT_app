@@ -13,10 +13,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   static const List<String> _backgroundEmojiAssets = [
-    'assets/emoji/ZanyFace.png',
-    'assets/emoji/Heart.png',
-    'assets/emoji/NoSpeakMonkey.png',
-    'assets/emoji/Ghost.png',
+    'assets/emoji/emoji1.png',
+    'assets/emoji/emoji4.png',
+    'assets/emoji/emoji3.png',
+    'assets/emoji/emoji2.png',
   ];
 
   final PageController _pageController = PageController();

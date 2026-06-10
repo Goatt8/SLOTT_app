@@ -35,11 +35,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/video/test_video.mp4
-    - assets/emoji/zzz.png
-    - assets/emoji/ZanyFace.png
-    - assets/emoji/Heart.png
-    - assets/emoji/Ghost.png
-    - assets/emoji/NoSpeakMonkey.png
+    - assets/emoji/emoji1.png
+    - assets/emoji/emoji2.png
+    - assets/emoji/emoji3.png
+    - assets/emoji/emoji4.png
     - assets/logo/logo.jpeg
 
 flutter_launcher_icons:

@@ -16,6 +16,7 @@ class PostCommentOverlay extends StatelessWidget {
     this.emptyAssetPath = null,
     this.emptyAssetSize = 50,
     this.emptyAssetOpacity = 0.6,
+    this.showEmptyIndicator = false,
   });
 
   const PostCommentOverlay.readOnly({
@@ -30,6 +31,7 @@ class PostCommentOverlay extends StatelessWidget {
     this.emptyAssetPath = null,
     this.emptyAssetSize = 50,
     this.emptyAssetOpacity = 0.6,
+    this.showEmptyIndicator = false,
   });
 
   const PostCommentOverlay.empty({
@@ -37,9 +39,10 @@ class PostCommentOverlay extends StatelessWidget {
     required this.hourText,
     this.hourOverlaySpec,
     this.hourTextColor = Colors.white10,
-    this.emptyAssetPath = 'assets/emoji/zzz.png',
+    this.emptyAssetPath = null,
     this.emptyAssetSize = 36,
     this.emptyAssetOpacity = 0.6,
+    this.showEmptyIndicator = true,
     this.controller = null,
     this.comment = null,
     this.isEditable = false,
@@ -56,6 +59,7 @@ class PostCommentOverlay extends StatelessWidget {
   final String? emptyAssetPath;
   final double emptyAssetSize;
   final double emptyAssetOpacity;
+  final bool showEmptyIndicator;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +93,7 @@ class PostCommentOverlay extends StatelessWidget {
   Widget _buildContent() {
     if (isEditable) return _buildTextField();
     if (emptyAssetPath != null) return _buildEmptyAsset();
+    if (showEmptyIndicator) return _buildEmptyIndicator();
     return _buildCommentLabel();
   }
 
@@ -124,6 +129,20 @@ class PostCommentOverlay extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) {
           return SizedBox(width: emptyAssetSize, height: emptyAssetSize);
         },
+      ),
+    );
+  }
+
+  Widget _buildEmptyIndicator() {
+    return Opacity(
+      opacity: emptyAssetOpacity,
+      child: SizedBox(
+        width: emptyAssetSize,
+        height: emptyAssetSize,
+        child: const FittedBox(
+          fit: BoxFit.contain,
+          child: Text('💤', style: TextStyle(fontSize: 32)),
+        ),
       ),
     );
   }
