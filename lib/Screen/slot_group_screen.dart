@@ -41,7 +41,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
 
   int? _selectedHourOverride;
   bool _useDiceLayout = false;
-  final Map<String, PostTextStyleSelection> _memberTextStyleSelections = {};
+  PostTextStyleSelection? _viewerTextStyleSelection;
   Timer? _timer;
 
   @override
@@ -414,6 +414,15 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   Widget _buildGroupContent(List<AppUser> members, List<Post> groupPosts) {
     final slotOwnerIds = _activeGroup.effectiveSlotOwnerIds;
     final userById = {for (final member in members) member.id: member};
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final viewer = currentUserId == null ? null : userById[currentUserId];
+    final viewerTextStyleSelection =
+        _viewerTextStyleSelection ??
+        AppTypography.postTextStyleSelection(
+          fontId: viewer?.fontId,
+          colorId: viewer?.colorId,
+          hourFontId: viewer?.hourFontId,
+        );
     final slotCount = slotOwnerIds.length;
     final timelineHours = _buildTimelineHours(groupPosts);
     final activeHour = _resolveActiveHour(timelineHours);
@@ -458,6 +467,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
                 selectedHour: hour,
                 slotCount: slotCount,
                 preset: preset,
+                viewerTextStyleSelection: viewerTextStyleSelection,
               );
             },
           ),
@@ -559,6 +569,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     required int selectedHour,
     required int slotCount,
     required GroupUiPreset preset,
+    required PostTextStyleSelection viewerTextStyleSelection,
   }) {
     final layoutSpec = preset.layoutSpec;
     return layoutSpec.useGrid
@@ -569,6 +580,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
             selectedHour,
             slotCount,
             preset,
+            viewerTextStyleSelection,
           )
         : _buildVerticalLayout(
             slotOwnerIds,
@@ -577,6 +589,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
             selectedHour,
             slotCount,
             preset,
+            viewerTextStyleSelection,
           );
   }
 
@@ -588,6 +601,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     int selectedHour,
     int slotCount,
     GroupUiPreset preset,
+    PostTextStyleSelection viewerTextStyleSelection,
   ) {
     return Column(
       children: List.generate(slotCount, (index) {
@@ -603,6 +617,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
                   selectedPosts: selectedPosts,
                   selectedHour: selectedHour,
                   preset: preset,
+                  viewerTextStyleSelection: viewerTextStyleSelection,
                 )
               : _buildInviteSlotCard(
                   slotIndex: index,
@@ -680,6 +695,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     int selectedHour,
     int slotCount,
     GroupUiPreset preset,
+    PostTextStyleSelection viewerTextStyleSelection,
   ) {
     final layoutSpec = preset.layoutSpec;
     final gridSlotCount = layoutSpec.fixedSlotCount ?? slotCount;
@@ -742,6 +758,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
               selectedPosts: selectedPosts,
               selectedHour: selectedHour,
               preset: preset,
+              viewerTextStyleSelection: viewerTextStyleSelection,
             );
           },
         );
@@ -755,6 +772,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     required List<Post> selectedPosts,
     required int selectedHour,
     required GroupUiPreset preset,
+    required PostTextStyleSelection viewerTextStyleSelection,
   }) {
     final exactSlotPost = user.isDeleted
         ? null
@@ -788,21 +806,16 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
       cardOuterMargin: preset.cardOuterMargin,
       hourOverlaySpec: preset.hourOverlaySpec,
       externalVideoController: _controllerForPost(post),
-      initialStyleSelection:
-          _memberTextStyleSelections[user.id] ??
-          AppTypography.postTextStyleSelection(
-            fontId: user.fontId,
-            colorId: user.colorId,
-            hourFontId: user.hourFontId,
-          ),
+      initialStyleSelection: viewerTextStyleSelection,
       onStyleSelectionChanged: (selection) {
         setState(() {
-          _memberTextStyleSelections[user.id] = selection;
+          _viewerTextStyleSelection = selection;
         });
-        if (FirebaseAuth.instance.currentUser?.uid == user.id) {
+        final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+        if (currentUserId != null) {
           _firestoreService
               .updateUserTextStyle(
-                userId: user.id,
+                userId: currentUserId,
                 fontId: selection.fontId,
                 colorId: selection.colorId,
                 hourFontId: selection.hourFontId,
