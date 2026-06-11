@@ -358,10 +358,15 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
               child: const Text('취소'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('차단 및 신고'),
             ),
           ],
@@ -369,10 +374,6 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
       },
     );
     if (confirmed != true || !mounted) return;
-
-    setState(() {
-      _blockedUserIds = {..._blockedUserIds, user.id};
-    });
 
     try {
       await _firestoreService.blockUserAndReport(
@@ -383,18 +384,23 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
         reason: '사용자 차단',
       );
       if (!mounted) return;
+      setState(() {
+        _blockedUserIds = {..._blockedUserIds, user.id};
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('사용자를 차단했으며 운영자에게 신고했습니다.'),
+          content: Text('사용자를 차단했습니다.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('사용자 차단 실패: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
-      setState(() {
-        _blockedUserIds = {..._blockedUserIds}..remove(user.id);
-      });
-      WarningSnackBar.showWarning(context, '사용자 차단에 실패했습니다.');
+      final message = error.toString().contains('permission-denied')
+          ? 'Firestore 권한 설정 때문에 차단하지 못했습니다.'
+          : '사용자 차단에 실패했습니다.';
+      WarningSnackBar.showWarning(context, message);
     }
   }
 

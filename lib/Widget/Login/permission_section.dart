@@ -237,7 +237,7 @@ class _PermissionSectionState extends State<PermissionSection> {
         ),
 
         _buildAgreementRow(
-          text: "이용약관 동의 (필수)",
+          text: "SLOTT 서비스 이용약관(EULA)동의 (필수)",
           value: _termsAgreed,
           onTap: () {
             setState(() => _termsAgreed = !_termsAgreed);

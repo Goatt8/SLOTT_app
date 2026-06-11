@@ -11,6 +11,7 @@ import 'package:bababam_app/Widget/group_list_cell.dart';
 import 'package:bababam_app/Widget/glass_popup_menu.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Widget/code_input_dialog.dart';
+import 'package:bababam_app/Widget/blocked_users_dialog.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
 
 class SlotListScreen extends StatefulWidget {
@@ -67,6 +68,24 @@ class _SlotListScreenState extends State<SlotListScreen> {
     setState(() {
       //MARK: pop뒤 로직
     });
+  }
+
+  Future<void> _showBlockedUsers() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    final unblockedCount = await showDialog<int>(
+      context: context,
+      builder: (context) => BlockedUsersDialog(
+        currentUserId: currentUser.uid,
+        firestoreService: _firestoreService,
+      ),
+    );
+
+    if (!mounted || unblockedCount == null || unblockedCount == 0) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$unblockedCount명의 차단을 해제했습니다.')));
   }
 
   Widget _buildGroupList() {
@@ -296,6 +315,11 @@ class _SlotListScreenState extends State<SlotListScreen> {
                       onTap: () {
                         _navigateToEditProfile();
                       },
+                    ),
+                    GlassMenuItem(
+                      title: '차단 목록 관리',
+                      icon: Icons.manage_accounts_outlined,
+                      onTap: _showBlockedUsers,
                     ),
                     //MARK: Logout Button
                     GlassMenuItem(

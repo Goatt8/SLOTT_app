@@ -14,6 +14,7 @@ class FireStoreService {
   static const String _userCollection = 'user';
   static const String _groupCollection = 'group';
   static const String _moderationReportCollection = 'moderation_reports';
+  static const String _moderationBlockCollection = 'moderation_blocks';
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection(_userCollection);
@@ -23,6 +24,9 @@ class FireStoreService {
 
   CollectionReference<Map<String, dynamic>> get _moderationReports =>
       _firestore.collection(_moderationReportCollection);
+
+  CollectionReference<Map<String, dynamic>> get _moderationBlocks =>
+      _firestore.collection(_moderationBlockCollection);
 
   // MARK: - User
   Future<void> createUser(AppUser user) async {
@@ -111,6 +115,7 @@ class FireStoreService {
       'phoneNumber': '',
       'profileUrl': null,
       'currentPost': null,
+      'blockedUserIds': <String>[],
       'termsInfo': {'hasAgreed': false, 'version': null},
       'isDeleted': true,
       'deletedAt': FieldValue.serverTimestamp(),
@@ -156,6 +161,10 @@ class FireStoreService {
   }
 
   Future<void> deleteBlockedUserRecords(String userId) async {
+    await _users.doc(userId).set({
+      'blockedUserIds': <String>[],
+    }, SetOptions(merge: true));
+
     final snapshot = await _users.doc(userId).collection('blocked_users').get();
     if (snapshot.docs.isEmpty) return;
 
@@ -167,11 +176,56 @@ class FireStoreService {
   }
 
   Stream<Set<String>> watchBlockedUserIds(String userId) {
-    return _users
-        .doc(userId)
-        .collection('blocked_users')
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toSet());
+    return _users.doc(userId).snapshots().map((snapshot) {
+      final blockedUserIds =
+          snapshot.data()?['blockedUserIds'] as List<dynamic>? ?? const [];
+      return blockedUserIds.whereType<String>().toSet();
+    });
+  }
+
+  Future<Set<String>> getBlockedUserIds(String userId) async {
+    final userRef = _users.doc(userId);
+    final userSnapshot = await userRef.get();
+    final blockedUserIds =
+        ((userSnapshot.data()?['blockedUserIds'] as List<dynamic>?) ?? const [])
+            .whereType<String>()
+            .toSet();
+
+    // 이전 버전의 하위 컬렉션은 읽을 수 있을 때만 조용히 병합한다.
+    try {
+      final legacySnapshot = await userRef.collection('blocked_users').get();
+      final legacyIds = legacySnapshot.docs
+          .map((document) => document.id)
+          .toSet();
+      blockedUserIds.addAll(legacyIds);
+
+      if (legacyIds.isNotEmpty) {
+        await userRef.set({
+          'blockedUserIds': FieldValue.arrayUnion(legacyIds.toList()),
+        }, SetOptions(merge: true));
+      }
+    } on FirebaseException catch (error) {
+      debugPrint('이전 차단 목록 병합 생략: ${error.code}');
+    }
+
+    return blockedUserIds;
+  }
+
+  Future<void> unblockUsers({
+    required String userId,
+    required Set<String> blockedUserIds,
+  }) async {
+    if (blockedUserIds.isEmpty) return;
+
+    final userRef = _users.doc(userId);
+    final batch = _firestore.batch();
+    batch.update(userRef, {
+      'blockedUserIds': FieldValue.arrayRemove(blockedUserIds.toList()),
+    });
+    for (final blockedUserId in blockedUserIds) {
+      batch.delete(userRef.collection('blocked_users').doc(blockedUserId));
+    }
+    await batch.commit();
   }
 
   Future<void> reportPost({
@@ -190,7 +244,6 @@ class FireStoreService {
       'videoUrl': post.videoUrl,
       'comment': post.comment,
       'reason': reason,
-      'source': 'report',
       'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
       'reviewDueAt': Timestamp.fromDate(
@@ -210,19 +263,12 @@ class FireStoreService {
       throw ArgumentError('자기 자신은 차단할 수 없습니다.');
     }
 
-    final blockedUserRef = _users
-        .doc(reporterId)
-        .collection('blocked_users')
-        .doc(blockedUserId);
-    final reportRef = _moderationReports.doc();
-    final batch = _firestore.batch();
-
-    batch.set(blockedUserRef, {
-      'blockedUserId': blockedUserId,
-      'groupId': groupId,
-      'createdAt': FieldValue.serverTimestamp(),
+    final reporterRef = _users.doc(reporterId);
+    await reporterRef.update({
+      'blockedUserIds': FieldValue.arrayUnion([blockedUserId]),
     });
-    batch.set(reportRef, {
+
+    final blockReport = {
       'reporterId': reporterId,
       'reportedUserId': blockedUserId,
       'groupId': groupId,
@@ -231,15 +277,22 @@ class FireStoreService {
       'videoUrl': post?.videoUrl,
       'comment': post?.comment,
       'reason': reason,
-      'source': 'block_and_report',
       'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
       'reviewDueAt': Timestamp.fromDate(
         DateTime.now().add(const Duration(hours: 24)),
       ),
-    });
+    };
 
-    await batch.commit();
+    try {
+      await _moderationBlocks.add(blockReport);
+    } on FirebaseException catch (error) {
+      debugPrint('moderation_blocks 기록 실패, reports로 대체: ${error.code}');
+      await _moderationReports.add({
+        ...blockReport,
+        'source': 'block_and_report',
+      });
+    }
   }
 
   // MARK: - Group

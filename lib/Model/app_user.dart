@@ -9,6 +9,7 @@ class AppUser {
   final String fontId;
   final String colorId;
   final String hourFontId;
+  final List<String> blockedUserIds;
   final CurrentPostPreview? currentPost;
 
   final bool hasAgreedTerms;
@@ -22,6 +23,7 @@ class AppUser {
     this.fontId = AppTypography.defaultPostFontId,
     this.colorId = AppTypography.defaultPostColorId,
     this.hourFontId = AppTypography.defaultHourFontId,
+    this.blockedUserIds = const [],
     this.profileUrl,
     this.currentPost,
     this.hasAgreedTerms = false,
@@ -37,6 +39,7 @@ class AppUser {
       'fontId': fontId,
       'colorId': colorId,
       'hourFontId': hourFontId,
+      'blockedUserIds': blockedUserIds,
       'currentPost': currentPost?.toMap(),
       'termsInfo': {'hasAgreed': hasAgreedTerms, 'version': termsVersion},
       'isDeleted': isDeleted,
@@ -63,6 +66,9 @@ class AppUser {
           map['hourFontId'] as String? ??
           map['defaultHourFontId'] as String? ??
           AppTypography.defaultHourFontId,
+      blockedUserIds: List<String>.from(
+        map['blockedUserIds'] as List<dynamic>? ?? const [],
+      ),
       currentPost: map['currentPost'] != null
           ? CurrentPostPreview.fromMap(
               map['currentPost'] as Map<String, dynamic>,
