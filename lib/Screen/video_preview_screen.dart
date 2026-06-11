@@ -5,6 +5,7 @@ import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
+import 'package:bababam_app/Helper/content_moderation.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Widget/post_comment_overlay.dart';
@@ -88,6 +89,13 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   //MARK: SendPost
   void _sendPost() async {
     if (_isSending) return;
+    final moderationMessage = ContentModeration.rejectionMessage(
+      _commentController.text,
+    );
+    if (moderationMessage != null) {
+      WarningSnackBar.showWarning(context, moderationMessage);
+      return;
+    }
     if (_selectedSlotIndexesByGroupId.isEmpty) {
       WarningSnackBar.showWarning(context, '보낼 슬롯을 먼저 선택해주세요.');
       return;

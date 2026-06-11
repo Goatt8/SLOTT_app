@@ -6,6 +6,7 @@ import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Widget/confirm_dialog.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
+import 'package:bababam_app/Helper/content_moderation.dart';
 
 class CreateSlotScreen extends StatefulWidget {
   const CreateSlotScreen({super.key});
@@ -64,6 +65,14 @@ class _CreateSlotScreenState extends State<CreateSlotScreen> {
 
   //MARK: ShowDialog
   void _showConfirmDialog() async {
+    final moderationMessage = ContentModeration.rejectionMessage(
+      _nameController.text,
+    );
+    if (moderationMessage != null) {
+      WarningSnackBar.showWarning(context, moderationMessage);
+      return;
+    }
+
     final isConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) =>

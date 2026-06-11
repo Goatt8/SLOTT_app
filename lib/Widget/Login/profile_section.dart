@@ -6,6 +6,8 @@ import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Widget/custom_text_field.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:bababam_app/Helper/content_moderation.dart';
+import 'package:bababam_app/Helper/warning_snackbar.dart';
 
 class ProfileSection extends StatefulWidget {
   const ProfileSection({
@@ -58,6 +60,12 @@ class ProfileSectionState extends State<ProfileSection> {
   Future<void> createUserInProfileSection() async {
     final authUser = FirebaseAuth.instance.currentUser;
     if (authUser == null) return;
+    final nickname = _nicknameController.text.trim();
+    final moderationMessage = ContentModeration.rejectionMessage(nickname);
+    if (moderationMessage != null) {
+      WarningSnackBar.showWarning(context, moderationMessage);
+      throw StateError(moderationMessage);
+    }
 
     String? imageUrl;
 
@@ -69,7 +77,7 @@ class ProfileSectionState extends State<ProfileSection> {
     }
     final newUser = AppUser(
       id: authUser.uid,
-      name: _nicknameController.text,
+      name: nickname,
       phoneNumber: authUser.phoneNumber ?? "",
       profileUrl: imageUrl,
       hasAgreedTerms: true,

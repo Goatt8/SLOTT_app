@@ -209,6 +209,20 @@ class _PermissionSectionState extends State<PermissionSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.redAccent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.35)),
+          ),
+          child: const Text(
+            'SLOTT는 불쾌하거나 불법적인 콘텐츠 및 타인을 괴롭히는 사용자를 허용하지 않습니다. 위반 콘텐츠는 신고·삭제되며 계정 이용이 제한될 수 있습니다.',
+            style: TextStyle(color: Colors.white, fontSize: 13, height: 1.45),
+          ),
+        ),
+        const SizedBox(height: 8),
         _buildAllAgreeRow(),
 
         const Padding(

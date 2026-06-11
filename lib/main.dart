@@ -32,12 +32,10 @@ class _SLOTTAppState extends State<SLOTTApp> {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
         final uid = authSnapshot.data?.uid;
-        if (uid == null) {
-          return _buildMaterialApp(AppAccentColor.defaultColor);
-        }
-
         return StreamBuilder<AppUser?>(
-          stream: _firestoreService.watchUser(uid),
+          stream: uid == null
+              ? Stream<AppUser?>.value(null)
+              : _firestoreService.watchUser(uid),
           builder: (context, userSnapshot) {
             final accentColor = AppAccentColor.fromColorId(
               userSnapshot.data?.colorId,

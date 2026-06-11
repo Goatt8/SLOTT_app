@@ -9,6 +9,7 @@ import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
+import 'package:bababam_app/Helper/content_moderation.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/today_group_video_cache_service.dart';
 import 'package:bababam_app/Widget/member_post_card.dart';
@@ -43,6 +44,8 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   bool _useDiceLayout = false;
   PostTextStyleSelection? _viewerTextStyleSelection;
   Timer? _timer;
+  StreamSubscription<Set<String>>? _blockedUsersSubscription;
+  Set<String> _blockedUserIds = {};
 
   @override
   void initState() {
@@ -56,12 +59,14 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     _activeGroup = widget.group;
     _updateTime();
     _initData();
+    _watchBlockedUsers();
     _startClockTimer();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _blockedUsersSubscription?.cancel();
     _pageController.dispose();
     _videoCacheService.disposeAll();
     super.dispose();
@@ -89,6 +94,20 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
       dayKey: _todayKey,
     );
     _videoCacheService.prepareForDay(_todayKey);
+  }
+
+  void _watchBlockedUsers() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    _blockedUsersSubscription = _firestoreService
+        .watchBlockedUserIds(currentUserId)
+        .listen((blockedUserIds) {
+          if (!mounted) return;
+          setState(() {
+            _blockedUserIds = blockedUserIds;
+          });
+        });
   }
 
   //MARK: Time Sync
@@ -249,6 +268,13 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
 
   Future<void> _updatePostComment(Post post, String updatedComment) async {
     if (updatedComment == post.comment) return;
+    final moderationMessage = ContentModeration.rejectionMessage(
+      updatedComment,
+    );
+    if (moderationMessage != null) {
+      WarningSnackBar.showWarning(context, moderationMessage);
+      throw StateError(moderationMessage);
+    }
 
     try {
       await _firestoreService.updatePostComment(
@@ -260,6 +286,115 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
       if (!mounted) return;
       WarningSnackBar.showWarning(context, '텍스트 수정에 실패했습니다.');
       rethrow;
+    }
+  }
+
+  Future<String?> _selectReportReason() {
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return SimpleDialog(
+          title: const Text('신고 사유를 선택해주세요'),
+          children: [
+            for (final reason in const [
+              '괴롭힘 또는 혐오 표현',
+              '음란물 또는 성적인 콘텐츠',
+              '폭력적이거나 위험한 콘텐츠',
+              '개인정보 침해',
+              '스팸 또는 사기',
+              '기타 부적절한 콘텐츠',
+            ])
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(dialogContext).pop(reason),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(reason),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _reportPost(Post post, AppUser user) async {
+    final reporterId = FirebaseAuth.instance.currentUser?.uid;
+    if (reporterId == null || reporterId == user.id) return;
+
+    final reason = await _selectReportReason();
+    if (reason == null) return;
+
+    try {
+      await _firestoreService.reportPost(
+        reporterId: reporterId,
+        reportedUserId: user.id,
+        groupId: widget.groupId,
+        post: post,
+        reason: reason,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('신고가 접수되었습니다. 24시간 이내에 검토하겠습니다.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, '신고 접수에 실패했습니다.');
+    }
+  }
+
+  Future<void> _blockUser(Post? post, AppUser user) async {
+    final reporterId = FirebaseAuth.instance.currentUser?.uid;
+    if (reporterId == null || reporterId == user.id) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('사용자 차단'),
+          content: Text('${user.name}님을 차단하면 이 사용자의 콘텐츠가 즉시 숨겨지고 운영자에게 신고됩니다.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('차단 및 신고'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _blockedUserIds = {..._blockedUserIds, user.id};
+    });
+
+    try {
+      await _firestoreService.blockUserAndReport(
+        reporterId: reporterId,
+        blockedUserId: user.id,
+        groupId: widget.groupId,
+        post: post,
+        reason: '사용자 차단',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('사용자를 차단했으며 운영자에게 신고했습니다.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _blockedUserIds = {..._blockedUserIds}..remove(user.id);
+      });
+      WarningSnackBar.showWarning(context, '사용자 차단에 실패했습니다.');
     }
   }
 
@@ -412,6 +547,9 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
 
   //MARK: Group Content UI
   Widget _buildGroupContent(List<AppUser> members, List<Post> groupPosts) {
+    final visibleGroupPosts = groupPosts
+        .where((post) => !_blockedUserIds.contains(post.authorId))
+        .toList();
     final slotOwnerIds = _activeGroup.effectiveSlotOwnerIds;
     final userById = {for (final member in members) member.id: member};
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
@@ -424,14 +562,14 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
           hourFontId: viewer?.hourFontId,
         );
     final slotCount = slotOwnerIds.length;
-    final timelineHours = _buildTimelineHours(groupPosts);
+    final timelineHours = _buildTimelineHours(visibleGroupPosts);
     final activeHour = _resolveActiveHour(timelineHours);
     final currentIndex = timelineHours.indexOf(activeHour);
     final preset = _resolvePreset(slotCount);
 
     _syncPageToIndex(currentIndex);
     _prepareVideos(
-      groupPosts: groupPosts,
+      groupPosts: visibleGroupPosts,
       timelineHours: timelineHours,
       currentIndex: currentIndex,
     );
@@ -441,7 +579,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
         _buildDotIndicator(
           timelineHours: timelineHours,
           currentIndex: currentIndex,
-          groupPosts: groupPosts,
+          groupPosts: visibleGroupPosts,
           memberCount: slotCount,
         ),
         Expanded(
@@ -457,7 +595,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
             },
             itemBuilder: (context, index) {
               final hour = timelineHours[index];
-              final posts = groupPosts
+              final posts = visibleGroupPosts
                   .where((post) => post.hourSlot == hour)
                   .toList();
               return _buildHourPage(
@@ -774,6 +912,13 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     required GroupUiPreset preset,
     required PostTextStyleSelection viewerTextStyleSelection,
   }) {
+    if (_blockedUserIds.contains(user.id)) {
+      return _buildBlockedMemberCard(
+        preset: preset,
+        selectedHour: selectedHour,
+      );
+    }
+
     final exactSlotPost = user.isDeleted
         ? null
         : _findExactPostForSlot(
@@ -826,6 +971,33 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
       onSaveComment: exactSlotPost != null && _canEditPost(exactSlotPost)
           ? (comment) => _updatePostComment(exactSlotPost, comment)
           : null,
+      onReport:
+          post != null && FirebaseAuth.instance.currentUser?.uid != user.id
+          ? () => _reportPost(post, user)
+          : null,
+      onBlock: FirebaseAuth.instance.currentUser?.uid != user.id
+          ? () => _blockUser(post, user)
+          : null,
+    );
+  }
+
+  Widget _buildBlockedMemberCard({
+    required GroupUiPreset preset,
+    required int selectedHour,
+  }) {
+    return MemberPostCard(
+      member: AppUser(
+        id: 'blocked',
+        name: '차단한 사용자',
+        phoneNumber: '',
+        isDeleted: true,
+      ),
+      post: null,
+      hourSlot: selectedHour,
+      videoAspectRatio: preset.layoutSpec.videoAspectRatio,
+      cardRadius: preset.cardRadius,
+      cardOuterMargin: preset.cardOuterMargin,
+      hourOverlaySpec: preset.hourOverlaySpec,
     );
   }
 }

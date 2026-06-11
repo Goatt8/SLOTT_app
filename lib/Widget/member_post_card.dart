@@ -19,6 +19,8 @@ class MemberPostCard extends StatefulWidget {
   final PostTextStyleSelection initialStyleSelection;
   final ValueChanged<PostTextStyleSelection>? onStyleSelectionChanged;
   final Future<void> Function(String comment)? onSaveComment;
+  final VoidCallback? onReport;
+  final VoidCallback? onBlock;
 
   const MemberPostCard({
     super.key,
@@ -32,6 +34,8 @@ class MemberPostCard extends StatefulWidget {
     this.initialStyleSelection = AppTypography.defaultPostTextStyleSelection,
     this.onStyleSelectionChanged,
     this.onSaveComment,
+    this.onReport,
+    this.onBlock,
     this.post,
   });
 
@@ -42,6 +46,7 @@ class MemberPostCard extends StatefulWidget {
 class _MemberPostCardState extends State<MemberPostCard> {
   late final TextEditingController _commentController;
   final GlobalKey _editButtonKey = GlobalKey();
+  final GlobalKey _safetyButtonKey = GlobalKey();
   late PostTextStyleSelection _textStyleSelection;
   bool _isEditingComment = false;
   bool _isSavingComment = false;
@@ -153,6 +158,59 @@ class _MemberPostCardState extends State<MemberPostCard> {
     widget.onStyleSelectionChanged?.call(selection);
   }
 
+  Future<void> _showSafetyOptions() async {
+    final buttonContext = _safetyButtonKey.currentContext;
+    final buttonBox = buttonContext?.findRenderObject() as RenderBox?;
+    final overlayBox =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final buttonOffset =
+        buttonBox?.localToGlobal(Offset.zero, ancestor: overlayBox) ??
+        Offset(overlayBox.size.width - 72, overlayBox.size.height - 72);
+
+    const menuWidth = 190.0;
+    final menuHeight = widget.onReport == null ? 54.0 : 109.0;
+    final menuLeft = (buttonOffset.dx - menuWidth + 44)
+        .clamp(12.0, overlayBox.size.width - menuWidth - 12)
+        .toDouble();
+    final menuTop = (buttonOffset.dy - menuHeight - 8)
+        .clamp(12.0, overlayBox.size.height - menuHeight - 12)
+        .toDouble();
+
+    final action = await showGeneralDialog<_SafetyAction>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '닫기',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 120),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return Stack(
+          children: [
+            Positioned(
+              left: menuLeft,
+              top: menuTop,
+              child: _SafetyOptionsPopup(
+                width: menuWidth,
+                showReport: widget.onReport != null,
+                onReportTap: () =>
+                    Navigator.of(dialogContext).pop(_SafetyAction.report),
+                onBlockTap: () =>
+                    Navigator.of(dialogContext).pop(_SafetyAction.block),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || action == null) return;
+    switch (action) {
+      case _SafetyAction.report:
+        widget.onReport?.call();
+      case _SafetyAction.block:
+        widget.onBlock?.call();
+    }
+  }
+
   Future<void> _saveEditingComment() async {
     if (_isSavingComment) return;
 
@@ -260,6 +318,27 @@ class _MemberPostCardState extends State<MemberPostCard> {
                         key: _editButtonKey,
                       ),
               ),
+            if (!_isEditingComment &&
+                widget.onSaveComment == null &&
+                widget.onBlock != null)
+              Positioned(
+                right: 14,
+                bottom: 14,
+                child: IconButton(
+                  key: _safetyButtonKey,
+                  onPressed: _showSafetyOptions,
+                  tooltip: '신고 및 차단',
+                  icon: const Icon(
+                    Icons.more_horiz,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -331,6 +410,8 @@ class _MemberPostCardState extends State<MemberPostCard> {
 }
 
 enum _PostEditAction { text, style }
+
+enum _SafetyAction { report, block }
 
 class _EditOptionsPopup extends StatelessWidget {
   const _EditOptionsPopup({
@@ -418,6 +499,65 @@ class _EditOptionTile extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SafetyOptionsPopup extends StatelessWidget {
+  const _SafetyOptionsPopup({
+    required this.width,
+    required this.showReport,
+    required this.onReportTap,
+    required this.onBlockTap,
+  });
+
+  final double width;
+  final bool showReport;
+  final VoidCallback onReportTap;
+  final VoidCallback onBlockTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          color: const Color(0xEE242428),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.28),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showReport) ...[
+              _EditOptionTile(
+                icon: Icons.flag_outlined,
+                label: '콘텐츠 신고',
+                onTap: onReportTap,
+              ),
+              Divider(
+                height: 1,
+                color: Colors.white.withValues(alpha: 0.08),
+                indent: 12,
+                endIndent: 12,
+              ),
+            ],
+            _EditOptionTile(
+              icon: Icons.block,
+              label: '사용자 차단',
+              onTap: onBlockTap,
             ),
           ],
         ),

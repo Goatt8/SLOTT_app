@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
+import 'package:bababam_app/Helper/content_moderation.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Helper/warning_snackbar.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
@@ -271,6 +272,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       WarningSnackBar.showWarning(context, '프로필 명을 변경해주세요.');
       return;
     }
+    final moderationMessage = ContentModeration.rejectionMessage(newName);
+    if (moderationMessage != null) {
+      WarningSnackBar.showWarning(context, moderationMessage);
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -410,6 +416,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       await _tryCleanupStep(
         'Storage 프로필 이미지 삭제',
         () => _firestorageService.deleteProfileImage(uid: userId),
+      );
+      await _tryCleanupStep(
+        'Firestore 그룹 연결 정리',
+        () => _firestoreService.removeUserFromAllGroups(userId),
+      );
+      await _tryCleanupStep(
+        'Firestore 차단 목록 삭제',
+        () => _firestoreService.deleteBlockedUserRecords(userId),
       );
       await _runDeleteStep(
         'Firestore 유저 익명화',

@@ -64,16 +64,12 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       //MARK: Login state, user no exist
       setState(() {
-        _pageCompleted[0] = true;
+        _pageCompleted[1] = true;
         _isLoading = false;
       });
 
       if (_pageController.hasClients) {
-        if (_currentPage == 0) {
-          _nextPage();
-        } else {
-          _pageController.jumpToPage(1);
-        }
+        _pageController.jumpToPage(2);
       }
     }
   }
@@ -345,25 +341,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPageChanged: (i) => setState(() => _currentPage = i),
                       children: [
                         _buildStepCard(
+                          "이용약관 및 운영정책",
+                          "가입 전에 필수 약관과\n커뮤니티 운영정책에 동의해주세요",
+                          PermissionSection(
+                            onPermissionChanged: (isCompleted, version) {
+                              setState(() {
+                                _pageCompleted[0] = isCompleted;
+                                _agreedTermsVersion = version;
+                              });
+                            },
+                          ),
+                          isKeyboardVisible: isKeyboardVisible,
+                        ),
+                        _buildStepCard(
                           "휴대폰 번호 인증",
                           "인증번호를 받기 위해\n번호를 입력해주세요\n(-없이 010xxxxxxxx)",
                           AuthSection(
                             authService: _authService,
                             onVerificationChanged: (result) =>
                                 _handleUserRouting(result),
-                          ),
-                          isKeyboardVisible: isKeyboardVisible,
-                        ),
-                        _buildStepCard(
-                          "권한 동의",
-                          "원활한 이용을 위해\n다음 권한이 필요합니다",
-                          PermissionSection(
-                            onPermissionChanged: (isCompleted, version) {
-                              setState(() {
-                                _pageCompleted[1] = isCompleted;
-                                _agreedTermsVersion = version;
-                              });
-                            },
                           ),
                           isKeyboardVisible: isKeyboardVisible,
                         ),

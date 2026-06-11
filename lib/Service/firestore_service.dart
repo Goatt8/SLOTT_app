@@ -13,12 +13,16 @@ class FireStoreService {
 
   static const String _userCollection = 'user';
   static const String _groupCollection = 'group';
+  static const String _moderationReportCollection = 'moderation_reports';
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection(_userCollection);
 
   CollectionReference<Map<String, dynamic>> get _groups =>
       _firestore.collection(_groupCollection);
+
+  CollectionReference<Map<String, dynamic>> get _moderationReports =>
+      _firestore.collection(_moderationReportCollection);
 
   // MARK: - User
   Future<void> createUser(AppUser user) async {
@@ -101,6 +105,7 @@ class FireStoreService {
   }
 
   Future<void> anonymizeDeletedUser(String userId) async {
+    final expiresAt = DateTime.now().add(const Duration(days: 30));
     await _users.doc(userId).set({
       'name': '탈퇴한 사용자',
       'phoneNumber': '',
@@ -109,7 +114,132 @@ class FireStoreService {
       'termsInfo': {'hasAgreed': false, 'version': null},
       'isDeleted': true,
       'deletedAt': FieldValue.serverTimestamp(),
+      'expiresAt': Timestamp.fromDate(expiresAt),
     }, SetOptions(merge: true));
+  }
+
+  Future<void> removeUserFromAllGroups(String userId) async {
+    final snapshot = await _groups
+        .where('memberIds', arrayContains: userId)
+        .get();
+
+    for (final document in snapshot.docs) {
+      await _firestore.runTransaction((transaction) async {
+        final currentSnapshot = await transaction.get(document.reference);
+        final data = currentSnapshot.data();
+        if (!currentSnapshot.exists || data == null) return;
+
+        final group = Group.fromMap(currentSnapshot.id, data);
+        final remainingMemberIds = group.memberIds
+            .where((memberId) => memberId != userId)
+            .toList();
+
+        if (remainingMemberIds.isEmpty) {
+          transaction.delete(document.reference);
+          return;
+        }
+
+        final updatedSlotOwnerIds = group.effectiveSlotOwnerIds
+            .map((ownerId) => ownerId == userId ? null : ownerId)
+            .toList();
+        final nextOwnerId = group.ownerId == userId
+            ? remainingMemberIds.first
+            : group.ownerId;
+
+        transaction.update(document.reference, {
+          'memberIds': remainingMemberIds,
+          'slotOwnerIds': updatedSlotOwnerIds,
+          'ownerId': nextOwnerId,
+        });
+      });
+    }
+  }
+
+  Future<void> deleteBlockedUserRecords(String userId) async {
+    final snapshot = await _users.doc(userId).collection('blocked_users').get();
+    if (snapshot.docs.isEmpty) return;
+
+    final batch = _firestore.batch();
+    for (final document in snapshot.docs) {
+      batch.delete(document.reference);
+    }
+    await batch.commit();
+  }
+
+  Stream<Set<String>> watchBlockedUserIds(String userId) {
+    return _users
+        .doc(userId)
+        .collection('blocked_users')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toSet());
+  }
+
+  Future<void> reportPost({
+    required String reporterId,
+    required String reportedUserId,
+    required String groupId,
+    required Post post,
+    required String reason,
+  }) async {
+    await _moderationReports.add({
+      'reporterId': reporterId,
+      'reportedUserId': reportedUserId,
+      'groupId': groupId,
+      'postId': post.id,
+      'postPath': 'group/$groupId/posts/${post.id}',
+      'videoUrl': post.videoUrl,
+      'comment': post.comment,
+      'reason': reason,
+      'source': 'report',
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+      'reviewDueAt': Timestamp.fromDate(
+        DateTime.now().add(const Duration(hours: 24)),
+      ),
+    });
+  }
+
+  Future<void> blockUserAndReport({
+    required String reporterId,
+    required String blockedUserId,
+    required String groupId,
+    Post? post,
+    required String reason,
+  }) async {
+    if (reporterId == blockedUserId) {
+      throw ArgumentError('자기 자신은 차단할 수 없습니다.');
+    }
+
+    final blockedUserRef = _users
+        .doc(reporterId)
+        .collection('blocked_users')
+        .doc(blockedUserId);
+    final reportRef = _moderationReports.doc();
+    final batch = _firestore.batch();
+
+    batch.set(blockedUserRef, {
+      'blockedUserId': blockedUserId,
+      'groupId': groupId,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    batch.set(reportRef, {
+      'reporterId': reporterId,
+      'reportedUserId': blockedUserId,
+      'groupId': groupId,
+      'postId': post?.id,
+      'postPath': post == null ? null : 'group/$groupId/posts/${post.id}',
+      'videoUrl': post?.videoUrl,
+      'comment': post?.comment,
+      'reason': reason,
+      'source': 'block_and_report',
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+      'reviewDueAt': Timestamp.fromDate(
+        DateTime.now().add(const Duration(hours: 24)),
+      ),
+    });
+
+    await batch.commit();
   }
 
   // MARK: - Group
