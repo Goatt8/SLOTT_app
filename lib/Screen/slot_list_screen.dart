@@ -268,8 +268,8 @@ class _SlotListScreenState extends State<SlotListScreen> {
           child: Align(
             alignment: Alignment.centerLeft,
             child: SizedBox(
-              width: 80,
-              height: 28,
+              width: 60,
+              height: 26,
               child: Image.asset(
                 'assets/logo/logo.jpeg',
                 fit: BoxFit.cover,
