@@ -9,28 +9,24 @@ class RecordProgressRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width / 2) - 2.5;
+    final radius = (size.width / 2) - 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
-
-    final trackPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    final progressPaint = Paint()
+    final orbitPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.6
+      ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawArc(rect, -math.pi / 2, math.pi * 2, false, trackPaint);
-    canvas.drawArc(
-      rect,
-      -math.pi / 2,
-      math.pi * 2 * progress.clamp(0.0, 1.0),
-      false,
-      progressPaint,
-    );
+    final normalizedProgress = progress.clamp(0.0, 1.0);
+    final startAngle = (-math.pi / 2) + (math.pi * 2 * normalizedProgress);
+    const sweepAngle = math.pi / 5;
+    canvas.drawArc(rect, startAngle, sweepAngle, false, orbitPaint);
+
+    final beadAngle = startAngle + sweepAngle;
+    final beadCenter =
+        center +
+        Offset(math.cos(beadAngle) * radius, math.sin(beadAngle) * radius);
+    canvas.drawCircle(beadCenter, 3.2, Paint()..color = Colors.white);
   }
 
   @override

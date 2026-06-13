@@ -27,7 +27,6 @@ class _CameraScreenState extends State<CameraScreen>
   int _selectedCameraIndex = 0;
   bool _isInitialized = false;
   bool _isRecording = false;
-  bool _isRecordTapped = false;
   bool _isSwitchingCamera = false;
   Offset? _focusPoint;
   Offset? _exposureDragStartPoint;
@@ -105,12 +104,6 @@ class _CameraScreenState extends State<CameraScreen>
     }
 
     try {
-      setState(() => _isRecordTapped = true);
-      Future.delayed(const Duration(milliseconds: 140), () {
-        if (!mounted) return;
-        setState(() => _isRecordTapped = false);
-      });
-
       await _controller!.startVideoRecording();
       setState(() => _isRecording = true);
 
@@ -484,7 +477,7 @@ class _CameraScreenState extends State<CameraScreen>
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 50),
+        padding: const EdgeInsets.only(bottom: 45),
         child: GestureDetector(
           onTap: _isRecording
               ? null
@@ -492,41 +485,41 @@ class _CameraScreenState extends State<CameraScreen>
                   HapticFeedback.mediumImpact();
                   _recordVideo();
                 },
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 80,
-                width: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    width: 4,
+          child: SizedBox(
+            width: 80,
+            height: 80,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  height: 80,
+                  width: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 4,
+                    ),
                   ),
                 ),
-              ),
-
-              if (_isRecording)
-                SizedBox(
-                  height: 90,
-                  width: 90,
-                  child: AnimatedBuilder(
-                    animation: _animationController,
-                    builder: (context, _) {
-                      return CustomPaint(
-                        painter: RecordProgressRingPainter(
-                          progress: _animationController.value,
-                        ),
-                      );
-                    },
+                if (_isRecording)
+                  SizedBox(
+                    height: 80,
+                    width: 80,
+                    child: AnimatedBuilder(
+                      animation: _animationController,
+                      builder: (context, _) {
+                        return CustomPaint(
+                          painter: RecordProgressRingPainter(
+                            progress: _animationController.value,
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-              AnimatedScale(
-                scale: _isRecordTapped ? 0.9 : 1.0,
-                duration: const Duration(milliseconds: 120),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutBack,
                   height: _isRecording ? 25 : 55,
                   width: _isRecording ? 25 : 55,
                   decoration: BoxDecoration(
@@ -534,8 +527,8 @@ class _CameraScreenState extends State<CameraScreen>
                     borderRadius: BorderRadius.circular(_isRecording ? 4 : 30),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -707,16 +700,18 @@ class _CameraScreenState extends State<CameraScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
+        top: false,
+        left: false,
+        right: false,
         child: _isInitialized
             ? LayoutBuilder(
                 builder: (context, constraints) {
-                  const double previewTopPadding = 26;
+                  const double previewTopPadding = 0;
                   const double previewBottomPadding = 132;
-                  const double previewHorizontalPadding = 14;
+                  const double previewHorizontalPadding = 0;
                   final Size previewSize = Size(
                     constraints.maxWidth - (previewHorizontalPadding * 2),
-                    constraints.maxHeight -
-                        (previewTopPadding + previewBottomPadding),
+                    constraints.maxHeight - previewTopPadding,
                   );
                   return Stack(
                     children: [
@@ -724,7 +719,6 @@ class _CameraScreenState extends State<CameraScreen>
                         child: Padding(
                           padding: const EdgeInsets.only(
                             top: previewTopPadding,
-                            bottom: previewBottomPadding,
                             left: previewHorizontalPadding,
                             right: previewHorizontalPadding,
                           ),
@@ -744,32 +738,27 @@ class _CameraScreenState extends State<CameraScreen>
                                   onPanUpdate: _onExposureDragUpdate,
                                   onPanEnd: (_) => _onExposureDragEnd(),
                                   onPanCancel: _onExposureDragEnd,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(26),
-                                    child: ClipRect(
-                                      child: OverflowBox(
-                                        alignment: Alignment.center,
-                                        child: FittedBox(
-                                          fit: BoxFit.cover,
-                                          child: SizedBox(
-                                            width:
-                                                _controller
-                                                    ?.value
-                                                    .previewSize
-                                                    ?.height ??
-                                                MediaQuery.of(
-                                                  context,
-                                                ).size.width,
-                                            height:
-                                                _controller
-                                                    ?.value
-                                                    .previewSize
-                                                    ?.width ??
-                                                MediaQuery.of(
-                                                  context,
-                                                ).size.height,
-                                            child: CameraPreview(_controller!),
-                                          ),
+                                  child: ClipRect(
+                                    child: OverflowBox(
+                                      alignment: Alignment.center,
+                                      child: FittedBox(
+                                        fit: BoxFit.cover,
+                                        child: SizedBox(
+                                          width:
+                                              _controller
+                                                  ?.value
+                                                  .previewSize
+                                                  ?.height ??
+                                              MediaQuery.of(context).size.width,
+                                          height:
+                                              _controller
+                                                  ?.value
+                                                  .previewSize
+                                                  ?.width ??
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.height,
+                                          child: CameraPreview(_controller!),
                                         ),
                                       ),
                                     ),
@@ -791,31 +780,27 @@ class _CameraScreenState extends State<CameraScreen>
                                 ),
                         ),
                       ),
-                      Positioned.fill(
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            top: previewTopPadding,
-                            bottom: previewBottomPadding,
-                            left: previewHorizontalPadding,
-                            right: previewHorizontalPadding,
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: previewBottomPadding,
+                        child: IgnorePointer(
+                          child: ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.82),
                           ),
-                          child: IgnorePointer(
-                            child: Center(
-                              child: AspectRatio(
-                                aspectRatio:
-                                    AppLayoutPolicy.previewVideoAspectRatio,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.35,
-                                      ),
-                                      width: 1.4,
-                                    ),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                              ),
+                        ),
+                      ),
+                      Positioned(
+                        top: previewTopPadding,
+                        left: previewHorizontalPadding,
+                        right: previewHorizontalPadding,
+                        bottom: previewBottomPadding,
+                        child: IgnorePointer(
+                          child: Center(
+                            child: Text(
+                              '${DateTime.now().hour.toString().padLeft(2, '0')}:00',
+                              style: AppTypography.hourOverlay(),
                             ),
                           ),
                         ),
@@ -859,7 +844,7 @@ class _CameraScreenState extends State<CameraScreen>
                           child: _buildExposureIndicator(),
                         ),
                       Positioned(
-                        top: 10,
+                        top: MediaQuery.paddingOf(context).top + 10,
                         right: 20,
                         child: GestureDetector(
                           onTap: () => Navigator.pop(context),

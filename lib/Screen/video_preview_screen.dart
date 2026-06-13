@@ -33,6 +33,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   late int _currentHour;
   Timer? _timer;
   bool _isSending = false;
+  bool _isSendButtonPressed = false;
 
   @override
   void initState() {
@@ -290,8 +291,14 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: ListTile(
                 leading: const CircleAvatar(
-                  backgroundColor: Colors.blueGrey,
-                  child: Icon(Icons.group, color: Colors.white),
+                  backgroundColor: Colors.black,
+                  child: Padding(
+                    padding: EdgeInsets.all(2),
+                    child: Image(
+                      image: AssetImage('assets/emoji/group1.png'),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
                 title: Text(
                   group.title,
@@ -312,7 +319,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                               slotIndex,
                             );
                             return FilterChip(
-                              label: Text('${slotIndex + 1}번 칸'),
+                              label: Text('${slotIndex + 1}번 슬롯'),
                               selected: isSelected,
                               onSelected: (_) =>
                                   _toggleSlot(group.id, slotIndex),
@@ -365,24 +372,47 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   }
 
   Widget _buildPreviewArea(BuildContext context) {
-    return Expanded(
-      flex: 2,
+    final safeTop = MediaQuery.paddingOf(context).top;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    const horizontalPadding = 8.0;
+    const bottomPadding = 12.0;
+    final previewWidth = screenWidth - (horizontalPadding * 2);
+    final previewHeight =
+        previewWidth / AppLayoutPolicy.previewVideoAspectRatio;
+    final previewTop = safeTop;
+
+    return SizedBox(
+      height: previewTop + previewHeight + bottomPadding,
       child: Stack(
         children: [
-          Center(
-            child: AspectRatio(
-              aspectRatio: AppLayoutPolicy.previewVideoAspectRatio,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  color: Colors.black,
-                  child: VideoPlayerWidget(videoUrl: widget.videoPath),
-                ),
+          Positioned(
+            top: previewTop,
+            left: horizontalPadding,
+            right: horizontalPadding,
+            height: previewHeight,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: ColoredBox(
+                color: Colors.black,
+                child: VideoPlayerWidget(videoUrl: widget.videoPath),
               ),
             ),
           ),
           Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
+            top: previewTop,
+            left: horizontalPadding,
+            right: horizontalPadding,
+            height: previewHeight,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: PostCommentOverlay.editable(
+                hourText: '${_currentHour.toString().padLeft(2, '0')}:00',
+                controller: _commentController,
+              ),
+            ),
+          ),
+          Positioned(
+            top: safeTop + 6,
             left: 16,
             child: IconButton(
               icon: const Icon(Icons.close, color: Colors.white, size: 30),
@@ -390,37 +420,47 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
             ),
           ),
           Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
+            top: safeTop + 6,
             right: 16,
             child: GestureDetector(
+              onTapDown: _isSending
+                  ? null
+                  : (_) => setState(() => _isSendButtonPressed = true),
+              onTapUp: _isSending
+                  ? null
+                  : (_) => setState(() => _isSendButtonPressed = false),
+              onTapCancel: _isSending
+                  ? null
+                  : () => setState(() => _isSendButtonPressed = false),
               onTap: _isSending ? null : _sendPost,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: _isSending
-                    ? const SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.4,
+              child: AnimatedScale(
+                scale: _isSendButtonPressed ? 0.9 : 1,
+                duration: const Duration(milliseconds: 110),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 110),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(
+                      alpha: _isSendButtonPressed ? 0.38 : 0.2,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: _isSending
+                      ? const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.arrow_upward,
                           color: Colors.white,
+                          size: 28,
                         ),
-                      )
-                    : const Icon(
-                        Icons.arrow_upward,
-                        color: Colors.white,
-                        size: 28,
-                      ),
+                ),
               ),
-            ),
-          ),
-          Positioned.fill(
-            child: PostCommentOverlay.editable(
-              hourText: '${_currentHour.toString().padLeft(2, '0')}:00',
-              controller: _commentController,
             ),
           ),
         ],

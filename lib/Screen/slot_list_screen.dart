@@ -257,13 +257,25 @@ class _SlotListScreenState extends State<SlotListScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.asset(
-            'assets/logo/logo.jpeg',
-            width: 34,
-            height: 34,
-            fit: BoxFit.cover,
+        backgroundColor: Colors.black,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leadingWidth: 96,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: 80,
+              height: 28,
+              child: Image.asset(
+                'assets/logo/logo.jpeg',
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
+            ),
           ),
         ),
         actions: [

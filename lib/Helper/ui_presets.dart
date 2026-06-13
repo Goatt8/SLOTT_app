@@ -411,7 +411,18 @@ class AppLayoutPolicy {
   }
 
   static GroupVideoLayoutSpec diceSpecByMemberCount(int memberCount) {
-    if (memberCount == 3 || memberCount == 4) {
+    if (memberCount == 3) {
+      return const GroupVideoLayoutSpec(
+        useGrid: true,
+        crossAxisCount: 3,
+        gridChildAspectRatio: diceVideoAspectRatio,
+        videoAspectRatio: diceVideoAspectRatio,
+        compactVerticalCards: false,
+        fixedSlotCount: 3,
+      );
+    }
+
+    if (memberCount == 4) {
       return const GroupVideoLayoutSpec(
         useGrid: true,
         crossAxisCount: 2,
@@ -498,7 +509,7 @@ class AppLayoutPolicy {
       gridHorizontalPadding: 2,
       gridVerticalPadding: 2,
       gridSpacing: 2,
-      fillGridViewport: false,
+      fillGridViewport: willUseDice && memberCount == 3,
     );
   }
 }

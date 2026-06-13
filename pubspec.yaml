@@ -34,11 +34,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/emoji/group1.png
     - assets/emoji/emoji1.png
     - assets/emoji/emoji2.png
     - assets/emoji/emoji3.png
     - assets/emoji/emoji4.png
     - assets/logo/logo.jpeg
+    - assets/logo/title_logo.png
 
 flutter_launcher_icons:
   android: "launcher_icon"
