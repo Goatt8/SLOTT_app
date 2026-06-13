@@ -4,12 +4,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
 class FireStorageService {
-  static const String simulatorTestAssetVideoPath =
-      'assets/video/test_video.mp4';
-  static const List<String> simulatorTestStorageVideoPaths = [
-    'assets/video/test_video.mp4',
-  ];
-
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   bool _isOwnedTempUpload(Reference ref, String userId) {
@@ -60,10 +54,6 @@ class FireStorageService {
 
     try {
       final ref = _storage.refFromURL(videoUrl);
-      if (simulatorTestStorageVideoPaths.contains(ref.fullPath)) {
-        return;
-      }
-
       final currentUserId = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserId == null || !_isOwnedTempUpload(ref, currentUserId)) {
         return;
@@ -83,22 +73,6 @@ class FireStorageService {
     for (final videoUrl in uniqueVideoUrls) {
       await deleteVideoByUrl(videoUrl);
     }
-  }
-
-  Future<String?> getSimulatorTestVideoUrl() async {
-    for (final path in simulatorTestStorageVideoPaths) {
-      try {
-        return await _storage.ref(path).getDownloadURL();
-      } on FirebaseException catch (e) {
-        if (e.code != 'object-not-found') {
-          debugPrint("테스트 영상 URL 조회 에러($path): $e");
-          return null;
-        }
-      }
-    }
-
-    debugPrint("테스트 영상이 Storage에 없습니다: $simulatorTestStorageVideoPaths");
-    return null;
   }
 
   Future<String?> uploadVideo(String filePath) async {

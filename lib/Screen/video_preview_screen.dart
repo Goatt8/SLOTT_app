@@ -56,10 +56,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     return path.startsWith('http://') || path.startsWith('https://');
   }
 
-  bool _isAssetVideo(String path) {
-    return path.startsWith('assets/');
-  }
-
   Future<String?> _uploadVideoForPost() async {
     if (_isRemoteVideo(widget.videoPath)) {
       return widget.videoPath;
@@ -70,10 +66,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
       if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
         return uploadedUrl;
       }
-    }
-
-    if (_isAssetVideo(widget.videoPath)) {
-      return _fireStorageService.getSimulatorTestVideoUrl();
     }
 
     return _fireStorageService.uploadVideo(widget.videoPath);

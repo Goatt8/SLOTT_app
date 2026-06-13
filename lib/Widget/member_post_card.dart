@@ -447,7 +447,7 @@ class _EditOptionsPopup extends StatelessWidget {
           children: [
             _EditOptionTile(
               icon: Icons.text_fields,
-              label: '텍스트',
+              label: '슬롯 채우기',
               onTap: onTextTap,
             ),
             Divider(

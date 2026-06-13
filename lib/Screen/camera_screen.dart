@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Screen/video_preview_screen.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
@@ -19,6 +20,7 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen>
     with TickerProviderStateMixin {
   final FireStorageService _storageService = FireStorageService();
+  final ImagePicker _imagePicker = ImagePicker();
   late AnimationController _animationController;
   CameraController? _controller;
   List<CameraDescription>? _cameras;
@@ -68,13 +70,15 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
-  void _moveToSimulatorTestPreview() {
-    debugPrint("컨트롤러가 없으므로 테스트 영상 프리뷰로 이동합니다.");
+  Future<void> _pickVideoFromGallery() async {
+    try {
+      final video = await _imagePicker.pickVideo(source: ImageSource.gallery);
+      if (video == null || !mounted) return;
 
-    _moveToPreviewScreen(
-      recordedPath: FireStorageService.simulatorTestAssetVideoPath,
-      uploadedVideoUrlFuture: _storageService.getSimulatorTestVideoUrl(),
-    );
+      await _uploadToFireStorageAndMove(video.path);
+    } catch (error) {
+      debugPrint('갤러리 영상 선택 실패: $error');
+    }
   }
 
   //MARK: MoveToPreview
@@ -96,7 +100,7 @@ class _CameraScreenState extends State<CameraScreen>
 
   Future<void> _recordVideo() async {
     if (_controller == null || !_controller!.value.isInitialized) {
-      _moveToSimulatorTestPreview();
+      await _pickVideoFromGallery();
       return;
     }
 
@@ -122,7 +126,7 @@ class _CameraScreenState extends State<CameraScreen>
         setState(() => _isRecording = false);
 
         if (rawVideo == null) {
-          _moveToSimulatorTestPreview();
+          await _pickVideoFromGallery();
           return;
         }
 
@@ -777,7 +781,7 @@ class _CameraScreenState extends State<CameraScreen>
                                     child: Text(
                                       _isSwitchingCamera
                                           ? "카메라 전환 중"
-                                          : "시뮬레이터: 카메라 없음",
+                                          : "촬영 버튼을 눌러 갤러리 영상을 선택하세요",
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 16,
