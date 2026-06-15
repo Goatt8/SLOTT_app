@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_video_player_plus/cached_video_player_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/post.dart';
 import 'package:bababam_app/Model/app_user.dart';
@@ -272,6 +273,7 @@ class _MemberPostCardState extends State<MemberPostCard> {
                           key: ValueKey(post.videoUrl),
                           videoUrl: post.videoUrl,
                           externalController: widget.externalVideoController,
+                          initializeWhenExternalMissing: false,
                         ),
                       ),
                     ],
@@ -352,7 +354,7 @@ class _MemberPostCardState extends State<MemberPostCard> {
           backgroundColor: Colors.grey[700],
           radius: 15,
           backgroundImage: widget.member.profileUrl != null
-              ? NetworkImage(widget.member.profileUrl!)
+              ? CachedNetworkImageProvider(widget.member.profileUrl!)
               : null,
           child: widget.member.profileUrl == null
               ? Text(

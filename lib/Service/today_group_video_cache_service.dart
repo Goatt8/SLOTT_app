@@ -47,7 +47,10 @@ class TodayGroupVideoCacheService {
     });
   }
 
-  void prepareControllersForPosts(List<Post> posts) {
+  void prepareControllersForPosts(
+    List<Post> posts, {
+    required Set<String> activeVideoUrls,
+  }) {
     final keepUrls = posts
         .map((p) => p.videoUrl)
         .where((url) => url.startsWith('http://') || url.startsWith('https://'))
@@ -75,13 +78,23 @@ class TodayGroupVideoCacheService {
           );
           _controllerPool[url] = controller;
           await controller.initialize();
-          controller.setLooping(true);
-          controller.setVolume(0);
-          controller.play();
+          await controller.setLooping(true);
+          await controller.setVolume(0);
           onControllerReady?.call();
         } catch (_) {
           final failedController = _controllerPool.remove(url);
           await failedController?.dispose();
+        }
+      }
+
+      for (final entry in _controllerPool.entries) {
+        final controller = entry.value;
+        if (!controller.value.isInitialized) continue;
+
+        if (activeVideoUrls.contains(entry.key)) {
+          await controller.play();
+        } else {
+          await controller.pause();
         }
       }
     });

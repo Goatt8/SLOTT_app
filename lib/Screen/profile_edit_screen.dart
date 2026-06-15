@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
@@ -82,7 +83,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           backgroundImage: _pickedImageFile != null
               ? FileImage(_pickedImageFile!)
               : (_currentProfileUrl != null
-                        ? NetworkImage(_currentProfileUrl!)
+                        ? CachedNetworkImageProvider(_currentProfileUrl!)
                         : null)
                     as ImageProvider?,
         ),

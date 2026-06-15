@@ -5,11 +5,13 @@ import 'package:cached_video_player_plus/cached_video_player_plus.dart';
 class VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
   final CachedVideoPlayerPlusController? externalController;
+  final bool initializeWhenExternalMissing;
 
   const VideoPlayerWidget({
     super.key,
     required this.videoUrl,
     this.externalController,
+    this.initializeWhenExternalMissing = true,
   });
 
   @override
@@ -28,10 +30,14 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   @override
   void initState() {
     super.initState();
-    if (widget.externalController == null) {
+    if (widget.externalController == null &&
+        widget.initializeWhenExternalMissing) {
       _initializeInternalController();
     } else {
-      _configureController(widget.externalController!);
+      final externalController = widget.externalController;
+      if (externalController != null) {
+        _configureController(externalController);
+      }
     }
   }
 
@@ -58,7 +64,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       return;
     }
 
-    if (widget.externalController == null && _internalController == null) {
+    if (widget.externalController == null &&
+        widget.initializeWhenExternalMissing &&
+        _internalController == null) {
       _initializeInternalController();
     }
   }
@@ -99,10 +107,12 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   ) async {
     if (!controller.value.isInitialized) return;
 
-    _attachLoopGuard(controller);
     await controller.setLooping(true);
     await controller.setVolume(0);
-    await controller.play();
+    if (widget.externalController == null) {
+      _attachLoopGuard(controller);
+      await controller.play();
+    }
   }
 
   void _attachLoopGuard(CachedVideoPlayerPlusController controller) {

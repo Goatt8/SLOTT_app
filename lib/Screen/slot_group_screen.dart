@@ -34,18 +34,23 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
 
   late final TodayGroupVideoCacheService _videoCacheService;
   late final PreloadPageController _pageController;
-  late Stream<List<Post>> _postsStream;
   late Future<List<AppUser>> _membersFuture;
   late Group _activeGroup;
   late int _currentHour;
   late String _todayKey;
 
+  StreamSubscription<List<Post>>? _postsSubscription;
   int? _selectedHourOverride;
   bool _useDiceLayout = false;
   PostTextStyleSelection? _viewerTextStyleSelection;
   Timer? _timer;
   StreamSubscription<Set<String>>? _blockedUsersSubscription;
   Set<String> _blockedUserIds = {};
+  List<Post> _groupPosts = const [];
+  Object? _postsError;
+  bool _isPostsLoading = true;
+  int _postsSubscriptionGeneration = 0;
+  String? _lastVideoPreparationKey;
 
   @override
   void initState() {
@@ -66,6 +71,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _postsSubscription?.cancel();
     _blockedUsersSubscription?.cancel();
     _pageController.dispose();
     _videoCacheService.disposeAll();
@@ -89,11 +95,39 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   //MARK: Init Data
   void _initData() {
     _membersFuture = _firestoreService.getUsersByIds(_activeGroup.memberIds);
-    _postsStream = _firestoreService.getPostsByDayStream(
-      groupId: widget.groupId,
-      dayKey: _todayKey,
-    );
-    _videoCacheService.prepareForDay(_todayKey);
+    final generation = ++_postsSubscriptionGeneration;
+    _isPostsLoading = true;
+    _postsError = null;
+    _groupPosts = const [];
+    _lastVideoPreparationKey = null;
+    unawaited(_subscribeToPosts(generation));
+  }
+
+  Future<void> _subscribeToPosts(int generation) async {
+    await _postsSubscription?.cancel();
+    await _videoCacheService.prepareForDay(_todayKey);
+    if (!mounted || generation != _postsSubscriptionGeneration) return;
+
+    _postsSubscription = _firestoreService
+        .getPostsByDayStream(groupId: widget.groupId, dayKey: _todayKey)
+        .listen(
+          (posts) {
+            if (!mounted || generation != _postsSubscriptionGeneration) return;
+            setState(() {
+              _groupPosts = posts;
+              _postsError = null;
+              _isPostsLoading = false;
+            });
+            _prepareVideosForCurrentState();
+          },
+          onError: (Object error) {
+            if (!mounted || generation != _postsSubscriptionGeneration) return;
+            setState(() {
+              _postsError = error;
+              _isPostsLoading = false;
+            });
+          },
+        );
   }
 
   void _watchBlockedUsers() {
@@ -107,6 +141,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
           setState(() {
             _blockedUserIds = blockedUserIds;
           });
+          _prepareVideosForCurrentState();
         });
   }
 
@@ -186,13 +221,45 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     required List<int> timelineHours,
     required int currentIndex,
   }) {
+    if (currentIndex < 0 || currentIndex >= timelineHours.length) return;
+
     final preloadPosts = _postsAroundActiveHour(
       groupPosts: groupPosts,
       timelineHours: timelineHours,
       currentIndex: currentIndex,
     );
+    final activeHour = timelineHours[currentIndex];
+    final activeVideoUrls = groupPosts
+        .where((post) => post.hourSlot == activeHour)
+        .map((post) => post.videoUrl)
+        .toSet();
+    final preloadUrls = preloadPosts.map((post) => post.videoUrl).toList()
+      ..sort();
+    final preparationKey = '$activeHour|${preloadUrls.join('|')}';
+    if (_lastVideoPreparationKey == preparationKey) return;
+    _lastVideoPreparationKey = preparationKey;
+
     _videoCacheService.warmPosts(preloadPosts);
-    _videoCacheService.prepareControllersForPosts(preloadPosts);
+    _videoCacheService.prepareControllersForPosts(
+      preloadPosts,
+      activeVideoUrls: activeVideoUrls,
+    );
+  }
+
+  void _prepareVideosForCurrentState() {
+    if (_isPostsLoading || _postsError != null) return;
+
+    final visiblePosts = _groupPosts
+        .where((post) => !_blockedUserIds.contains(post.authorId))
+        .toList();
+    final timelineHours = _buildTimelineHours(visiblePosts);
+    final activeHour = _resolveActiveHour(timelineHours);
+    final currentIndex = timelineHours.indexOf(activeHour);
+    _prepareVideos(
+      groupPosts: visiblePosts,
+      timelineHours: timelineHours,
+      currentIndex: currentIndex,
+    );
   }
 
   List<Post> _postsAroundActiveHour({
@@ -492,29 +559,21 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
               );
             }
 
-            return StreamBuilder<List<Post>>(
-              stream: _postsStream,
-              builder: (context, postSnapshot) {
-                if (postSnapshot.hasError) {
-                  debugPrint('소셜 그룹 포스트 로드 오류: ${postSnapshot.error}');
-                  return const Center(
-                    child: Text(
-                      "데이터 로드 중 오류가 발생했습니다.",
-                      style: TextStyle(color: Colors.redAccent),
-                    ),
-                  );
-                }
+            if (_postsError != null) {
+              debugPrint('소셜 그룹 포스트 로드 오류: $_postsError');
+              return const Center(
+                child: Text(
+                  "데이터 로드 중 오류가 발생했습니다.",
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+              );
+            }
 
-                if (postSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            if (_isPostsLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-                return _buildGroupContent(
-                  memberSnapshot.data ?? [],
-                  postSnapshot.data ?? [],
-                );
-              },
-            );
+            return _buildGroupContent(memberSnapshot.data ?? [], _groupPosts);
           },
         ),
       ),
@@ -574,11 +633,6 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     final preset = _resolvePreset(slotCount);
 
     _syncPageToIndex(currentIndex);
-    _prepareVideos(
-      groupPosts: visibleGroupPosts,
-      timelineHours: timelineHours,
-      currentIndex: currentIndex,
-    );
 
     return Column(
       children: [
@@ -598,6 +652,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
               setState(() {
                 _selectedHourOverride = timelineHours[index];
               });
+              _prepareVideosForCurrentState();
             },
             itemBuilder: (context, index) {
               final hour = timelineHours[index];

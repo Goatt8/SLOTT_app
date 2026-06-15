@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 
@@ -171,7 +172,7 @@ class _BlockedUsersDialogState extends State<BlockedUsersDialog> {
               backgroundColor: Colors.white12,
               backgroundImage: user?.profileUrl == null
                   ? null
-                  : NetworkImage(user!.profileUrl!),
+                  : CachedNetworkImageProvider(user!.profileUrl!),
               child: user?.profileUrl == null
                   ? const Icon(Icons.person, color: Colors.white54)
                   : null,
