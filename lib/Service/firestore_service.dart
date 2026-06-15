@@ -60,14 +60,9 @@ class FireStoreService {
       return [];
     }
 
-    final users = <AppUser>[];
-    for (final userId in userIds) {
-      final user = await getUser(userId);
-      if (user != null) {
-        users.add(user);
-      }
-    }
-    return users;
+    final uniqueUserIds = userIds.toSet().toList();
+    final users = await Future.wait(uniqueUserIds.map(getUser));
+    return users.whereType<AppUser>().toList();
   }
 
   Future<void> updateUser({
