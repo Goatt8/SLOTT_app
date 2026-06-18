@@ -42,6 +42,7 @@ flutter:
     - assets/emoji/emoji4.png
     - assets/logo/logo.jpeg
     - assets/logo/title_logo.png
+    - functions/assets/fonts/
 
 flutter_launcher_icons:
   android: "launcher_icon"

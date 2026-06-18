@@ -12,6 +12,7 @@ import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Helper/content_moderation.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/today_group_video_cache_service.dart';
+import 'package:bababam_app/Service/daily_video_export_service.dart';
 import 'package:bababam_app/Widget/member_post_card.dart';
 import 'package:bababam_app/Widget/navigation_triangle_button.dart';
 
@@ -31,6 +32,8 @@ class SlotGroupScreen extends StatefulWidget {
 
 class _SlotGroupScreenState extends State<SlotGroupScreen> {
   final FireStoreService _firestoreService = FireStoreService();
+  final DailyVideoExportService _dailyVideoExportService =
+      DailyVideoExportService();
 
   late final TodayGroupVideoCacheService _videoCacheService;
   late final PreloadPageController _pageController;
@@ -49,8 +52,10 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   List<Post> _groupPosts = const [];
   Object? _postsError;
   bool _isPostsLoading = true;
+  bool _isRequestingDailyVideoExport = false;
   int _postsSubscriptionGeneration = 0;
   String? _lastVideoPreparationKey;
+  Timer? _videoPreparationTimer;
 
   @override
   void initState() {
@@ -71,6 +76,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _videoPreparationTimer?.cancel();
     _postsSubscription?.cancel();
     _blockedUsersSubscription?.cancel();
     _pageController.dispose();
@@ -118,7 +124,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
               _postsError = null;
               _isPostsLoading = false;
             });
-            _prepareVideosForCurrentState();
+            _scheduleVideoPreparation();
           },
           onError: (Object error) {
             if (!mounted || generation != _postsSubscriptionGeneration) return;
@@ -141,7 +147,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
           setState(() {
             _blockedUserIds = blockedUserIds;
           });
-          _prepareVideosForCurrentState();
+          _scheduleVideoPreparation();
         });
   }
 
@@ -260,6 +266,14 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
       timelineHours: timelineHours,
       currentIndex: currentIndex,
     );
+  }
+
+  void _scheduleVideoPreparation() {
+    _videoPreparationTimer?.cancel();
+    _videoPreparationTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      _prepareVideosForCurrentState();
+    });
   }
 
   List<Post> _postsAroundActiveHour({
@@ -525,6 +539,63 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     );
   }
 
+  Future<void> _requestDailyVideoExport() async {
+    if (_isRequestingDailyVideoExport) return;
+
+    setState(() => _isRequestingDailyVideoExport = true);
+    try {
+      final members = await _membersFuture;
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      final userById = {for (final member in members) member.id: member};
+      final viewer = currentUserId == null ? null : userById[currentUserId];
+      final textStyleSelection =
+          _viewerTextStyleSelection ??
+          AppTypography.postTextStyleSelection(
+            fontId: viewer?.fontId,
+            colorId: viewer?.colorId,
+            hourFontId: viewer?.hourFontId,
+          );
+
+      final result = await _dailyVideoExportService.export(
+        group: _activeGroup,
+        posts: _groupPosts,
+        members: members,
+        useDiceLayout: _useDiceLayout,
+        dayKey: _todayKey,
+        textStyleSelection: textStyleSelection,
+        blockedUserIds: _blockedUserIds,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${result.hourCount}개 시간대의 영상을 사진 앱에 저장했습니다.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } on DailyVideoExportException catch (error) {
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, error.message);
+    } on PlatformException catch (error, stackTrace) {
+      debugPrint('하루 영상 생성 플랫폼 실패: ${error.code} ${error.message}');
+      debugPrint('하루 영상 생성 플랫폼 상세: ${error.details}');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+      WarningSnackBar.showWarning(
+        context,
+        error.message ?? '하루 영상 생성 중 iOS 처리에 실패했습니다.',
+      );
+    } catch (error, stackTrace) {
+      debugPrint('하루 영상 생성 요청 실패: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, '하루 영상 생성을 요청하지 못했습니다.');
+    } finally {
+      if (mounted) {
+        setState(() => _isRequestingDailyVideoExport = false);
+      }
+    }
+  }
+
   //MARK: Screen UI
   @override
   Widget build(BuildContext context) {
@@ -539,7 +610,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
         ),
         centerTitle: true,
         titleSpacing: 0,
-        actions: [_buildLayoutToggleButton()],
+        actions: [_buildDailyVideoExportButton(), _buildLayoutToggleButton()],
       ),
       body: SafeArea(
         child: FutureBuilder<List<AppUser>>(
@@ -606,6 +677,29 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
           usingDice ? Icons.view_agenda_rounded : Icons.grid_view_rounded,
           size: 21,
         ),
+      ),
+    );
+  }
+
+  Widget _buildDailyVideoExportButton() {
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: IconButton(
+        tooltip: '오늘 영상 생성 요청',
+        padding: EdgeInsets.zero,
+        onPressed: _isRequestingDailyVideoExport
+            ? null
+            : _requestDailyVideoExport,
+        icon: _isRequestingDailyVideoExport
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.download_rounded, size: 22),
       ),
     );
   }
