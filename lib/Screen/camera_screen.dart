@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Screen/video_preview_screen.dart';
 import 'package:bababam_app/Service/camera_availability_service.dart';
-import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Widget/record_progress_ring_painter.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -20,7 +19,6 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen>
     with TickerProviderStateMixin {
-  final FireStorageService _storageService = FireStorageService();
   final ImagePicker _imagePicker = ImagePicker();
   late AnimationController _animationController;
   CameraController? _controller;
@@ -63,11 +61,7 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Future<void> _uploadToFireStorageAndMove(String path) async {
-    final uploadFuture = _storageService.uploadVideo(path);
-    _moveToPreviewScreen(
-      recordedPath: path,
-      uploadedVideoUrlFuture: uploadFuture,
-    );
+    _moveToPreviewScreen(recordedPath: path);
   }
 
   Future<void> _pickVideoFromGallery() async {
@@ -82,18 +76,12 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   //MARK: MoveToPreview
-  void _moveToPreviewScreen({
-    required String recordedPath,
-    Future<String?>? uploadedVideoUrlFuture,
-  }) {
+  void _moveToPreviewScreen({required String recordedPath}) {
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => VideoPreviewScreen(
-          videoPath: recordedPath,
-          uploadedVideoUrlFuture: uploadedVideoUrlFuture,
-        ),
+        builder: (context) => VideoPreviewScreen(videoPath: recordedPath),
       ),
     );
   }
@@ -105,10 +93,10 @@ class _CameraScreenState extends State<CameraScreen>
     }
 
     try {
-      await _controller!.startVideoRecording();
       setState(() => _isRecording = true);
-
       _animationController.forward(from: 0.0);
+
+      await _controller!.startVideoRecording();
       await Future.delayed(const Duration(seconds: 3));
 
       if (_isRecording) {
@@ -130,6 +118,16 @@ class _CameraScreenState extends State<CameraScreen>
       debugPrint("4초 자동 녹화 에러: $e");
       _animationController.reset();
       setState(() => _isRecording = false);
+    }
+  }
+
+  Future<void> _prepareForVideoRecording(CameraController controller) async {
+    if (!controller.value.isInitialized) return;
+
+    try {
+      await controller.prepareForVideoRecording();
+    } catch (e) {
+      debugPrint("녹화 사전 준비 실패: $e");
     }
   }
 
@@ -271,6 +269,8 @@ class _CameraScreenState extends State<CameraScreen>
       _currentZoomLevel = currentZoomLevel;
       _selectedLensFactor = selectedLensFactor ?? currentZoomLevel;
     });
+
+    unawaited(_prepareForVideoRecording(nextController));
   }
 
   Future<void> _switchCamera() async {

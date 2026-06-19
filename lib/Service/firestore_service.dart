@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Model/post.dart';
+import 'package:bababam_app/Model/post_video_file.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Model/app_setting.dart';
 
@@ -403,21 +404,32 @@ class FireStoreService {
     });
   }
 
-  Future<List<String>> deleteGroup(String groupId) async {
+  Future<List<PostVideoFile>> deleteGroup(String groupId) async {
     final postsSnapshot = await _groups.doc(groupId).collection('posts').get();
-    final videoUrls = await _deletePostDocuments(postsSnapshot.docs);
+    final videoFiles = _postVideoFilesFromDocuments(postsSnapshot.docs);
+    await _deletePostDocuments(postsSnapshot.docs);
     await _groups.doc(groupId).delete();
-    return videoUrls.toList();
+    return videoFiles;
+  }
+
+  Future<List<PostVideoFile>> getGroupPostVideoFiles(String groupId) async {
+    final postsSnapshot = await _groups.doc(groupId).collection('posts').get();
+    return _postVideoFilesFromDocuments(postsSnapshot.docs);
   }
 
   // MARK: - Post
+  String createPostId(String groupId) {
+    return _groups.doc(groupId).collection('posts').doc().id;
+  }
+
   Future<void> uploadPost(Post post) async {
     try {
-      await _firestore
-          .collection('group')
-          .doc(post.groupId)
-          .collection('posts')
-          .add(post.toMap());
+      final postsRef = _groups.doc(post.groupId).collection('posts');
+      if (post.id.isEmpty) {
+        await postsRef.add(post.toMap());
+      } else {
+        await postsRef.doc(post.id).set(post.toMap());
+      }
 
       debugPrint("전송 성공: 그룹 ${post.groupId}에 포스트가 추가되었습니다.");
     } catch (e) {
@@ -445,21 +457,19 @@ class FireStoreService {
     return posts;
   }
 
-  Future<List<String>> deletePostsByAuthor(String userId) async {
+  Future<List<PostVideoFile>> deletePostsByAuthor(String userId) async {
     final snapshot = await _firestore
         .collectionGroup('posts')
         .where('authorId', isEqualTo: userId)
         .get();
 
-    final videoUrls = <String>{};
+    final videoFiles = <PostVideoFile>[];
     WriteBatch batch = _firestore.batch();
     var operationCount = 0;
 
     for (final doc in snapshot.docs) {
-      final videoUrl = doc.data()['videoUrl'] as String?;
-      if (videoUrl != null && videoUrl.isNotEmpty) {
-        videoUrls.add(videoUrl);
-      }
+      final videoFile = _postVideoFileFromData(doc.data());
+      if (videoFile.hasReference) videoFiles.add(videoFile);
 
       batch.delete(doc.reference);
       operationCount++;
@@ -475,22 +485,35 @@ class FireStoreService {
       await batch.commit();
     }
 
-    return videoUrls.toList();
+    return videoFiles;
   }
 
-  Future<Set<String>> _deletePostDocuments(
+  PostVideoFile _postVideoFileFromData(Map<String, dynamic> data) {
+    return PostVideoFile(
+      videoUrl: data['videoUrl'] as String?,
+      storagePath: data['storagePath'] as String?,
+    );
+  }
+
+  List<PostVideoFile> _postVideoFilesFromDocuments(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
+  ) {
+    final videoFiles = <PostVideoFile>[];
+    for (final document in documents) {
+      final videoFile = _postVideoFileFromData(document.data());
+      if (videoFile.hasReference) videoFiles.add(videoFile);
+    }
+    return videoFiles;
+  }
+
+  Future<List<PostVideoFile>> _deletePostDocuments(
     Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
   ) async {
-    final videoUrls = <String>{};
+    final videoFiles = _postVideoFilesFromDocuments(documents);
     WriteBatch batch = _firestore.batch();
     var operationCount = 0;
 
     for (final document in documents) {
-      final videoUrl = document.data()['videoUrl'] as String?;
-      if (videoUrl != null && videoUrl.isNotEmpty) {
-        videoUrls.add(videoUrl);
-      }
-
       batch.delete(document.reference);
       operationCount++;
 
@@ -505,10 +528,10 @@ class FireStoreService {
       await batch.commit();
     }
 
-    return videoUrls;
+    return videoFiles;
   }
 
-  Future<List<String>> deleteGroupPostsOlderThan({
+  Future<List<PostVideoFile>> deleteGroupPostsOlderThan({
     required String groupId,
     required Duration retention,
   }) async {
@@ -519,12 +542,22 @@ class FireStoreService {
         .where('createdAt', isLessThan: Timestamp.fromDate(cutoff))
         .get();
 
-    final videoUrls = await _deletePostDocuments(snapshot.docs);
-    return videoUrls.toList();
+    final videoFiles = await _deletePostDocuments(snapshot.docs);
+    return videoFiles;
   }
 
-  Future<bool> hasPostReferenceToVideo(String videoUrl) async {
-    if (videoUrl.isEmpty) return false;
+  Future<bool> hasPostReferenceToVideoFile(PostVideoFile videoFile) async {
+    if (videoFile.storagePath != null && videoFile.storagePath!.isNotEmpty) {
+      final snapshot = await _firestore
+          .collectionGroup('posts')
+          .where('storagePath', isEqualTo: videoFile.storagePath)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) return true;
+    }
+
+    final videoUrl = videoFile.videoUrl;
+    if (videoUrl == null || videoUrl.isEmpty) return false;
 
     final snapshot = await _firestore
         .collectionGroup('posts')

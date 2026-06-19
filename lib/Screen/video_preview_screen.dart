@@ -13,13 +13,8 @@ import 'package:bababam_app/Widget/video_player.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
   final String videoPath;
-  final Future<String?>? uploadedVideoUrlFuture;
 
-  const VideoPreviewScreen({
-    super.key,
-    required this.videoPath,
-    this.uploadedVideoUrlFuture,
-  });
+  const VideoPreviewScreen({super.key, required this.videoPath});
 
   @override
   State<VideoPreviewScreen> createState() => _VideoPreviewScreenState();
@@ -51,25 +46,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
   void _syncCurrentHour() {
     _currentHour = DateTime.now().hour;
-  }
-
-  bool _isRemoteVideo(String path) {
-    return path.startsWith('http://') || path.startsWith('https://');
-  }
-
-  Future<String?> _uploadVideoForPost() async {
-    if (_isRemoteVideo(widget.videoPath)) {
-      return widget.videoPath;
-    }
-
-    if (widget.uploadedVideoUrlFuture != null) {
-      final uploadedUrl = await widget.uploadedVideoUrlFuture;
-      if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
-        return uploadedUrl;
-      }
-    }
-
-    return _fireStorageService.uploadVideo(widget.videoPath);
   }
 
   @override
@@ -104,18 +80,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     try {
       setState(() => _isSending = true);
 
-      final uploadedVideoUrl = await _uploadVideoForPost();
-
-      if (uploadedVideoUrl == null || uploadedVideoUrl.isEmpty) {
-        if (!mounted) return;
-        WarningSnackBar.showWarning(
-          context,
-          '영상 업로드가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.',
-        );
-        setState(() => _isSending = false);
-        return;
-      }
-
       final currentUserId = FirebaseAuth.instance.currentUser!.uid;
       final groups = await _firestoreService.getGroupsByUser(currentUserId);
       final groupsById = {for (final group in groups) group.id: group};
@@ -149,11 +113,24 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
             continue;
           }
 
+          final postId = _firestoreService.createPostId(group.id);
+          final uploadedVideo = await _fireStorageService.uploadPostVideo(
+            filePath: widget.videoPath,
+            groupId: group.id,
+            postId: postId,
+          );
+
+          if (uploadedVideo == null) {
+            failedPostCount++;
+            continue;
+          }
+
           final newPost = Post(
-            id: '',
+            id: postId,
             groupId: group.id,
             authorId: currentUserId,
-            videoUrl: uploadedVideoUrl,
+            videoUrl: uploadedVideo.url,
+            storagePath: uploadedVideo.storagePath,
             comment: _commentController.text.trim(),
             createdAt: now,
             dayKey: dayKey,
@@ -165,6 +142,10 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
             await _firestoreService.uploadPost(newPost);
             createdPostCount++;
           } catch (error) {
+            await _fireStorageService.deleteVideo(
+              videoUrl: uploadedVideo.url,
+              storagePath: uploadedVideo.storagePath,
+            );
             debugPrint(
               '전송 실패: groupId=${group.id}, slotIndex=$slotIndex, error=$error',
             );

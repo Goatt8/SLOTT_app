@@ -26,6 +26,7 @@ class _SlotListScreenState extends State<SlotListScreen> {
   final FireStoreService _firestoreService = FireStoreService();
   final PostVideoCleanupService _postVideoCleanupService =
       PostVideoCleanupService();
+  final Set<String> _dismissedGroupIds = {};
   bool _didRunStartupVideoCleanup = false;
 
   void _runStartupVideoCleanup(List<Group> groups) {
@@ -114,9 +115,12 @@ class _SlotListScreenState extends State<SlotListScreen> {
         }
 
         final groups = snapshot.data ?? [];
+        final visibleGroups = groups
+            .where((group) => !_dismissedGroupIds.contains(group.id))
+            .toList();
         _runStartupVideoCleanup(groups);
 
-        if (groups.isEmpty) {
+        if (visibleGroups.isEmpty) {
           return const Center(
             child: Text(
               '아직 생성된 그룹이 없습니다',
@@ -126,10 +130,10 @@ class _SlotListScreenState extends State<SlotListScreen> {
         }
         //MARK: ListView
         return ListView.builder(
-          itemCount: groups.length,
+          itemCount: visibleGroups.length,
           padding: const EdgeInsets.all(12),
           itemBuilder: (context, index) {
-            final group = groups[index];
+            final group = visibleGroups[index];
             return Dismissible(
               key: Key(group.id),
               confirmDismiss: (direction) async {
@@ -154,6 +158,7 @@ class _SlotListScreenState extends State<SlotListScreen> {
                 child: const Icon(Icons.delete, color: Colors.white),
               ),
               onDismissed: (direction) {
+                setState(() => _dismissedGroupIds.add(group.id));
                 _removeGroup(group, currentUser.uid);
               },
               child: InkWell(
@@ -216,13 +221,21 @@ class _SlotListScreenState extends State<SlotListScreen> {
   Future<void> _removeGroup(Group group, String userId) async {
     try {
       if (group.ownerId == userId) {
-        final videoUrls = await _firestoreService.deleteGroup(group.id);
-        await _postVideoCleanupService.deleteUnreferencedOwnedVideos(videoUrls);
+        final videoFiles = await _firestoreService.getGroupPostVideoFiles(
+          group.id,
+        );
+        try {
+          await _postVideoCleanupService.deleteVideos(videoFiles);
+        } catch (error) {
+          debugPrint('그룹 영상 Storage 삭제 실패(${group.id}): $error');
+        }
+        await _firestoreService.deleteGroup(group.id);
       } else {
         await _firestoreService.leaveGroup(groupId: group.id, userId: userId);
       }
     } catch (_) {
       if (!mounted) return;
+      setState(() => _dismissedGroupIds.remove(group.id));
       WarningSnackBar.showWarning(context, '그룹 변경에 실패했습니다.');
     }
   }

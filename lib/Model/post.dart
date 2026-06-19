@@ -5,6 +5,7 @@ class Post {
   final String groupId;
   final String authorId;
   final String videoUrl;
+  final String? storagePath;
   final String comment;
   final DateTime createdAt;
   final String dayKey;
@@ -16,6 +17,7 @@ class Post {
     required this.groupId,
     required this.authorId,
     required this.videoUrl,
+    this.storagePath,
     required this.comment,
     required this.createdAt,
     required this.dayKey,
@@ -28,6 +30,8 @@ class Post {
       'authorId': authorId,
       'groupId': groupId,
       'videoUrl': videoUrl,
+      if (storagePath != null && storagePath!.isNotEmpty)
+        'storagePath': storagePath,
       'comment': comment,
       'createdAt': Timestamp.fromDate(createdAt),
       'dayKey': dayKey,
@@ -47,6 +51,7 @@ class Post {
       authorId: map['authorId'] as String? ?? '',
       groupId: map['groupId'] as String? ?? '',
       videoUrl: map['videoUrl'] as String? ?? '',
+      storagePath: map['storagePath'] as String?,
       comment: map['comment'] as String? ?? '',
       createdAt: createdAt,
       dayKey: map['dayKey'] as String? ?? _dayKeyFrom(createdAt),

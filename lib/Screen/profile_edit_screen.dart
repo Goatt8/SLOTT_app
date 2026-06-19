@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:bababam_app/Model/app_user.dart';
+import 'package:bababam_app/Model/post_video_file.dart';
 import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Helper/content_moderation.dart';
@@ -405,14 +406,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         return;
       }
 
-      var postVideoUrls = <String>[];
+      var postVideoFiles = const <PostVideoFile>[];
 
       await _tryCleanupStep('Firestore 작성 게시물 삭제', () async {
-        postVideoUrls = await _firestoreService.deletePostsByAuthor(userId);
+        postVideoFiles = await _firestoreService.deletePostsByAuthor(userId);
       });
       await _tryCleanupStep(
         'Storage 게시물 영상 삭제',
-        () => _firestorageService.deleteVideosByUrls(postVideoUrls),
+        () => _firestorageService.deletePostVideoFiles(postVideoFiles),
       );
       await _tryCleanupStep(
         'Storage 프로필 이미지 삭제',
