@@ -81,7 +81,7 @@ final class DailyVideoExporter {
                 at: .zero
             )
 
-            if request.includeAudio {
+            if request.includeAudio && slot.includeAudio {
                 try await insertAudioTracks(
                     from: asset,
                     into: composition,
@@ -482,6 +482,7 @@ private struct DailyVideoExportPage {
 private struct DailyVideoExportSlot {
     let slotIndex: Int
     let videoPath: String?
+    let includeAudio: Bool
     let comment: String
     let hasVideo: Bool
     let videoRect: CGRect
@@ -504,6 +505,7 @@ private struct DailyVideoExportSlot {
 
         self.slotIndex = slotIndex
         self.videoPath = arguments["videoPath"] as? String
+        self.includeAudio = arguments["includeAudio"] as? Bool ?? false
         self.comment = arguments["comment"] as? String ?? ""
         self.hasVideo = arguments["hasVideo"] as? Bool ?? false
         self.videoRect = try NativeExportValueParser.rect(arguments["videoRect"])

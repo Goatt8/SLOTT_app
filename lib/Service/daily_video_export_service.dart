@@ -26,8 +26,6 @@ class DailyVideoExportService {
     required bool useDiceLayout,
     required String dayKey,
     required PostTextStyleSelection textStyleSelection,
-    required bool includeAudio,
-
     Set<String> blockedUserIds = const {},
   }) async {
     final visiblePosts = posts
@@ -102,6 +100,7 @@ class DailyVideoExportService {
             'slotIndex': exportSlotIndex,
 
             'videoPath': post == null ? null : localPathByPostId[post.id],
+            'includeAudio': post?.onSound ?? false,
 
             'comment': post?.comment ?? '',
           };
@@ -125,7 +124,7 @@ class DailyVideoExportService {
             'colorId': textStyleSelection.colorId,
             'hourFontId': textStyleSelection.hourFontId,
             'dayKey': dayKey,
-            'includeAudio': includeAudio,
+            'includeAudio': visiblePosts.any((post) => post.onSound),
             'pages': pages,
           });
 

@@ -53,7 +53,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   Object? _postsError;
   bool _isPostsLoading = true;
   bool _isRequestingDailyVideoExport = false;
-  bool _includeDailyVideoAudio = false;
+  final Map<String, bool> _soundOverrideByPostId = {};
   int _postsSubscriptionGeneration = 0;
   String? _lastVideoPreparationKey;
   Timer? _videoPreparationTimer;
@@ -122,9 +122,13 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
             if (!mounted || generation != _postsSubscriptionGeneration) return;
             setState(() {
               _groupPosts = posts;
+              _soundOverrideByPostId.removeWhere(
+                (postId, _) => posts.every((post) => post.id != postId),
+              );
               _postsError = null;
               _isPostsLoading = false;
             });
+            unawaited(_syncPostAudioVolumes(posts));
             _scheduleVideoPreparation();
           },
           onError: (Object error) {
@@ -297,6 +301,45 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   CachedVideoPlayerPlusController? _controllerForPost(Post? post) {
     if (post == null) return null;
     return _videoCacheService.controllerFor(post.videoUrl);
+  }
+
+  bool _isPostAudioEnabled(Post post) {
+    return _soundOverrideByPostId[post.id] ?? post.onSound;
+  }
+
+  Future<void> _togglePostAudio(Post post) async {
+    final nextValue = !_isPostAudioEnabled(post);
+    setState(() {
+      _soundOverrideByPostId[post.id] = nextValue;
+    });
+    await _videoCacheService.setVolumeForUrl(post.videoUrl, nextValue ? 1 : 0);
+    try {
+      await _firestoreService.updatePostSound(
+        groupId: widget.groupId,
+        postId: post.id,
+        onSound: nextValue,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _soundOverrideByPostId[post.id] = post.onSound;
+      });
+      await _videoCacheService.setVolumeForUrl(
+        post.videoUrl,
+        post.onSound ? 1 : 0,
+      );
+      if (!mounted) return;
+      WarningSnackBar.showWarning(context, '영상 음성 설정을 저장하지 못했습니다.');
+    }
+  }
+
+  Future<void> _syncPostAudioVolumes(List<Post> posts) async {
+    for (final post in posts) {
+      await _videoCacheService.setVolumeForUrl(
+        post.videoUrl,
+        _isPostAudioEnabled(post) ? 1 : 0,
+      );
+    }
   }
 
   void _copyInviteCode() {
@@ -564,7 +607,6 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
         useDiceLayout: _useDiceLayout,
         dayKey: _todayKey,
         textStyleSelection: textStyleSelection,
-        includeAudio: _includeDailyVideoAudio,
         blockedUserIds: _blockedUserIds,
       );
       if (!mounted) return;
@@ -612,11 +654,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
         ),
         centerTitle: true,
         titleSpacing: 0,
-        actions: [
-          _buildDailyVideoAudioToggleButton(),
-          _buildDailyVideoExportButton(),
-          _buildLayoutToggleButton(),
-        ],
+        actions: [_buildDailyVideoExportButton(), _buildLayoutToggleButton()],
       ),
       body: SafeArea(
         child: FutureBuilder<List<AppUser>>(
@@ -685,36 +723,6 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildDailyVideoAudioToggleButton() {
-    return SizedBox(
-      width: 44,
-      height: 44,
-      child: IconButton(
-        tooltip: _includeDailyVideoAudio ? '저장 영상 음성 끄기' : '저장 영상 음성 켜기',
-        padding: EdgeInsets.zero,
-        onPressed: _isRequestingDailyVideoExport
-            ? null
-            : () {
-                _toggleDailyVideoAudio();
-              },
-        icon: Icon(
-          _includeDailyVideoAudio
-              ? Icons.volume_up_outlined
-              : Icons.volume_off_outlined,
-          size: 21,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _toggleDailyVideoAudio() async {
-    final nextValue = !_includeDailyVideoAudio;
-    setState(() {
-      _includeDailyVideoAudio = nextValue;
-    });
-    await _videoCacheService.setVolume(nextValue ? 1 : 0);
   }
 
   Widget _buildDailyVideoExportButton() {
@@ -1143,6 +1151,8 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
       hourOverlaySpec: preset.hourOverlaySpec,
       externalVideoController: _controllerForPost(post),
       initialStyleSelection: viewerTextStyleSelection,
+      isAudioEnabled: post != null && _isPostAudioEnabled(post),
+      onToggleAudio: post == null ? null : () => _togglePostAudio(post),
       onStyleSelectionChanged: (selection) {
         setState(() {
           _viewerTextStyleSelection = selection;

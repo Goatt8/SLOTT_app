@@ -7,6 +7,7 @@ class Post {
   final String videoUrl;
   final String? storagePath;
   final String comment;
+  final bool onSound;
   final DateTime createdAt;
   final String dayKey;
   final int hourSlot;
@@ -19,6 +20,7 @@ class Post {
     required this.videoUrl,
     this.storagePath,
     required this.comment,
+    this.onSound = false,
     required this.createdAt,
     required this.dayKey,
     required this.hourSlot,
@@ -33,6 +35,7 @@ class Post {
       if (storagePath != null && storagePath!.isNotEmpty)
         'storagePath': storagePath,
       'comment': comment,
+      'onSound': onSound,
       'createdAt': Timestamp.fromDate(createdAt),
       'dayKey': dayKey,
       'hourSlot': hourSlot,
@@ -53,6 +56,7 @@ class Post {
       videoUrl: map['videoUrl'] as String? ?? '',
       storagePath: map['storagePath'] as String?,
       comment: map['comment'] as String? ?? '',
+      onSound: map['onSound'] as bool? ?? false,
       createdAt: createdAt,
       dayKey: map['dayKey'] as String? ?? _dayKeyFrom(createdAt),
       hourSlot: (map['hourSlot'] as num?)?.toInt() ?? createdAt.hour,

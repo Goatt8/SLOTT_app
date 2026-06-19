@@ -19,6 +19,8 @@ class MemberPostCard extends StatefulWidget {
   final CachedVideoPlayerPlusController? externalVideoController;
   final PostTextStyleSelection initialStyleSelection;
   final ValueChanged<PostTextStyleSelection>? onStyleSelectionChanged;
+  final bool isAudioEnabled;
+  final VoidCallback? onToggleAudio;
   final Future<void> Function(String comment)? onSaveComment;
   final VoidCallback? onReport;
   final VoidCallback? onBlock;
@@ -34,6 +36,8 @@ class MemberPostCard extends StatefulWidget {
     this.externalVideoController,
     this.initialStyleSelection = AppTypography.defaultPostTextStyleSelection,
     this.onStyleSelectionChanged,
+    this.isAudioEnabled = false,
+    this.onToggleAudio,
     this.onSaveComment,
     this.onReport,
     this.onBlock,
@@ -96,8 +100,9 @@ class _MemberPostCardState extends State<MemberPostCard> {
         buttonBox?.localToGlobal(Offset.zero, ancestor: overlayBox) ??
         Offset(overlayBox.size.width - 72, overlayBox.size.height - 72);
 
+    final hasAudioAction = widget.post != null && widget.onToggleAudio != null;
     const menuWidth = 168.0;
-    const menuHeight = 105.0;
+    final menuHeight = hasAudioAction ? 158.0 : 105.0;
     final menuLeft = (buttonOffset.dx - menuWidth + 44)
         .clamp(12.0, overlayBox.size.width - menuWidth - 12)
         .toDouble();
@@ -125,6 +130,12 @@ class _MemberPostCardState extends State<MemberPostCard> {
                 onStyleTap: () {
                   Navigator.of(dialogContext).pop(_PostEditAction.style);
                 },
+                audioEnabled: widget.isAudioEnabled,
+                onAudioTap: hasAudioAction
+                    ? () {
+                        Navigator.of(dialogContext).pop(_PostEditAction.audio);
+                      }
+                    : null,
               ),
             ),
           ],
@@ -139,6 +150,8 @@ class _MemberPostCardState extends State<MemberPostCard> {
         _startEditingComment();
       case _PostEditAction.style:
         await _showTextStylePicker();
+      case _PostEditAction.audio:
+        widget.onToggleAudio?.call();
     }
   }
 
@@ -380,8 +393,8 @@ class _MemberPostCardState extends State<MemberPostCard> {
     return IconButton(
       key: key,
       onPressed: onPressed,
-      tooltip: '텍스트 수정',
-      icon: const Icon(Icons.edit, color: Colors.white, size: 22),
+      tooltip: '영상 도구',
+      icon: const Icon(Icons.more_horiz, color: Colors.white, size: 26),
       style: IconButton.styleFrom(
         backgroundColor: Colors.black.withValues(alpha: 0.35),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -411,7 +424,7 @@ class _MemberPostCardState extends State<MemberPostCard> {
   }
 }
 
-enum _PostEditAction { text, style }
+enum _PostEditAction { text, style, audio }
 
 enum _SafetyAction { report, block }
 
@@ -420,11 +433,15 @@ class _EditOptionsPopup extends StatelessWidget {
     required this.width,
     required this.onTextTap,
     required this.onStyleTap,
+    required this.audioEnabled,
+    this.onAudioTap,
   });
 
   final double width;
   final VoidCallback onTextTap;
   final VoidCallback onStyleTap;
+  final bool audioEnabled;
+  final VoidCallback? onAudioTap;
 
   @override
   Widget build(BuildContext context) {
@@ -463,6 +480,21 @@ class _EditOptionsPopup extends StatelessWidget {
               label: '폰트 스타일',
               onTap: onStyleTap,
             ),
+            if (onAudioTap != null) ...[
+              Divider(
+                height: 1,
+                color: Colors.white.withValues(alpha: 0.08),
+                indent: 12,
+                endIndent: 12,
+              ),
+              _EditOptionTile(
+                icon: audioEnabled
+                    ? Icons.volume_up_outlined
+                    : Icons.volume_off_outlined,
+                label: audioEnabled ? '음성 OFF' : '음성 ON',
+                onTap: onAudioTap!,
+              ),
+            ],
           ],
         ),
       ),

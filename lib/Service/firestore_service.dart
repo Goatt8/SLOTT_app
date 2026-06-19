@@ -599,6 +599,25 @@ class FireStoreService {
     }
   }
 
+  Future<void> updatePostSound({
+    required String groupId,
+    required String postId,
+    required bool onSound,
+  }) async {
+    try {
+      await _firestore
+          .collection('group')
+          .doc(groupId)
+          .collection('posts')
+          .doc(postId)
+          .update({'onSound': onSound});
+      debugPrint("영상 음성 설정 수정 성공!");
+    } catch (e) {
+      debugPrint("영상 음성 설정 수정 에러: $e");
+      rethrow;
+    }
+  }
+
   //MARK: App_Setting
   Future<AppSetting?> getAppSetting() async {
     try {
