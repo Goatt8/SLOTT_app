@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Screen/video_preview_screen.dart';
+import 'package:bababam_app/Service/camera_availability_service.dart';
 import 'package:bababam_app/Service/firestorage_service.dart';
 import 'package:bababam_app/Widget/record_progress_ring_painter.dart';
 
@@ -135,7 +136,7 @@ class _CameraScreenState extends State<CameraScreen>
   //MARK: Initialize
   Future<void> _initializeCamera() async {
     try {
-      _cameras = await availableCameras();
+      _cameras = await CameraAvailabilityService.cameras();
 
       if (_cameras != null && _cameras!.isNotEmpty) {
         await _setActiveCamera(_defaultBackCameraIndex() ?? 0);

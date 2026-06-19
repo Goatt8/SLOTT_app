@@ -4,6 +4,7 @@ import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Screen/slot_list_screen.dart';
 import 'package:bababam_app/Screen/login_screen.dart';
+import 'package:bababam_app/Service/camera_availability_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -12,6 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  CameraAvailabilityService.preload();
 
   runApp(const SLOTTApp());
 }
