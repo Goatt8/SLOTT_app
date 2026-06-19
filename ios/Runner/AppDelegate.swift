@@ -67,13 +67,17 @@ import UIKit
       Task {
         do {
           let outputPath = try await dailyVideoExporter.export(arguments: arguments)
-          result(outputPath)
+          await MainActor.run {
+            result(outputPath)
+          }
         } catch {
-          result(FlutterError(
-            code: "export_failed",
-            message: error.localizedDescription,
-            details: String(describing: error)
-          ))
+          await MainActor.run {
+            result(FlutterError(
+              code: "export_failed",
+              message: error.localizedDescription,
+              details: String(describing: error)
+            ))
+          }
         }
       }
     }

@@ -1,7 +1,5 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
-
 import 'package:bababam_app/Helper/ui_presets.dart';
 
 class DailyVideoExportLayoutBuilder {
@@ -45,6 +43,7 @@ class DailyVideoExportLayoutBuilder {
 
           return {
             ...slot,
+            'hasVideo': hasVideo,
             'videoRect': _rectToMap(rect),
             'hourText': textSpecs.hourText,
             'hourRect': _rectToMap(textSpecs.hourRect),
@@ -70,39 +69,33 @@ class DailyVideoExportLayoutBuilder {
     final layoutSpec = preset.layoutSpec;
 
     if (!layoutSpec.useGrid) {
-      final margin = preset.cardOuterMargin * _scale;
-      final slotHeight = renderSize.height / slotCount;
       return List.generate(slotCount, (index) {
-        return Rect.fromLTWH(
-          margin,
-          slotHeight * index + margin,
-          renderSize.width - margin * 2,
-          slotHeight - margin * 2,
-        );
+        final top = _pixel(renderSize.height * index / slotCount);
+        final bottom = index == slotCount - 1
+            ? renderSize.height
+            : _pixel(renderSize.height * (index + 1) / slotCount);
+
+        return Rect.fromLTWH(0, top, renderSize.width, bottom - top);
       });
     }
 
     final gridSlotCount = layoutSpec.fixedSlotCount ?? slotCount;
     final columns = layoutSpec.crossAxisCount;
     final rows = (gridSlotCount / columns).ceil();
-    final horizontalPadding = preset.gridHorizontalPadding * _scale;
-    final verticalPadding = preset.gridVerticalPadding * _scale;
-    final spacing = preset.gridSpacing * _scale;
-    final tileWidth =
-        (renderSize.width - horizontalPadding * 2 - spacing * (columns - 1)) /
-        columns;
-    final tileHeight =
-        (renderSize.height - verticalPadding * 2 - spacing * (rows - 1)) / rows;
 
     return List.generate(slotCount, (index) {
       final row = index ~/ columns;
       final column = index % columns;
-      return Rect.fromLTWH(
-        horizontalPadding + column * (tileWidth + spacing),
-        verticalPadding + row * (tileHeight + spacing),
-        tileWidth,
-        tileHeight,
-      );
+      final left = _pixel(renderSize.width * column / columns);
+      final right = column == columns - 1
+          ? renderSize.width
+          : _pixel(renderSize.width * (column + 1) / columns);
+      final top = _pixel(renderSize.height * row / rows);
+      final bottom = row == rows - 1
+          ? renderSize.height
+          : _pixel(renderSize.height * (row + 1) / rows);
+
+      return Rect.fromLTWH(left, top, right - left, bottom - top);
     });
   }
 
@@ -127,7 +120,7 @@ class DailyVideoExportLayoutBuilder {
     final hourFontSize =
         hourSpec.fontSize * hourFontPreset.fontSizeScale * _scale;
     final commentFontSize = 20 * postFontPreset.fontSizeScale * _scale;
-    final commentText = hasVideo ? comment.trim() : 'Zzz';
+    final commentText = hasVideo ? comment.trim() : '💤';
     final commentLines = hasVideo ? 2 : 1;
     final hourHeight = hourFontSize * hourSpec.lineHeight;
     final commentHeight = commentFontSize * commentLines * 1.15;
@@ -163,6 +156,8 @@ class DailyVideoExportLayoutBuilder {
       'height': rect.height,
     };
   }
+
+  double _pixel(double value) => value.roundToDouble();
 
   int _colorToArgb(Color color) {
     final a = (color.a * 255).round() & 0xff;

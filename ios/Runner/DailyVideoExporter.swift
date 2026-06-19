@@ -93,12 +93,13 @@ final class DailyVideoExporter {
             let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
             let naturalSize = try await sourceTrack.load(.naturalSize)
             let preferredTransform = try await sourceTrack.load(.preferredTransform)
-            let transform = aspectFillTransform(
+            let placement = aspectFillPlacement(
                 naturalSize: naturalSize,
                 preferredTransform: preferredTransform,
                 targetRect: slot.videoRect
             )
-            instruction.setTransform(transform, at: .zero)
+            instruction.setTransform(placement.transform, at: .zero)
+            instruction.setCropRectangle(placement.cropRect, at: .zero)
             instructions.append(instruction)
         }
         
@@ -162,7 +163,6 @@ final class DailyVideoExporter {
         }
         
         var cursor = CMTime.zero
-        var instructions: [AVMutableVideoCompositionLayerInstruction] = []
         
         for url in pageUrls {
             let asset = AVURLAsset(url: url)
@@ -176,24 +176,12 @@ final class DailyVideoExporter {
                 at: cursor
             )
             
-            let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: outputTrack)
-            instructions.append(layerInstruction)
-            
             cursor = cursor + duration
         }
-        
-        let mainInstruction = AVMutableVideoCompositionInstruction()
-        mainInstruction.timeRange = CMTimeRange(start: .zero, duration: cursor)
-        mainInstruction.layerInstructions = instructions
-        
-        let videoComposition = AVMutableVideoComposition()
-        videoComposition.renderSize = renderSize
-        videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
-        videoComposition.instructions = [mainInstruction]
-        
+
         try await exportComposition(
             composition,
-            videoComposition: videoComposition,
+            videoComposition: nil,
             outputUrl: outputUrl
         )
     }
@@ -244,6 +232,13 @@ final class DailyVideoExporter {
         overlay.frame = CGRect(origin: .zero, size: renderSize)
 
         for slot in page.slots {
+            if !slot.hasVideo {
+                let backgroundLayer = CALayer()
+                backgroundLayer.frame = slot.videoRect
+                backgroundLayer.backgroundColor = UIColor(white: 0.08, alpha: 1).cgColor
+                overlay.addSublayer(backgroundLayer)
+            }
+
             let hourLayer = textLayer(
                 text: slot.hourText,
                 fontName: fontPostScriptName(for: slot.hourFontId),
@@ -251,7 +246,7 @@ final class DailyVideoExporter {
                 color: slot.hourColor
             )
 
-            hourLayer.frame = flippedRect(slot.hourRect)
+            hourLayer.frame = slot.hourRect
             overlay.addSublayer(hourLayer)
 
             guard !slot.commentText.isEmpty else { continue }
@@ -263,20 +258,11 @@ final class DailyVideoExporter {
                 color: slot.commentColor
             )
 
-            commentLayer.frame = flippedRect(slot.commentRect)
+            commentLayer.frame = slot.commentRect
             overlay.addSublayer(commentLayer)
         }
         
         return overlay
-    }
-
-    private func flippedRect(_ rect: CGRect) -> CGRect {
-        CGRect(
-            x: rect.minX,
-            y: renderSize.height - rect.maxY,
-            width: rect.width,
-            height: rect.height
-        )
     }
     
     private func textLayer(
@@ -299,25 +285,58 @@ final class DailyVideoExporter {
         return layer
     }
     
-    private func aspectFillTransform(
+    private func aspectFillPlacement(
         naturalSize: CGSize,
         preferredTransform: CGAffineTransform,
         targetRect: CGRect
-    ) -> CGAffineTransform {
+    ) -> VideoPlacement {
         let transformedRect = CGRect(origin: .zero, size: naturalSize).applying(preferredTransform)
         let videoSize = CGSize(width: abs(transformedRect.width), height: abs(transformedRect.height))
-        guard videoSize.width > 0 && videoSize.height > 0 else { return preferredTransform }
-        
-        let scale = max(targetRect.width / videoSize.width, targetRect.height / videoSize.height)
-        let scaledWidth = videoSize.width * scale
-        let scaledHeight = videoSize.height * scale
-        
-        let translateX = targetRect.midX - scaledWidth / 2
-        let translateY = targetRect.midY - scaledHeight / 2
-        
-        return preferredTransform
+        guard videoSize.width > 0 && videoSize.height > 0 else {
+            return VideoPlacement(
+                transform: preferredTransform,
+                cropRect: CGRect(origin: .zero, size: naturalSize)
+            )
+        }
+
+        let targetAspect = targetRect.width / targetRect.height
+        let videoAspect = videoSize.width / videoSize.height
+        let cropSize: CGSize
+        if videoAspect > targetAspect {
+            cropSize = CGSize(width: videoSize.height * targetAspect, height: videoSize.height)
+        } else {
+            cropSize = CGSize(width: videoSize.width, height: videoSize.width / targetAspect)
+        }
+
+        let cropDisplayRect = CGRect(
+            x: (videoSize.width - cropSize.width) / 2,
+            y: (videoSize.height - cropSize.height) / 2,
+            width: cropSize.width,
+            height: cropSize.height
+        )
+
+        let normalizeTransform = preferredTransform.concatenating(CGAffineTransform(
+            translationX: -transformedRect.minX,
+            y: -transformedRect.minY
+        ))
+        let cropSourceRect = cropDisplayRect
+            .applying(normalizeTransform.inverted())
+            .standardized
+            .intersection(CGRect(origin: .zero, size: naturalSize))
+        let scale = targetRect.width / cropDisplayRect.width
+
+        let transform = normalizeTransform
+            .concatenating(CGAffineTransform(
+                translationX: -cropDisplayRect.minX,
+                y: -cropDisplayRect.minY
+            ))
             .concatenating(CGAffineTransform(scaleX: scale, y: scale))
-            .concatenating(CGAffineTransform(translationX: translateX, y: translateY))
+            .concatenating(CGAffineTransform(
+                translationX: targetRect.minX,
+                y: targetRect.minY
+            ))
+
+        return VideoPlacement(transform: transform, cropRect: cropSourceRect)
     }
     
     private func registerFontFiles() throws {
@@ -357,6 +376,11 @@ private enum DailyVideoExportError: LocalizedError {
             return "Photo library permission is required to save the video."
         }
     }
+}
+
+private struct VideoPlacement {
+    let transform: CGAffineTransform
+    let cropRect: CGRect
 }
 
 private struct DailyVideoExportRequest {
@@ -405,6 +429,7 @@ private struct DailyVideoExportSlot {
     let slotIndex: Int
     let videoPath: String?
     let comment: String
+    let hasVideo: Bool
     let videoRect: CGRect
     let hourText: String
     let hourRect: CGRect
@@ -426,6 +451,7 @@ private struct DailyVideoExportSlot {
         self.slotIndex = slotIndex
         self.videoPath = arguments["videoPath"] as? String
         self.comment = arguments["comment"] as? String ?? ""
+        self.hasVideo = arguments["hasVideo"] as? Bool ?? false
         self.videoRect = try NativeExportValueParser.rect(arguments["videoRect"])
         self.hourText = arguments["hourText"] as? String ?? ""
         self.hourRect = try NativeExportValueParser.rect(arguments["hourRect"])

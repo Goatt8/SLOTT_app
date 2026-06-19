@@ -1,15 +1,9 @@
 import 'package:flutter/services.dart';
-
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-
 import 'package:bababam_app/Helper/ui_presets.dart';
-
 import 'package:bababam_app/Model/app_user.dart';
-
 import 'package:bababam_app/Model/group.dart';
-
 import 'package:bababam_app/Model/post.dart';
-
 import 'package:bababam_app/Service/daily_video_export_layout.dart';
 
 class DailyVideoExportService {
@@ -18,27 +12,19 @@ class DailyVideoExportService {
 
     MethodChannel? channel,
   }) : _cacheManager = cacheManager ?? DefaultCacheManager(),
-
        _channel = channel ?? const MethodChannel('slott/daily_video_export');
 
   final DefaultCacheManager _cacheManager;
-
   final MethodChannel _channel;
-
   final DailyVideoExportLayoutBuilder _layoutBuilder =
       const DailyVideoExportLayoutBuilder();
 
   Future<DailyVideoExportResult> export({
     required Group group,
-
     required List<Post> posts,
-
     required List<AppUser> members,
-
     required bool useDiceLayout,
-
     required String dayKey,
-
     required PostTextStyleSelection textStyleSelection,
 
     Set<String> blockedUserIds = const {},
@@ -55,14 +41,23 @@ class DailyVideoExportService {
     }
 
     final slotOwnerIds = group.effectiveSlotOwnerIds;
+    final exportSlots = <MapEntry<int, String>>[];
+
+    for (var slotIndex = 0; slotIndex < slotOwnerIds.length; slotIndex++) {
+      final ownerId = slotOwnerIds[slotIndex];
+      if (ownerId == null) continue;
+      exportSlots.add(MapEntry(slotIndex, ownerId));
+    }
+
+    if (exportSlots.isEmpty) {
+      throw const DailyVideoExportException('저장할 멤버 슬롯이 없습니다.');
+    }
 
     final userById = {for (final member in members) member.id: member};
-
     final ownerSlotCounts = <String, int>{};
 
     for (final ownerId in slotOwnerIds) {
       if (ownerId == null) continue;
-
       ownerSlotCounts[ownerId] = (ownerSlotCounts[ownerId] ?? 0) + 1;
     }
 
@@ -87,27 +82,23 @@ class DailyVideoExportService {
       return {
         'hour': hour,
 
-        'slots': List.generate(slotOwnerIds.length, (slotIndex) {
-          final ownerId = slotOwnerIds[slotIndex];
-
-          final user = ownerId == null ? null : userById[ownerId];
+        'slots': List.generate(exportSlots.length, (exportSlotIndex) {
+          final originalSlotIndex = exportSlots[exportSlotIndex].key;
+          final ownerId = exportSlots[exportSlotIndex].value;
+          final user = userById[ownerId];
 
           final post = user == null
               ? null
               : _findPostForSlot(
                   posts: visiblePosts,
-
-                  slotIndex: slotIndex,
-
+                  slotIndex: originalSlotIndex,
                   ownerId: user.id,
-
                   targetHour: hour,
-
                   allowLegacyUserFallback: ownerSlotCounts[user.id] == 1,
                 );
 
           return {
-            'slotIndex': slotIndex,
+            'slotIndex': exportSlotIndex,
 
             'videoPath': post == null ? null : localPathByPostId[post.id],
 
@@ -118,7 +109,7 @@ class DailyVideoExportService {
     }).toList();
 
     final pages = _layoutBuilder.buildPages(
-      slotCount: slotOwnerIds.length,
+      slotCount: exportSlots.length,
       useDiceLayout: useDiceLayout,
       textStyleSelection: textStyleSelection,
       pages: pageData,
@@ -127,18 +118,12 @@ class DailyVideoExportService {
     try {
       final outputPath = await _channel
           .invokeMethod<String>('exportDailyVideo', {
-            'slotCount': slotOwnerIds.length,
-
+            'slotCount': exportSlots.length,
             'useDiceLayout': useDiceLayout,
-
             'fontId': textStyleSelection.fontId,
-
             'colorId': textStyleSelection.colorId,
-
             'hourFontId': textStyleSelection.hourFontId,
-
             'dayKey': dayKey,
-
             'pages': pages,
           });
 
@@ -162,13 +147,9 @@ class DailyVideoExportService {
 
   Post? _findPostForSlot({
     required List<Post> posts,
-
     required int slotIndex,
-
     required String ownerId,
-
     required int targetHour,
-
     required bool allowLegacyUserFallback,
   }) {
     final exact = _latestPost(
@@ -191,7 +172,6 @@ class DailyVideoExportService {
 
   Post? _latestPost(Iterable<Post> posts) {
     Post? latest;
-
     for (final post in posts) {
       if (latest == null || post.createdAt.isAfter(latest.createdAt)) {
         latest = post;
@@ -210,13 +190,11 @@ class DailyVideoExportResult {
   });
 
   final String outputPath;
-
   final int hourCount;
 }
 
 class DailyVideoExportException implements Exception {
   const DailyVideoExportException(this.message);
-
   final String message;
 
   @override
