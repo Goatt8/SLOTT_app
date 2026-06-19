@@ -468,11 +468,11 @@ class AppLayoutPolicy {
 
     return const GroupVideoLayoutSpec(
       useGrid: true,
-      crossAxisCount: 3,
+      crossAxisCount: 2,
       gridChildAspectRatio: diceVideoAspectRatio,
       videoAspectRatio: diceVideoAspectRatio,
       compactVerticalCards: false,
-      fixedSlotCount: 12,
+      fixedSlotCount: 10,
     );
   }
 
@@ -509,7 +509,13 @@ class AppLayoutPolicy {
       gridHorizontalPadding: 2,
       gridVerticalPadding: 2,
       gridSpacing: 2,
-      fillGridViewport: willUseDice && memberCount == 3,
+      fillGridViewport:
+          willUseDice &&
+          (memberCount == 3 ||
+              memberCount == 6 ||
+              memberCount == 7 ||
+              memberCount == 8 ||
+              memberCount == 10),
     );
   }
 }
