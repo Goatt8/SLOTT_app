@@ -80,6 +80,15 @@ final class DailyVideoExporter {
                 of: sourceTrack,
                 at: .zero
             )
+
+            if request.includeAudio {
+                try await insertAudioTracks(
+                    from: asset,
+                    into: composition,
+                    duration: duration,
+                    at: .zero
+                )
+            }
             
             if duration < pageDuration {
                 compositionVideoTrack.scaleTimeRange(
@@ -175,6 +184,13 @@ final class DailyVideoExporter {
                 of: sourceTrack,
                 at: cursor
             )
+
+            try await insertAudioTracks(
+                from: asset,
+                into: composition,
+                duration: duration,
+                at: cursor
+            )
             
             cursor = cursor + duration
         }
@@ -211,6 +227,42 @@ final class DailyVideoExporter {
         
         if exporter.status != .completed {
             throw exporter.error ?? DailyVideoExportError.exportFailed
+        }
+    }
+
+    private func insertAudioTracks(
+        from asset: AVURLAsset,
+        into composition: AVMutableComposition,
+        duration: CMTime,
+        at startTime: CMTime
+    ) async throws {
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        guard duration.seconds > 0 else { return }
+
+        for sourceAudioTrack in audioTracks {
+            let audioTimeRange = try await sourceAudioTrack.load(.timeRange)
+            let audioDuration = min(duration, audioTimeRange.duration)
+            guard audioDuration.seconds > 0 else { continue }
+
+            guard let compositionAudioTrack = composition.addMutableTrack(
+                withMediaType: .audio,
+                preferredTrackID: kCMPersistentTrackID_Invalid
+            ) else {
+                throw DailyVideoExportError.exportFailed
+            }
+
+            try compositionAudioTrack.insertTimeRange(
+                CMTimeRange(start: audioTimeRange.start, duration: audioDuration),
+                of: sourceAudioTrack,
+                at: startTime
+            )
+
+            if startTime == .zero && audioDuration < pageDuration {
+                compositionAudioTrack.scaleTimeRange(
+                    CMTimeRange(start: startTime, duration: audioDuration),
+                    toDuration: pageDuration
+                )
+            }
         }
     }
     
@@ -389,6 +441,7 @@ private struct DailyVideoExportRequest {
     let fontId: String
     let colorId: String
     let hourFontId: String
+    let includeAudio: Bool
     let pages: [DailyVideoExportPage]
 
     init(arguments: [String: Any]) throws {
@@ -404,6 +457,7 @@ private struct DailyVideoExportRequest {
         self.fontId = arguments["fontId"] as? String ?? "doHyeon"
         self.colorId = arguments["colorId"] as? String ?? "white"
         self.hourFontId = arguments["hourFontId"] as? String ?? "doHyeon"
+        self.includeAudio = arguments["includeAudio"] as? Bool ?? true
         self.pages = try pagesRaw.map { try DailyVideoExportPage(arguments: $0) }
     }
 }

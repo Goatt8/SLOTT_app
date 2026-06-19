@@ -53,6 +53,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   Object? _postsError;
   bool _isPostsLoading = true;
   bool _isRequestingDailyVideoExport = false;
+  bool _includeDailyVideoAudio = false;
   int _postsSubscriptionGeneration = 0;
   String? _lastVideoPreparationKey;
   Timer? _videoPreparationTimer;
@@ -556,19 +557,20 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
             hourFontId: viewer?.hourFontId,
           );
 
-      final result = await _dailyVideoExportService.export(
+      await _dailyVideoExportService.export(
         group: _activeGroup,
         posts: _groupPosts,
         members: members,
         useDiceLayout: _useDiceLayout,
         dayKey: _todayKey,
         textStyleSelection: textStyleSelection,
+        includeAudio: _includeDailyVideoAudio,
         blockedUserIds: _blockedUserIds,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${result.hourCount}개 시간대의 영상을 사진 앱에 저장했습니다.'),
+          content: const Text('오늘의 슬롯영상을 갤러리에 저장했습니다.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -610,7 +612,11 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
         ),
         centerTitle: true,
         titleSpacing: 0,
-        actions: [_buildDailyVideoExportButton(), _buildLayoutToggleButton()],
+        actions: [
+          _buildDailyVideoAudioToggleButton(),
+          _buildDailyVideoExportButton(),
+          _buildLayoutToggleButton(),
+        ],
       ),
       body: SafeArea(
         child: FutureBuilder<List<AppUser>>(
@@ -681,6 +687,36 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     );
   }
 
+  Widget _buildDailyVideoAudioToggleButton() {
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: IconButton(
+        tooltip: _includeDailyVideoAudio ? '저장 영상 음성 끄기' : '저장 영상 음성 켜기',
+        padding: EdgeInsets.zero,
+        onPressed: _isRequestingDailyVideoExport
+            ? null
+            : () {
+                _toggleDailyVideoAudio();
+              },
+        icon: Icon(
+          _includeDailyVideoAudio
+              ? Icons.volume_up_outlined
+              : Icons.volume_off_outlined,
+          size: 21,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleDailyVideoAudio() async {
+    final nextValue = !_includeDailyVideoAudio;
+    setState(() {
+      _includeDailyVideoAudio = nextValue;
+    });
+    await _videoCacheService.setVolume(nextValue ? 1 : 0);
+  }
+
   Widget _buildDailyVideoExportButton() {
     return SizedBox(
       width: 44,
@@ -699,7 +735,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
                   color: Colors.white,
                 ),
               )
-            : const Icon(Icons.download_rounded, size: 22),
+            : const Icon(Icons.file_download_outlined, size: 22),
       ),
     );
   }

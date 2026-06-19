@@ -82,15 +82,18 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     if (widget.videoUrl.startsWith('assets/')) {
       _internalController = CachedVideoPlayerPlusController.asset(
         widget.videoUrl,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
       );
     } else if (widget.videoUrl.startsWith('http://') ||
         widget.videoUrl.startsWith('https://')) {
       _internalController = CachedVideoPlayerPlusController.networkUrl(
         Uri.parse(widget.videoUrl),
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
       );
     } else {
       _internalController = CachedVideoPlayerPlusController.file(
         File(widget.videoUrl),
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
       );
     }
 

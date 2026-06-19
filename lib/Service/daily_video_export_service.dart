@@ -26,6 +26,7 @@ class DailyVideoExportService {
     required bool useDiceLayout,
     required String dayKey,
     required PostTextStyleSelection textStyleSelection,
+    required bool includeAudio,
 
     Set<String> blockedUserIds = const {},
   }) async {
@@ -124,6 +125,7 @@ class DailyVideoExportService {
             'colorId': textStyleSelection.colorId,
             'hourFontId': textStyleSelection.hourFontId,
             'dayKey': dayKey,
+            'includeAudio': includeAudio,
             'pages': pages,
           });
 

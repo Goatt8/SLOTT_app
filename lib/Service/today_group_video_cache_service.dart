@@ -7,6 +7,7 @@ class TodayGroupVideoCacheService {
 
   final void Function()? onControllerReady;
   String? _activeDayKey;
+  double _volume = 0;
   final Set<String> _queuedDownloadUrls = <String>{};
   final Map<String, CachedVideoPlayerPlusController> _controllerPool = {};
   Future<void> _downloadChain = Future<void>.value();
@@ -75,11 +76,12 @@ class TodayGroupVideoCacheService {
               await _cacheManager.downloadFile(url);
           final controller = CachedVideoPlayerPlusController.file(
             cachedFile.file,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
           _controllerPool[url] = controller;
           await controller.initialize();
           await controller.setLooping(true);
-          await controller.setVolume(0);
+          await controller.setVolume(_volume);
           onControllerReady?.call();
         } catch (_) {
           final failedController = _controllerPool.remove(url);
@@ -105,6 +107,14 @@ class TodayGroupVideoCacheService {
     if (controller == null) return null;
     if (!controller.value.isInitialized) return null;
     return controller;
+  }
+
+  Future<void> setVolume(double volume) async {
+    _volume = volume.clamp(0, 1).toDouble();
+    for (final controller in _controllerPool.values) {
+      if (!controller.value.isInitialized) continue;
+      await controller.setVolume(_volume);
+    }
   }
 
   Future<void> disposeAll() async {
