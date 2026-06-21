@@ -7,20 +7,18 @@ service firebase.storage {
       allow write: if false;
     }
 
-    match /temp_uploads/{userId}/{fileName} {
+    match /group_post_videos/{groupId}/{fileName} {
       allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null
-        && request.auth.uid == userId;
-    }
 
-    match /temp_uploads/{fileName} {
-      allow read: if request.auth != null;
-      allow write, delete: if false;
-    }
+      allow create, update: if request.auth != null
+        && firestore.get(
+          /databases/(default)/documents/group/$(groupId)
+        ).data.memberIds.hasAny([request.auth.uid]);
 
-    match /merged_videos/{groupId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write, delete: if false;
+      allow delete: if request.auth != null
+        && firestore.get(
+          /databases/(default)/documents/group/$(groupId)
+        ).data.ownerId == request.auth.uid;
     }
 
     match /user_profile/{fileName} {

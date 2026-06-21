@@ -389,6 +389,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
               child: PostCommentOverlay.editable(
                 hourText: '${_currentHour.toString().padLeft(2, '0')}:00',
                 controller: _commentController,
+                autofocusDelay: const Duration(milliseconds: 450),
               ),
             ),
           ),

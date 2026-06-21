@@ -8,6 +8,7 @@ class PostCommentOverlay extends StatelessWidget {
     super.key,
     required this.hourText,
     required this.controller,
+    this.autofocusDelay = Duration.zero,
     this.hourOverlaySpec,
     this.hourTextColor = Colors.white,
     this.styleSelection = AppTypography.defaultPostTextStyleSelection,
@@ -27,6 +28,7 @@ class PostCommentOverlay extends StatelessWidget {
     this.hourTextColor = Colors.white,
     this.styleSelection = AppTypography.defaultPostTextStyleSelection,
     this.controller = null,
+    this.autofocusDelay = Duration.zero,
     this.isEditable = false,
     this.emptyAssetPath = null,
     this.emptyAssetSize = 50,
@@ -44,6 +46,7 @@ class PostCommentOverlay extends StatelessWidget {
     this.emptyAssetOpacity = 0.6,
     this.showEmptyIndicator = true,
     this.controller = null,
+    this.autofocusDelay = Duration.zero,
     this.comment = null,
     this.isEditable = false,
     this.styleSelection = AppTypography.defaultPostTextStyleSelection,
@@ -53,6 +56,7 @@ class PostCommentOverlay extends StatelessWidget {
   final GroupHourOverlaySpec? hourOverlaySpec;
   final Color hourTextColor;
   final TextEditingController? controller;
+  final Duration autofocusDelay;
   final String? comment;
   final bool isEditable;
   final PostTextStyleSelection styleSelection;
@@ -98,6 +102,14 @@ class PostCommentOverlay extends StatelessWidget {
   }
 
   Widget _buildTextField() {
+    if (autofocusDelay > Duration.zero) {
+      return _DelayedAutofocusTextField(
+        controller: controller,
+        delay: autofocusDelay,
+        styleSelection: styleSelection,
+      );
+    }
+
     return TextField(
       controller: controller,
       autofocus: true,
@@ -166,6 +178,69 @@ class PostCommentOverlay extends StatelessWidget {
       blendMode: BlendMode.srcIn,
       shaderCallback: (bounds) => gradient.createShader(bounds),
       child: textWidget,
+    );
+  }
+}
+
+class _DelayedAutofocusTextField extends StatefulWidget {
+  const _DelayedAutofocusTextField({
+    required this.controller,
+    required this.delay,
+    required this.styleSelection,
+  });
+
+  final TextEditingController? controller;
+  final Duration delay;
+  final PostTextStyleSelection styleSelection;
+
+  @override
+  State<_DelayedAutofocusTextField> createState() =>
+      _DelayedAutofocusTextFieldState();
+}
+
+class _DelayedAutofocusTextFieldState
+    extends State<_DelayedAutofocusTextField> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future<void>.delayed(widget.delay, () {
+        if (!mounted) return;
+        _focusNode.requestFocus();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: widget.controller,
+      focusNode: _focusNode,
+      autofocus: false,
+      showCursor: true,
+      cursorColor: Colors.white,
+      cursorHeight: 24,
+      cursorWidth: 2,
+      style: AppTypography.postCommentOverlay(selection: widget.styleSelection),
+      maxLines: null,
+      textAlign: TextAlign.center,
+      maxLength: 50,
+      decoration: const InputDecoration(
+        counterText: "",
+        filled: false,
+        border: InputBorder.none,
+        isCollapsed: true,
+        contentPadding: EdgeInsets.zero,
+      ),
     );
   }
 }

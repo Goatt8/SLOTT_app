@@ -435,6 +435,145 @@ private struct VideoPlacement {
     let cropRect: CGRect
 }
 
+final class PostVideoTransformer {
+    func exportLandscapeCopy(inputPath: String) async throws -> String {
+        let inputUrl = URL(fileURLWithPath: inputPath)
+        let outputUrl = FileManager.default.temporaryDirectory
+            .appendingPathComponent("slott_post_landscape_\(UUID().uuidString).mp4")
+
+        let asset = AVURLAsset(url: inputUrl)
+        let videoTracks = try await asset.loadTracks(withMediaType: .video)
+        guard let sourceVideoTrack = videoTracks.first else {
+            throw PostVideoTransformError.missingVideoTrack
+        }
+
+        let duration = try await asset.load(.duration)
+        guard duration.seconds > 0 else {
+            throw PostVideoTransformError.exportFailed
+        }
+
+        let naturalSize = try await sourceVideoTrack.load(.naturalSize)
+        let preferredTransform = try await sourceVideoTrack.load(.preferredTransform)
+        let transformedRect = CGRect(origin: .zero, size: naturalSize).applying(preferredTransform)
+        let displaySize = CGSize(
+            width: abs(transformedRect.width),
+            height: abs(transformedRect.height)
+        )
+        guard displaySize.width > 0 && displaySize.height > 0 else {
+            throw PostVideoTransformError.exportFailed
+        }
+
+        let renderSize = CGSize(
+            width: max(displaySize.width, displaySize.height),
+            height: min(displaySize.width, displaySize.height)
+        )
+
+        let composition = AVMutableComposition()
+        guard let compositionVideoTrack = composition.addMutableTrack(
+            withMediaType: .video,
+            preferredTrackID: kCMPersistentTrackID_Invalid
+        ) else {
+            throw PostVideoTransformError.exportFailed
+        }
+
+        try compositionVideoTrack.insertTimeRange(
+            CMTimeRange(start: .zero, duration: duration),
+            of: sourceVideoTrack,
+            at: .zero
+        )
+
+        try await insertAudioTracks(from: asset, into: composition, duration: duration)
+
+        let normalizeTransform = preferredTransform.concatenating(CGAffineTransform(
+            translationX: -transformedRect.minX,
+            y: -transformedRect.minY
+        ))
+
+        let landscapeTransform = normalizeTransform.concatenating(
+            CGAffineTransform(translationX: 0, y: renderSize.height)
+                .rotated(by: -.pi / 2)
+        )
+
+        let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
+        instruction.setTransform(landscapeTransform, at: .zero)
+
+        let mainInstruction = AVMutableVideoCompositionInstruction()
+        mainInstruction.timeRange = CMTimeRange(start: .zero, duration: duration)
+        mainInstruction.layerInstructions = [instruction]
+
+        let videoComposition = AVMutableVideoComposition()
+        videoComposition.renderSize = renderSize
+        videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+        videoComposition.instructions = [mainInstruction]
+
+        if FileManager.default.fileExists(atPath: outputUrl.path) {
+            try FileManager.default.removeItem(at: outputUrl)
+        }
+
+        guard let exporter = AVAssetExportSession(
+            asset: composition,
+            presetName: AVAssetExportPresetHighestQuality
+        ) else {
+            throw PostVideoTransformError.exportFailed
+        }
+
+        exporter.outputURL = outputUrl
+        exporter.outputFileType = .mp4
+        exporter.shouldOptimizeForNetworkUse = true
+        exporter.videoComposition = videoComposition
+
+        await exporter.export()
+
+        if exporter.status != .completed {
+            throw exporter.error ?? PostVideoTransformError.exportFailed
+        }
+
+        return outputUrl.path
+    }
+
+    private func insertAudioTracks(
+        from asset: AVURLAsset,
+        into composition: AVMutableComposition,
+        duration: CMTime
+    ) async throws {
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        guard duration.seconds > 0 else { return }
+
+        for sourceAudioTrack in audioTracks {
+            guard let compositionAudioTrack = composition.addMutableTrack(
+                withMediaType: .audio,
+                preferredTrackID: kCMPersistentTrackID_Invalid
+            ) else {
+                throw PostVideoTransformError.exportFailed
+            }
+
+            let audioTimeRange = try await sourceAudioTrack.load(.timeRange)
+            let audioDuration = min(duration, audioTimeRange.duration)
+            guard audioDuration.seconds > 0 else { continue }
+
+            try compositionAudioTrack.insertTimeRange(
+                CMTimeRange(start: audioTimeRange.start, duration: audioDuration),
+                of: sourceAudioTrack,
+                at: .zero
+            )
+        }
+    }
+}
+
+private enum PostVideoTransformError: LocalizedError {
+    case missingVideoTrack
+    case exportFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .missingVideoTrack:
+            return "Post video has no video track."
+        case .exportFailed:
+            return "Post video landscape transform failed."
+        }
+    }
+}
+
 private struct DailyVideoExportRequest {
     let slotCount: Int
     let useDiceLayout: Bool

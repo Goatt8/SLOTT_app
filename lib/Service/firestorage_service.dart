@@ -16,13 +16,6 @@ class FireStorageService {
 
   static const String groupPostVideosRoot = 'group_post_videos';
 
-  bool _isOwnedTempUpload(Reference ref, String userId) {
-    final pathSegments = ref.fullPath.split('/');
-    return pathSegments.length >= 3 &&
-        pathSegments.first == 'temp_uploads' &&
-        pathSegments[1] == userId;
-  }
-
   String _fileExtension(String path) {
     final int dotIndex = path.lastIndexOf('.');
     if (dotIndex == -1 || dotIndex == path.length - 1) {
@@ -82,8 +75,7 @@ class FireStorageService {
         return;
       }
 
-      if (!ref.fullPath.startsWith('$groupPostVideosRoot/') &&
-          !_isOwnedTempUpload(ref, currentUserId)) {
+      if (!ref.fullPath.startsWith('$groupPostVideosRoot/')) {
         return;
       }
 
@@ -115,42 +107,6 @@ class FireStorageService {
         videoUrl: videoFile.videoUrl,
         storagePath: videoFile.storagePath,
       );
-    }
-  }
-
-  Future<String?> uploadVideo(String filePath) async {
-    try {
-      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-      if (currentUserId == null) {
-        debugPrint("로그인된 사용자만 영상을 업로드할 수 있습니다.");
-        return null;
-      }
-
-      File file = File(filePath);
-      if (!file.existsSync()) {
-        debugPrint("파일이 존재하지 않습니다: $filePath");
-        return null;
-      }
-
-      String fileName =
-          "${DateTime.now().millisecondsSinceEpoch}${_fileExtension(filePath)}";
-
-      Reference ref = _storage
-          .ref()
-          .child('temp_uploads')
-          .child(currentUserId)
-          .child(fileName);
-
-      UploadTask uploadTask = ref.putFile(
-        file,
-        SettableMetadata(contentType: 'video/mp4'),
-      );
-
-      TaskSnapshot snapshot = await uploadTask;
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      debugPrint("FireStorageService 업로드 에러: $e");
-      return null;
     }
   }
 

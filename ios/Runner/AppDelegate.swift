@@ -4,7 +4,8 @@ import UIKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let dailyVideoExporter = DailyVideoExporter()
-  private var didRegisterDailyVideoExportChannel = false
+  private let postVideoTransformer = PostVideoTransformer()
+  private var didRegisterVideoChannels = false
 
   override func application(
     _ application: UIApplication,
@@ -12,7 +13,7 @@ import UIKit
   ) -> Bool {
     let launched = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     DispatchQueue.main.async { [weak self] in
-      self?.registerDailyVideoExportChannelIfPossible()
+      self?.registerVideoChannelsIfPossible()
     }
     return launched
   }
@@ -21,13 +22,13 @@ import UIKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }
 
-  func registerDailyVideoExportChannelIfPossible() {
-    if didRegisterDailyVideoExportChannel {
+  func registerVideoChannelsIfPossible() {
+    if didRegisterVideoChannels {
       return
     }
 
     if let controller = window?.rootViewController as? FlutterViewController {
-      registerDailyVideoExportChannel(with: controller)
+      registerVideoChannels(with: controller)
       return
     }
 
@@ -38,22 +39,22 @@ import UIKit
       .rootViewController as? FlutterViewController
 
     if let controller {
-      registerDailyVideoExportChannel(with: controller)
+      registerVideoChannels(with: controller)
     }
   }
 
-  func registerDailyVideoExportChannel(with controller: FlutterViewController) {
-    if didRegisterDailyVideoExportChannel {
+  func registerVideoChannels(with controller: FlutterViewController) {
+    if didRegisterVideoChannels {
       return
     }
-    didRegisterDailyVideoExportChannel = true
+    didRegisterVideoChannels = true
 
-    let channel = FlutterMethodChannel(
+    let dailyVideoExportChannel = FlutterMethodChannel(
       name: "slott/daily_video_export",
       binaryMessenger: controller.binaryMessenger
     )
 
-    channel.setMethodCallHandler { [dailyVideoExporter] call, result in
+    dailyVideoExportChannel.setMethodCallHandler { [dailyVideoExporter] call, result in
       guard call.method == "exportDailyVideo" else {
         result(FlutterMethodNotImplemented)
         return
@@ -74,6 +75,43 @@ import UIKit
           await MainActor.run {
             result(FlutterError(
               code: "export_failed",
+              message: error.localizedDescription,
+              details: String(describing: error)
+            ))
+          }
+        }
+      }
+    }
+
+    let postVideoTransformChannel = FlutterMethodChannel(
+      name: "slott/post_video_transform",
+      binaryMessenger: controller.binaryMessenger
+    )
+
+    postVideoTransformChannel.setMethodCallHandler { [postVideoTransformer] call, result in
+      guard call.method == "exportLandscapeCopy" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+
+      guard
+        let arguments = call.arguments as? [String: Any],
+        let inputPath = arguments["inputPath"] as? String
+      else {
+        result(FlutterError(code: "bad_args", message: "Invalid transform arguments", details: nil))
+        return
+      }
+
+      Task {
+        do {
+          let outputPath = try await postVideoTransformer.exportLandscapeCopy(inputPath: inputPath)
+          await MainActor.run {
+            result(outputPath)
+          }
+        } catch {
+          await MainActor.run {
+            result(FlutterError(
+              code: "transform_failed",
               message: error.localizedDescription,
               details: String(describing: error)
             ))

@@ -14,10 +14,10 @@ class SceneDelegate: FlutterSceneDelegate {
     }
 
     if let controller = window?.rootViewController as? FlutterViewController {
-      appDelegate.registerDailyVideoExportChannel(with: controller)
+      appDelegate.registerVideoChannels(with: controller)
     } else {
       DispatchQueue.main.async {
-        appDelegate.registerDailyVideoExportChannelIfPossible()
+        appDelegate.registerVideoChannelsIfPossible()
       }
     }
   }

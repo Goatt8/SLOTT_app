@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:bababam_app/Helper/ui_presets.dart';
 import 'package:bababam_app/Screen/video_preview_screen.dart';
 import 'package:bababam_app/Service/camera_availability_service.dart';
+import 'package:bababam_app/Service/post_video_transform_service.dart';
 import 'package:bababam_app/Widget/record_progress_ring_painter.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -20,12 +21,15 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen>
     with TickerProviderStateMixin {
   final ImagePicker _imagePicker = ImagePicker();
+  final PostVideoTransformService _postVideoTransformService =
+      const PostVideoTransformService();
   late AnimationController _animationController;
   CameraController? _controller;
   List<CameraDescription>? _cameras;
   int _selectedCameraIndex = 0;
   bool _isInitialized = false;
   bool _isRecording = false;
+  bool _isProcessingVideo = false;
   bool _isSwitchingCamera = false;
   Offset? _focusPoint;
   Offset? _exposureDragStartPoint;
@@ -45,7 +49,6 @@ class _CameraScreenState extends State<CameraScreen>
   @override
   void initState() {
     super.initState();
-    _lockScreenLandscape();
     _initializeCamera();
     _animationController = AnimationController(
       vsync: this,
@@ -55,27 +58,25 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   void dispose() {
-    unawaited(_restoreScreenPortrait());
     _focusIndicatorTimer?.cancel();
     _controller?.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
-  Future<void> _lockScreenLandscape() {
-    return SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeRight,
-    ]);
-  }
-
-  Future<void> _restoreScreenPortrait() {
-    return SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
-  }
-
   Future<void> _uploadToFireStorageAndMove(String path) async {
-    _moveToPreviewScreen(recordedPath: path);
+    if (mounted) setState(() => _isProcessingVideo = true);
+
+    var previewPath = path;
+    try {
+      previewPath = await _postVideoTransformService.exportLandscapeCopy(path);
+    } catch (error) {
+      debugPrint('가로 프리뷰 영상 변환 실패, 원본으로 진행: $error');
+    }
+
+    if (!mounted) return;
+    setState(() => _isProcessingVideo = false);
+    _moveToPreviewScreen(recordedPath: previewPath);
   }
 
   Future<void> _pickVideoFromGallery() async {
@@ -126,7 +127,7 @@ class _CameraScreenState extends State<CameraScreen>
           return;
         }
 
-        _uploadToFireStorageAndMove(rawVideo.path);
+        await _uploadToFireStorageAndMove(rawVideo.path);
       }
     } catch (e) {
       debugPrint("4초 자동 녹화 에러: $e");
@@ -227,9 +228,7 @@ class _CameraScreenState extends State<CameraScreen>
       ResolutionPreset.veryHigh,
     );
     await nextController.initialize();
-    await nextController.lockCaptureOrientation(
-      DeviceOrientation.landscapeLeft,
-    );
+    await nextController.lockCaptureOrientation(DeviceOrientation.portraitUp);
 
     var minExposureOffset = 0.0;
     var maxExposureOffset = 0.0;
@@ -489,6 +488,10 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
+  Widget _landscapeIllusion(Widget child) {
+    return RotatedBox(quarterTurns: 1, child: child);
+  }
+
   //MARK: Button UI
   Widget _buildRecordButton({bool isLandscape = false}) {
     final alignment = isLandscape
@@ -588,10 +591,12 @@ class _CameraScreenState extends State<CameraScreen>
                   width: 1.2,
                 ),
               ),
-              child: const Icon(
-                Icons.cameraswitch_rounded,
-                color: Colors.white,
-                size: 28,
+              child: _landscapeIllusion(
+                const Icon(
+                  Icons.cameraswitch_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
             ),
           ),
@@ -665,18 +670,20 @@ class _CameraScreenState extends State<CameraScreen>
               : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: !isEnabled
-                ? Colors.white.withValues(alpha: 0.25)
-                : isSelected
-                ? Colors.orangeAccent
-                : Colors.white,
-            fontSize: isSelected ? 16 : 14,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-            letterSpacing: -0.2,
+        child: _landscapeIllusion(
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: !isEnabled
+                  ? Colors.white.withValues(alpha: 0.25)
+                  : isSelected
+                  ? Colors.orangeAccent
+                  : Colors.white,
+              fontSize: isSelected ? 16 : 14,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+              letterSpacing: -0.2,
+            ),
           ),
         ),
       ),
@@ -818,13 +825,15 @@ class _CameraScreenState extends State<CameraScreen>
                               : Container(
                                   color: const Color(0xFF2C2C2C),
                                   child: Center(
-                                    child: Text(
-                                      _isSwitchingCamera
-                                          ? "카메라 전환 중"
-                                          : "촬영 버튼을 눌러 갤러리 영상을 선택하세요",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
+                                    child: _landscapeIllusion(
+                                      Text(
+                                        _isSwitchingCamera
+                                            ? "카메라 전환 중"
+                                            : "촬영 버튼을 눌러 갤러리 영상을 선택하세요",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -849,9 +858,11 @@ class _CameraScreenState extends State<CameraScreen>
                         bottom: previewBottomPadding,
                         child: IgnorePointer(
                           child: Center(
-                            child: Text(
-                              '${DateTime.now().hour.toString().padLeft(2, '0')}:00',
-                              style: AppTypography.hourOverlay(),
+                            child: _landscapeIllusion(
+                              Text(
+                                '${DateTime.now().hour.toString().padLeft(2, '0')}:00',
+                                style: AppTypography.hourOverlay(),
+                              ),
                             ),
                           ),
                         ),
@@ -905,10 +916,12 @@ class _CameraScreenState extends State<CameraScreen>
                               color: Colors.black.withValues(alpha: 0.3),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 28,
+                            child: _landscapeIllusion(
+                              const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 28,
+                              ),
                             ),
                           ),
                         ),
@@ -916,6 +929,22 @@ class _CameraScreenState extends State<CameraScreen>
                       _buildLensSelector(isLandscape: isLandscape),
                       _buildRecordButton(isLandscape: isLandscape),
                       _buildSwitchCameraButton(isLandscape: isLandscape),
+                      if (_isProcessingVideo)
+                        Positioned.fill(
+                          child: ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.42),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   );
                 },
