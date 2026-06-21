@@ -6,6 +6,7 @@ import 'package:bababam_app/Screen/slot_list_screen.dart';
 import 'package:bababam_app/Screen/login_screen.dart';
 import 'package:bababam_app/Service/camera_availability_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
+import 'package:bababam_app/Service/push_notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -27,12 +28,36 @@ class SLOTTApp extends StatefulWidget {
 
 class _SLOTTAppState extends State<SLOTTApp> {
   final FireStoreService _firestoreService = FireStoreService();
+  final PushNotificationService _pushNotificationService =
+      PushNotificationService();
+  String? _configuredPushUserId;
+
+  @override
+  void dispose() {
+    _pushNotificationService.dispose();
+    super.dispose();
+  }
+
+  void _configurePushNotificationsFor(User? user) {
+    final userId = user?.uid;
+    if (userId == null) {
+      _configuredPushUserId = null;
+      return;
+    }
+    if (_configuredPushUserId == userId) return;
+
+    _configuredPushUserId = userId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pushNotificationService.configureForCurrentUser();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
+        _configurePushNotificationsFor(authSnapshot.data);
         final uid = authSnapshot.data?.uid;
         return StreamBuilder<AppUser?>(
           stream: uid == null
