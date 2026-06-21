@@ -107,15 +107,12 @@ async function collectFcmTokens(userIds) {
 
 async function markUnreadNotifications({ userIds, groupId }) {
   const batch = db.batch();
-  const timestamp = admin.firestore.FieldValue.serverTimestamp();
 
   for (const userId of userIds) {
     batch.set(
       db.collection("user").doc(userId),
       {
-        hasUnreadNotification: true,
         unreadGroupIds: admin.firestore.FieldValue.arrayUnion(groupId),
-        lastNotificationAt: timestamp,
       },
       { merge: true }
     );

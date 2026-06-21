@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -157,17 +159,9 @@ class _SlotListScreenState extends State<SlotListScreen> {
               padding: const EdgeInsets.all(12),
               itemBuilder: (context, index) {
                 final group = visibleGroups[index];
-                final hasUnreadNotification = unreadGroupIds.contains(group.id);
+                final hasUnreadGroup = unreadGroupIds.contains(group.id);
 
-                Future<void> openGroup() async {
-                  if (hasUnreadNotification) {
-                    await _firestoreService.markGroupNotificationRead(
-                      userId: currentUser.uid,
-                      groupId: group.id,
-                    );
-                  }
-
-                  if (!context.mounted) return;
+                void openGroup() {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -175,6 +169,15 @@ class _SlotListScreenState extends State<SlotListScreen> {
                           SlotGroupScreen(group: group, groupId: group.id),
                     ),
                   );
+
+                  if (hasUnreadGroup) {
+                    unawaited(
+                      _firestoreService.markGroupNotificationRead(
+                        userId: currentUser.uid,
+                        groupId: group.id,
+                      ),
+                    );
+                  }
                 }
 
                 return Dismissible(
@@ -212,8 +215,7 @@ class _SlotListScreenState extends State<SlotListScreen> {
                         return GroupListCell(
                           group: group,
                           memberNames: snapshot.data ?? const [],
-                          hasUnreadNotification: hasUnreadNotification,
-                          onNotificationTap: openGroup,
+                          hasUnreadGroup: hasUnreadGroup,
                         );
                       },
                     ),
