@@ -15,6 +15,8 @@ class AppUser {
   final bool hasAgreedTerms;
   final String? termsVersion;
   final bool isDeleted;
+  final bool hasUnreadNotification;
+  final List<String> unreadGroupIds;
 
   AppUser({
     required this.id,
@@ -29,6 +31,8 @@ class AppUser {
     this.hasAgreedTerms = false,
     this.termsVersion,
     this.isDeleted = false,
+    this.hasUnreadNotification = false,
+    this.unreadGroupIds = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -43,6 +47,8 @@ class AppUser {
       'currentPost': currentPost?.toMap(),
       'termsInfo': {'hasAgreed': hasAgreedTerms, 'version': termsVersion},
       'isDeleted': isDeleted,
+      'hasUnreadNotification': hasUnreadNotification,
+      'unreadGroupIds': unreadGroupIds,
     };
   }
 
@@ -78,6 +84,10 @@ class AppUser {
       hasAgreedTerms: termsInfo?['hasAgreed'] as bool? ?? false,
       termsVersion: termsInfo?['version'] as String?,
       isDeleted: map['isDeleted'] as bool? ?? false,
+      hasUnreadNotification: map['hasUnreadNotification'] as bool? ?? false,
+      unreadGroupIds: List<String>.from(
+        map['unreadGroupIds'] as List<dynamic>? ?? const [],
+      ),
     );
   }
 

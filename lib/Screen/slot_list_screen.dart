@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:bababam_app/Model/app_user.dart';
 import 'package:bababam_app/Model/group.dart';
 import 'package:bababam_app/Service/auth_service.dart';
 import 'package:bababam_app/Service/firestore_service.dart';
@@ -28,6 +30,22 @@ class _SlotListScreenState extends State<SlotListScreen> {
       PostVideoCleanupService();
   final Set<String> _dismissedGroupIds = {};
   bool _didRunStartupVideoCleanup = false;
+  String? _appVersion;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+
+    setState(() {
+      _appVersion = packageInfo.version;
+    });
+  }
 
   void _runStartupVideoCleanup(List<Group> groups) {
     if (_didRunStartupVideoCleanup || groups.isEmpty) return;
@@ -98,71 +116,58 @@ class _SlotListScreenState extends State<SlotListScreen> {
       );
     }
 
-    return StreamBuilder<List<Group>>(
-      stream: _firestoreService.watchGroupsForUser(currentUser.uid),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return const Center(
-            child: Text(
-              '그룹을 불러오지 못했습니다.',
-              style: TextStyle(color: Colors.white54),
-            ),
-          );
-        }
+    return StreamBuilder<AppUser?>(
+      stream: _firestoreService.watchUser(currentUser.uid),
+      builder: (context, userSnapshot) {
+        final unreadGroupIds = userSnapshot.data?.unreadGroupIds.toSet() ?? {};
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        return StreamBuilder<List<Group>>(
+          stream: _firestoreService.watchGroupsForUser(currentUser.uid),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(
+                child: Text(
+                  '그룹을 불러오지 못했습니다.',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              );
+            }
 
-        final groups = snapshot.data ?? [];
-        final visibleGroups = groups
-            .where((group) => !_dismissedGroupIds.contains(group.id))
-            .toList();
-        _runStartupVideoCleanup(groups);
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        if (visibleGroups.isEmpty) {
-          return const Center(
-            child: Text(
-              '아직 생성된 그룹이 없습니다',
-              style: TextStyle(color: Colors.white54),
-            ),
-          );
-        }
-        //MARK: ListView
-        return ListView.builder(
-          itemCount: visibleGroups.length,
-          padding: const EdgeInsets.all(12),
-          itemBuilder: (context, index) {
-            final group = visibleGroups[index];
-            return Dismissible(
-              key: Key(group.id),
-              confirmDismiss: (direction) async {
-                return await showDialog<bool>(
-                      context: context,
-                      builder: (context) => ConfirmDialog(
-                        title: group.ownerId == currentUser.uid
-                            ? '슬롯 그룹 삭제'
-                            : '슬롯 그룹 나가기',
-                        message: group.ownerId == currentUser.uid
-                            ? '${group.title} 슬롯 그룹을 삭제하시겠습니까?'
-                            : '${group.title} 슬롯 그룹에서 나가시겠습니까?',
-                      ),
-                    ) ??
-                    false;
-              },
-              direction: DismissDirection.endToStart,
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 20),
-                color: Colors.redAccent,
-                child: const Icon(Icons.delete, color: Colors.white),
-              ),
-              onDismissed: (direction) {
-                setState(() => _dismissedGroupIds.add(group.id));
-                _removeGroup(group, currentUser.uid);
-              },
-              child: InkWell(
-                onTap: () {
+            final groups = snapshot.data ?? [];
+            final visibleGroups = groups
+                .where((group) => !_dismissedGroupIds.contains(group.id))
+                .toList();
+            _runStartupVideoCleanup(groups);
+
+            if (visibleGroups.isEmpty) {
+              return const Center(
+                child: Text(
+                  '아직 생성된 그룹이 없습니다',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              );
+            }
+            //MARK: ListView
+            return ListView.builder(
+              itemCount: visibleGroups.length,
+              padding: const EdgeInsets.all(12),
+              itemBuilder: (context, index) {
+                final group = visibleGroups[index];
+                final hasUnreadNotification = unreadGroupIds.contains(group.id);
+
+                Future<void> openGroup() async {
+                  if (hasUnreadNotification) {
+                    await _firestoreService.markGroupNotificationRead(
+                      userId: currentUser.uid,
+                      groupId: group.id,
+                    );
+                  }
+
+                  if (!context.mounted) return;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -170,17 +175,51 @@ class _SlotListScreenState extends State<SlotListScreen> {
                           SlotGroupScreen(group: group, groupId: group.id),
                     ),
                   );
-                },
-                child: FutureBuilder<List<String>>(
-                  future: _loadMemberNames(group.memberIds),
-                  builder: (context, snapshot) {
-                    return GroupListCell(
-                      group: group,
-                      memberNames: snapshot.data ?? const [],
-                    );
+                }
+
+                return Dismissible(
+                  key: Key(group.id),
+                  confirmDismiss: (direction) async {
+                    return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => ConfirmDialog(
+                            title: group.ownerId == currentUser.uid
+                                ? '슬롯 그룹 삭제'
+                                : '슬롯 그룹 나가기',
+                            message: group.ownerId == currentUser.uid
+                                ? '${group.title} 슬롯 그룹을 삭제하시겠습니까?'
+                                : '${group.title} 슬롯 그룹에서 나가시겠습니까?',
+                          ),
+                        ) ??
+                        false;
                   },
-                ),
-              ),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    color: Colors.redAccent,
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  onDismissed: (direction) {
+                    setState(() => _dismissedGroupIds.add(group.id));
+                    _removeGroup(group, currentUser.uid);
+                  },
+                  child: InkWell(
+                    onTap: openGroup,
+                    child: FutureBuilder<List<String>>(
+                      future: _loadMemberNames(group.memberIds),
+                      builder: (context, snapshot) {
+                        return GroupListCell(
+                          group: group,
+                          memberNames: snapshot.data ?? const [],
+                          hasUnreadNotification: hasUnreadNotification,
+                          onNotificationTap: openGroup,
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
             );
           },
         );
@@ -275,12 +314,13 @@ class _SlotListScreenState extends State<SlotListScreen> {
         shadowColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leadingWidth: 96,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
+        automaticallyImplyLeading: false,
+        titleSpacing: 16,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
               width: 60,
               height: 26,
               child: Image.asset(
@@ -289,7 +329,18 @@ class _SlotListScreenState extends State<SlotListScreen> {
                 alignment: Alignment.center,
               ),
             ),
-          ),
+            if (_appVersion != null) ...[
+              const SizedBox(width: 8),
+              Text(
+                'ver $_appVersion',
+                style: const TextStyle(
+                  color: Color(0x66FFFFFF),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
         ),
         actions: [
           //MARK: Add Button
@@ -324,66 +375,67 @@ class _SlotListScreenState extends State<SlotListScreen> {
             },
           ),
 
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () {
-              _showGlassMenu(
-                context,
-                alignment: const Alignment(0.9, -0.75),
-                menu: GlassPopupMenu(
-                  width: 180,
-                  items: [
-                    //MARK: Profile Button
-                    GlassMenuItem(
-                      title: '내 프로필',
-                      icon: Icons.account_circle_outlined,
-                      onTap: () {
-                        _navigateToEditProfile();
-                      },
-                    ),
-                    GlassMenuItem(
-                      title: '차단 목록 관리',
-                      icon: Icons.manage_accounts_outlined,
-                      onTap: _showBlockedUsers,
-                    ),
-                    //MARK: Logout Button
-                    GlassMenuItem(
-                      title: '로그아웃',
-                      icon: Icons.logout,
-                      onTap: () async {
-                        final bool? isConfirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => const ConfirmDialog(
-                            title: '로그아웃',
-                            message: '정말 로그아웃 하시겠습니까?',
-                          ),
-                        );
-                        if (isConfirmed == true) {
-                          try {
-                            await _authService.signOut();
-                            if (!context.mounted) return;
-                            Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/login',
-                              (route) => false,
-                            );
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            WarningSnackBar.showWarning(
-                              context,
-                              "로그아웃에 실패했습니다.",
-                            );
-                          }
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+          _buildProfileMenuButton(),
         ],
       ),
       body: _buildGroupList(),
+    );
+  }
+
+  Widget _buildProfileMenuButton() {
+    return IconButton(
+      icon: const Icon(Icons.person_outline),
+      onPressed: () async {
+        _showGlassMenu(
+          context,
+          alignment: const Alignment(0.9, -0.75),
+          menu: GlassPopupMenu(
+            width: 180,
+            items: [
+              //MARK: Profile Button
+              GlassMenuItem(
+                title: '내 프로필',
+                icon: Icons.account_circle_outlined,
+                onTap: () {
+                  _navigateToEditProfile();
+                },
+              ),
+              GlassMenuItem(
+                title: '차단 목록 관리',
+                icon: Icons.manage_accounts_outlined,
+                onTap: _showBlockedUsers,
+              ),
+              //MARK: Logout Button
+              GlassMenuItem(
+                title: '로그아웃',
+                icon: Icons.logout,
+                onTap: () async {
+                  final rootContext = context;
+                  final bool? isConfirmed = await showDialog<bool>(
+                    context: rootContext,
+                    builder: (context) => const ConfirmDialog(
+                      title: '로그아웃',
+                      message: '정말 로그아웃 하시겠습니까?',
+                    ),
+                  );
+                  if (isConfirmed == true) {
+                    try {
+                      await _authService.signOut();
+                      if (!rootContext.mounted) return;
+                      Navigator.of(
+                        rootContext,
+                      ).pushNamedAndRemoveUntil('/login', (route) => false);
+                    } catch (e) {
+                      if (!rootContext.mounted) return;
+                      WarningSnackBar.showWarning(rootContext, "로그아웃에 실패했습니다.");
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

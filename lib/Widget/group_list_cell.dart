@@ -7,10 +7,14 @@ class GroupListCell extends StatelessWidget {
     super.key,
     required this.group,
     required this.memberNames,
+    required this.hasUnreadNotification,
+    required this.onNotificationTap,
   });
 
   final Group group;
   final List<String> memberNames;
+  final bool hasUnreadNotification;
+  final VoidCallback onNotificationTap;
 
   @override
   Widget build(BuildContext context) {
@@ -52,16 +56,51 @@ class GroupListCell extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.camera_alt_outlined, color: Colors.white70),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CameraScreen(groupName: group.title),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    Icons.task_alt,
+                    color: hasUnreadNotification
+                        ? Colors.white70
+                        : Colors.white.withValues(alpha: 0.28),
+                  ),
+                  if (hasUnreadNotification)
+                    Positioned(
+                      right: -1,
+                      top: -1,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF3B30),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-            );
-          },
+              onPressed: onNotificationTap,
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.camera_alt_outlined,
+                color: Colors.white70,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CameraScreen(groupName: group.title),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

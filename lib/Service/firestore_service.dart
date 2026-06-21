@@ -104,6 +104,24 @@ class FireStoreService {
     });
   }
 
+  Future<void> markNotificationsRead(String userId) async {
+    await _users.doc(userId).set({
+      'hasUnreadNotification': false,
+      'unreadGroupIds': <String>[],
+      'notificationReadAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> markGroupNotificationRead({
+    required String userId,
+    required String groupId,
+  }) async {
+    await _users.doc(userId).set({
+      'unreadGroupIds': FieldValue.arrayRemove([groupId]),
+      'notificationReadAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> anonymizeDeletedUser(String userId) async {
     final expiresAt = DateTime.now().add(const Duration(days: 30));
     await _users.doc(userId).set({

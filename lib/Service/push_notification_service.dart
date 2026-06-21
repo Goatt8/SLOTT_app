@@ -37,6 +37,11 @@ class PushNotificationService {
     }
 
     await _messaging.setAutoInitEnabled(true);
+    await _messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
     await _saveCurrentToken(user.uid);
     _listenForTokenRefresh(user.uid);
   }
