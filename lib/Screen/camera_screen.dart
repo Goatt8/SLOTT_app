@@ -45,6 +45,7 @@ class _CameraScreenState extends State<CameraScreen>
   @override
   void initState() {
     super.initState();
+    _lockScreenLandscape();
     _initializeCamera();
     _animationController = AnimationController(
       vsync: this,
@@ -54,10 +55,23 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   void dispose() {
+    unawaited(_restoreScreenPortrait());
     _focusIndicatorTimer?.cancel();
     _controller?.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _lockScreenLandscape() {
+    return SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  Future<void> _restoreScreenPortrait() {
+    return SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
   }
 
   Future<void> _uploadToFireStorageAndMove(String path) async {
@@ -213,7 +227,9 @@ class _CameraScreenState extends State<CameraScreen>
       ResolutionPreset.veryHigh,
     );
     await nextController.initialize();
-    await nextController.lockCaptureOrientation(DeviceOrientation.portraitUp);
+    await nextController.lockCaptureOrientation(
+      DeviceOrientation.landscapeLeft,
+    );
 
     var minExposureOffset = 0.0;
     var maxExposureOffset = 0.0;
@@ -474,11 +490,18 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   //MARK: Button UI
-  Widget _buildRecordButton() {
+  Widget _buildRecordButton({bool isLandscape = false}) {
+    final alignment = isLandscape
+        ? Alignment.centerRight
+        : Alignment.bottomCenter;
+    final padding = isLandscape
+        ? const EdgeInsets.only(right: 42)
+        : const EdgeInsets.only(bottom: 45);
+
     return Align(
-      alignment: Alignment.bottomCenter,
+      alignment: alignment,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 45),
+        padding: padding,
         child: GestureDetector(
           onTap: _isRecording
               ? null
@@ -536,14 +559,20 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
-  Widget _buildSwitchCameraButton() {
+  Widget _buildSwitchCameraButton({bool isLandscape = false}) {
     final canSwitch =
         (_cameras?.length ?? 0) > 1 && !_isRecording && !_isSwitchingCamera;
+    final alignment = isLandscape
+        ? Alignment.centerRight
+        : Alignment.bottomRight;
+    final padding = isLandscape
+        ? const EdgeInsets.only(right: 55, top: 158)
+        : const EdgeInsets.only(right: 34, bottom: 58);
 
     return Align(
-      alignment: Alignment.bottomRight,
+      alignment: alignment,
       child: Padding(
-        padding: const EdgeInsets.only(right: 34, bottom: 58),
+        padding: padding,
         child: Opacity(
           opacity: canSwitch ? 1 : 0.35,
           child: GestureDetector(
@@ -571,31 +600,47 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
-  Widget _buildLensSelector() {
+  Widget _buildLensSelector({bool isLandscape = false}) {
+    final alignment = isLandscape
+        ? Alignment.centerRight
+        : Alignment.bottomCenter;
+    final padding = isLandscape
+        ? const EdgeInsets.only(right: 136)
+        : const EdgeInsets.only(bottom: 144);
+    final lensButtons = [
+      _buildLensTextButton(
+        label: '0.5',
+        factor: 0.5,
+        canUse: _ultraWideBackCameraIndex() != null,
+      ),
+      _buildLensTextButton(
+        label: '1',
+        factor: 1,
+        canUse: _defaultBackCameraIndex() != null,
+      ),
+      _buildLensTextButton(
+        label: '2',
+        factor: 2,
+        canUse: _defaultBackCameraIndex() != null,
+      ),
+    ];
+
     return Align(
-      alignment: Alignment.bottomCenter,
+      alignment: alignment,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 144),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildLensTextButton(
-              label: '0.5',
-              factor: 0.5,
-              canUse: _ultraWideBackCameraIndex() != null,
-            ),
-            _buildLensTextButton(
-              label: '1',
-              factor: 1,
-              canUse: _defaultBackCameraIndex() != null,
-            ),
-            _buildLensTextButton(
-              label: '2',
-              factor: 2,
-              canUse: _defaultBackCameraIndex() != null,
-            ),
-          ],
-        ),
+        padding: padding,
+        child: isLandscape
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  lensButtons[0],
+                  const SizedBox(height: 8),
+                  lensButtons[1],
+                  const SizedBox(height: 8),
+                  lensButtons[2],
+                ],
+              )
+            : Row(mainAxisSize: MainAxisSize.min, children: lensButtons),
       ),
     );
   }
@@ -708,12 +753,27 @@ class _CameraScreenState extends State<CameraScreen>
             ? LayoutBuilder(
                 builder: (context, constraints) {
                   const double previewTopPadding = 0;
-                  const double previewBottomPadding = 132;
                   const double previewHorizontalPadding = 0;
+                  final isLandscape =
+                      constraints.maxWidth > constraints.maxHeight;
+                  final previewBottomPadding = isLandscape ? 0.0 : 132.0;
                   final Size previewSize = Size(
                     constraints.maxWidth - (previewHorizontalPadding * 2),
-                    constraints.maxHeight - previewTopPadding,
+                    constraints.maxHeight -
+                        previewTopPadding -
+                        previewBottomPadding,
                   );
+                  final cameraPreviewSize = _controller?.value.previewSize;
+                  final previewChildWidth = isLandscape
+                      ? cameraPreviewSize?.width ??
+                            MediaQuery.of(context).size.width
+                      : cameraPreviewSize?.height ??
+                            MediaQuery.of(context).size.width;
+                  final previewChildHeight = isLandscape
+                      ? cameraPreviewSize?.height ??
+                            MediaQuery.of(context).size.height
+                      : cameraPreviewSize?.width ??
+                            MediaQuery.of(context).size.height;
                   return Stack(
                     children: [
                       Positioned.fill(
@@ -743,22 +803,12 @@ class _CameraScreenState extends State<CameraScreen>
                                     child: OverflowBox(
                                       alignment: Alignment.center,
                                       child: FittedBox(
-                                        fit: BoxFit.cover,
+                                        fit: isLandscape
+                                            ? BoxFit.contain
+                                            : BoxFit.cover,
                                         child: SizedBox(
-                                          width:
-                                              _controller
-                                                  ?.value
-                                                  .previewSize
-                                                  ?.height ??
-                                              MediaQuery.of(context).size.width,
-                                          height:
-                                              _controller
-                                                  ?.value
-                                                  .previewSize
-                                                  ?.width ??
-                                              MediaQuery.of(
-                                                context,
-                                              ).size.height,
+                                          width: previewChildWidth,
+                                          height: previewChildHeight,
                                           child: CameraPreview(_controller!),
                                         ),
                                       ),
@@ -863,9 +913,9 @@ class _CameraScreenState extends State<CameraScreen>
                           ),
                         ),
                       ),
-                      _buildLensSelector(),
-                      _buildRecordButton(),
-                      _buildSwitchCameraButton(),
+                      _buildLensSelector(isLandscape: isLandscape),
+                      _buildRecordButton(isLandscape: isLandscape),
+                      _buildSwitchCameraButton(isLandscape: isLandscape),
                     ],
                   );
                 },
