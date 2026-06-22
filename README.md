@@ -4,6 +4,8 @@
 
 # SLOTT_APP
 
+> [App Store로 이동](https://apps.apple.com/kr/app/slott/id6778327738)
+
 ### 매 시간 슬롯에 기록하는 일상 공유 영상 소셜 플랫폼
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat-square&logo=Flutter&logoColor=white)
@@ -17,6 +19,10 @@
 **SLOTT**은 매 시간 슬롯에 짧은 일상 영상을 기록하고, 그룹 구성원들과 하루를 공유하는 영상 기반 소셜 브이로그 서비스입니다.
 
 기존 텍스트·사진 중심 SNS를 넘어, 숏폼 영상을 활용해 친구들과 더 생생하고 몰입감 있는 일상을 교류할 수 있도록 설계했습니다. 개발 과정에서는 다양한 인원수별 동적 레이아웃, 영상 업로드/스트리밍, 푸시 알림, iOS 네이티브 영상 처리 등을 중점적으로 구현했습니다.
+
+현재 ios App Store 에서 서비스중입니다
+
+
 
 _____________________
 <br>
