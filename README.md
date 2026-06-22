@@ -35,7 +35,7 @@ _____________________
 | **Video & Media** | Flutter Camera, Cached Video Player, AVFoundation |
 | **Native Integration** | Flutter MethodChannel, Swift Native Module, CocoaPods |
 | **App Architecture** | Screen / Service / Model / Widget 구조 |
-| **Distribution** | Xcode, IPA Build, Apple Transporter |
+| **Distribution** | Xcode, IPA BUIld, Apple Transporter |
 
 _____________________
 <br>
@@ -74,7 +74,7 @@ _____________________
 <summary><strong>App Store 제출 심사 대응 과정</strong></summary>
 
 - **플랫폼:** iOS (Apple App Store)
-- **관련 가이드라인:** Guideline 1.2 - User Generated Content (사용자 생성 콘텐츠)
+- **관련 가이드라인:** GUIdeline 1.2 - User Generated Content (사용자 생성 콘텐츠)
 - **현상:** 앱 출시 심사 중, 사용자가 사진, 영상, 댓글 등을 공유할 수 있는 기능(UGC)이 존재함에도 불구하고 **부적절한 콘텐츠와 불량 사용자를 제한하기 위한 충분한 예방 조치(Precautions)가 부족하다**는 이유로 심사 거절(Reject) 처리가 됨.
 
 
@@ -116,9 +116,9 @@ ____________
 <details>
 <summary><strong>1. 그룹 인원수에 따른 동적 슬롯 레이아웃</strong></summary>
     
-> #### 문제: SLOTT은 그룹 인원에 따라 2개부터 최대 10개의 영상 슬롯을 한 화면에 표시해야 했습니다. 모든 인원수에 동일한 ui 레이아웃을 적용하면 세로축이 지나치게 작아지거나 빈 공간이 발생했고, 영상의 가독성과 화면 활용도가 떨어졌습니다.
+> #### 문제: SLOTT은 그룹 인원에 따라 2개부터 최대 10개의 영상 슬롯을 한 화면에 표시해야 했습니다. 모든 인원수에 동일한 UI 레이아웃을 적용하면 세로축이 지나치게 작아지거나 빈 공간이 발생했고, 영상의 가독성과 화면 활용도가 떨어졌습니다.
 
-* ✅ AppLayoutPolicy 버튼 : 그룹 인원수와 사용자가 선택한 보기 방식에 따라 레이아웃 설정을 반환하는 `AppLayoutPolicy`를 구현했습니다.
+* ✅ AppLayoutPolicy 구현 : 그룹 인원수와 사용자가 선택한 보기 방식에 따라 레이아웃 설정을 반환하는 `AppLayoutPolicy`를 구현했습니다.
 - 2~6명: 세로형 레이아웃 지원
 - 3명, 4명, 6명: 세로형과 격자형 전환 지원
 - 7~10명: 화면 활용도를 위해 격자형 레이아웃 적용
@@ -127,9 +127,9 @@ ____________
 - 레이아웃 계산과 화면 렌더링 로직을 분리하여 유지보수성 개선
 
 ```dart
-static GroupUiPreset presetFor({
-  required int memberCount,
-  required bool useDiceLayout,
+static GroupUIPreset presetFor({
+  reqUIred int memberCount,
+  reqUIred bool useDiceLayout,
 }) {
   final allowDice = supportsDiceLayout(memberCount);
   final allowVertical = supportsVerticalLayout(memberCount);
@@ -144,7 +144,7 @@ static GroupUiPreset presetFor({
       ? diceSpecByMemberCount(memberCount)
       : verticalSpecByMemberCount(memberCount);
 
-  return GroupUiPreset(
+  return GroupUIPreset(
     layoutSpec: layoutSpec,
     // UI 설정 생략
   );
@@ -152,8 +152,8 @@ static GroupUiPreset presetFor({
 ```
 ```
 return layoutSpec.useGrid
-    ? _buildGridLayout(...)
-    : _buildVerticalLayout(...);
+    ? _bUIldGridLayout(...)
+    : _bUIldVerticalLayout(...);
 ```
 
 </details>
@@ -239,7 +239,7 @@ slotOwnerIds
 - 이용 등급 연령대 연령 낮추기
 - 앱 용량 사이즈 다운
 - 불필요한 테스트 파일 제거
-- 카메라 버튼 및 텍스트 부자연스러운 ui 개선
+- 카메라 버튼 및 텍스트 부자연스러운 UI 개선
     
 </details>
 
@@ -258,7 +258,7 @@ slotOwnerIds
 <summary> 1.0.3 버전 업데이트 계획 - ✅ 완료</summary>
     
 * 푸시알림 시스템 적용
-* 화면 비율 수정 -> 가로 카메라 촬영으로 변경해달라는 피드백
+* 촬영화면 비율 수정 -> 가로 카메라 촬영으로 변경해달라는 피드백 -> 촬영 후 영상 후가공으로 가로 세로 비율 전환으로 업데이트 구현
     
 </details>
 
@@ -266,7 +266,6 @@ slotOwnerIds
 <details>
 <summary> 1.0.4 버전 업데이트 계획 - 진행중</summary>
     
-* 푸시알림 시스템 적용
-* 화면 비율 수정 -> 가로 카메라 촬영으로 변경해달라는 피드백
+* 카카오톡 및 소셜 로그인 구현
     
 </details>
