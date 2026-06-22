@@ -84,6 +84,9 @@ _____________________
 - **현상:** 앱 출시 심사 중, 사용자가 사진, 영상, 댓글 등을 공유할 수 있는 기능(UGC)이 존재함에도 불구하고 **부적절한 콘텐츠와 불량 사용자를 제한하기 위한 충분한 예방 조치(Precautions)가 부족하다**는 이유로 심사 거절(Reject) 처리가 됨.
 
 
+<img width="70%" alt="image" src="https://github.com/user-attachments/assets/1d7f084e-4992-4b83-8fcb-47f3da80ab4c" />
+
+<img width="70%" alt="image" src="https://github.com/user-attachments/assets/f2d514e5-6849-42bf-ad24-e5cdf6f87a23" />
 
 ### 📝 애플측의 피드백 - 누락요소
 
@@ -105,11 +108,14 @@ _____________________
 - **유저 차단(Block) 기능:** 부적절한 사용자를 차단할 수 있는 차단버튼 구현.
 - **실시간 피드 숨김(Instant Removal):** 사용자가 '차단' 또는 '신고'를 누르는 즉시, 로컬 상태(State) 관리 및 서버 데이터 필터링을 통해 **해당 콘텐츠가 사용자의 피드에서 실시간으로 즉시 사라지도록 UX 구현** (애플의 핵심 요구사항 충족).
 
-### ③ 심사 대응 (App Store Connect 제출)
+### ③ 심사 대응 (App Store Connect 제출) - 심사 성공
 
 - 실물 iOS 기기(iPhone)를 활용하여 애플 심사관이 요구한 시나리오를 화면 녹화(Screen Recording)함.
     - *시나리오:* [가입 전 EULA 약관 확인 및 동의] ➡️ [피드 내 부적절한 콘텐츠 신고] ➡️ [불량 유저 차단 및 피드에서 즉시 숨겨지는 모습 시연]
 - 해당 영상을 App Store Connect의 `App Review Information (Notes)` 영역에 첨부하고, 심사 피드백 메세지에 요구사항 완료 답변을 작성하여 재심사를 요청함.
+
+
+
 
 
 </details>
