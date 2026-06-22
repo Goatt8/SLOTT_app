@@ -107,7 +107,9 @@ ____________
 
 ## 기술적 문제해결 과정
 
-
+<details>
+<summary><strong>그룹 인원수에 따른 동적 슬롯 레이아웃</strong></summary>
+    
 ### :ballot_box_with_check: 그룹 인원수에 따른 동적 슬롯 레이아웃
 > #### 문제: SLOTT은 그룹 인원에 따라 2개부터 최대 10개의 영상 슬롯을 한 화면에 표시해야 했습니다. 모든 인원수에 동일한 ui 레이아웃을 적용하면 세로축이 지나치게 작아지거나 빈 공간이 발생했고, 영상의 가독성과 화면 활용도가 떨어졌습니다.
 
@@ -149,8 +151,10 @@ return layoutSpec.useGrid
     : _buildVerticalLayout(...);
 ```
 
-_________
-<br>
+</details>
+    
+<details>
+<summary><strong>사용자 목록과 슬롯 소유권을 분리한 다중 슬롯 설계</strong></summary>
 
 ### :ballot_box_with_check: 사용자 목록과 슬롯 소유권을 분리한 다중 슬롯 설계
 > #### 문제: 초기에는 그룹의 `memberIds` 배열 순서를 기준으로 사용자의 슬롯 위치를 결정했습니다. 1인 1슬롯
@@ -172,8 +176,10 @@ slotOwnerIds
  └ ["userA", "userB", "userA", null]
 ```
 
-_______
-<br>
+</details>
+
+<details>
+<summary><strong>인증 방식 선정 및 확장성 고려</strong></summary>
 
 ### :ballot_box_with_check: 인증 방식 선정 및 확장성 고려
 
@@ -194,9 +200,11 @@ _______
 * 해외 사용자 접근성
 * SIM 교체 및 번호 재사용에 따른 보안 문제
 
-_______
-<br>
 
+</details>
+
+<details>
+<summary><strong>영상 로딩 에러 해결</strong></summary>
 
 ### :ballot_box_with_check: 영상 로딩 에러 해결 PreloadPageView
 
@@ -217,7 +225,7 @@ _______
 
 
 
-
+</details>
 
 
 <br>
