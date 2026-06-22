@@ -1,10 +1,10 @@
+# SLOTT_APP
+
 <div align="center">
 
 <img src="./assets/logo/logo.jpeg" width="120" />
 
-# SLOTT_APP
-
-> [App Store로 이동](https://apps.apple.com/kr/app/slott/id6778327738)
+[App Store로 이동](https://apps.apple.com/kr/app/slott/id6778327738)
 
 ### 매 시간 슬롯에 기록하는 일상 공유 영상 소셜 플랫폼
 
@@ -24,8 +24,12 @@
 
 
 
+
 _____________________
 <br>
+
+
+
 
 
 
