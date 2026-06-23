@@ -33,10 +33,38 @@
 </table>
 
 
-
-
-
 _____________________
+<br>
+
+<br>
+
+
+<h2 align="center">📺 Preview</h2>
+
+<br>
+
+<p align="center">
+<img src="https://github.com/user-attachments/assets/ea59b068-c9c6-4b52-9c3c-c1dae38324d0" width="240">
+<img src="https://github.com/user-attachments/assets/4348fcb3-712e-4da1-803b-e67826fbdde0" width="240">
+<img src="https://github.com/user-attachments/assets/d75b72a1-dc72-4750-b8bd-106a87f8ac79" width="240">
+</p>
+
+<p align="center">
+  <sub> 메인 SlOTT 화면 </sub>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <sub> SLOTT 생성 </sub>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <sub> 프로필 변경 </sub>
+</p>
+
+
+
 <br>
 
 
