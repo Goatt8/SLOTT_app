@@ -182,6 +182,18 @@ ____________
 - 실제 인원이 없는 칸은 빈 슬롯으로 처리
 - 레이아웃 계산과 화면 렌더링 로직을 분리하여 유지보수성 개선
 
+
+
+
+
+<p align="center">
+ <img width= 26% src="https://github.com/user-attachments/assets/413c6630-6cb6-46a5-a2a6-6be039230794" />
+
+   
+ <img width= 26% src="https://github.com/user-attachments/assets/46838072-5ded-438a-9317-dc1b3c8763e8" />
+ 
+</p>
+
 ```dart
 static GroupUIPreset presetFor({
   reqUIred int memberCount,
