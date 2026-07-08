@@ -15,8 +15,11 @@ import 'package:bababam_app/Service/today_group_video_cache_service.dart';
 import 'package:bababam_app/Service/daily_video_export_service.dart';
 import 'package:bababam_app/Widget/member_post_card.dart';
 import 'package:bababam_app/Widget/navigation_triangle_button.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bababam_app/Provider/blocked_users_provider.dart';
+import 'package:bababam_app/Provider/post_provider.dart';
 
-class SlotGroupScreen extends StatefulWidget {
+class SlotGroupScreen extends ConsumerStatefulWidget {
   final Group group;
   final String groupId;
 
@@ -27,10 +30,10 @@ class SlotGroupScreen extends StatefulWidget {
   });
 
   @override
-  State<SlotGroupScreen> createState() => _SlotGroupScreenState();
+  ConsumerState<SlotGroupScreen> createState() => _SlotGroupScreenState();
 }
 
-class _SlotGroupScreenState extends State<SlotGroupScreen> {
+class _SlotGroupScreenState extends ConsumerState<SlotGroupScreen> {
   final FireStoreService _firestoreService = FireStoreService();
   final DailyVideoExportService _dailyVideoExportService =
       DailyVideoExportService();
@@ -42,19 +45,13 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   late int _currentHour;
   late String _todayKey;
 
-  StreamSubscription<List<Post>>? _postsSubscription;
   int? _selectedHourOverride;
   bool _useDiceLayout = false;
   PostTextStyleSelection? _viewerTextStyleSelection;
   Timer? _timer;
-  StreamSubscription<Set<String>>? _blockedUsersSubscription;
-  Set<String> _blockedUserIds = {};
   List<Post> _groupPosts = const [];
-  Object? _postsError;
-  bool _isPostsLoading = true;
   bool _isRequestingDailyVideoExport = false;
   final Map<String, bool> _soundOverrideByPostId = {};
-  int _postsSubscriptionGeneration = 0;
   String? _lastVideoPreparationKey;
   Timer? _videoPreparationTimer;
 
@@ -70,7 +67,6 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     _activeGroup = widget.group;
     _updateTime();
     _initData();
-    _watchBlockedUsers();
     _startClockTimer();
   }
 
@@ -78,8 +74,6 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   void dispose() {
     _timer?.cancel();
     _videoPreparationTimer?.cancel();
-    _postsSubscription?.cancel();
-    _blockedUsersSubscription?.cancel();
     _pageController.dispose();
     _videoCacheService.disposeAll();
     super.dispose();
@@ -102,58 +96,9 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   //MARK: Init Data
   void _initData() {
     _membersFuture = _firestoreService.getUsersByIds(_activeGroup.memberIds);
-    final generation = ++_postsSubscriptionGeneration;
-    _isPostsLoading = true;
-    _postsError = null;
     _groupPosts = const [];
     _lastVideoPreparationKey = null;
-    unawaited(_subscribeToPosts(generation));
-  }
-
-  Future<void> _subscribeToPosts(int generation) async {
-    await _postsSubscription?.cancel();
-    await _videoCacheService.prepareForDay(_todayKey);
-    if (!mounted || generation != _postsSubscriptionGeneration) return;
-
-    _postsSubscription = _firestoreService
-        .getPostsByDayStream(groupId: widget.groupId, dayKey: _todayKey)
-        .listen(
-          (posts) {
-            if (!mounted || generation != _postsSubscriptionGeneration) return;
-            setState(() {
-              _groupPosts = posts;
-              _soundOverrideByPostId.removeWhere(
-                (postId, _) => posts.every((post) => post.id != postId),
-              );
-              _postsError = null;
-              _isPostsLoading = false;
-            });
-            unawaited(_syncPostAudioVolumes(posts));
-            _scheduleVideoPreparation();
-          },
-          onError: (Object error) {
-            if (!mounted || generation != _postsSubscriptionGeneration) return;
-            setState(() {
-              _postsError = error;
-              _isPostsLoading = false;
-            });
-          },
-        );
-  }
-
-  void _watchBlockedUsers() {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserId == null) return;
-
-    _blockedUsersSubscription = _firestoreService
-        .watchBlockedUserIds(currentUserId)
-        .listen((blockedUserIds) {
-          if (!mounted) return;
-          setState(() {
-            _blockedUserIds = blockedUserIds;
-          });
-          _scheduleVideoPreparation();
-        });
+    unawaited(_videoCacheService.prepareForDay(_todayKey));
   }
 
   //MARK: Time Sync
@@ -257,11 +202,12 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     );
   }
 
-  void _prepareVideosForCurrentState() {
-    if (_isPostsLoading || _postsError != null) return;
-
-    final visiblePosts = _groupPosts
-        .where((post) => !_blockedUserIds.contains(post.authorId))
+  void _prepareVideosForPosts(
+    List<Post> groupPosts,
+    Set<String> blockedUserIds,
+  ) {
+    final visiblePosts = groupPosts
+        .where((post) => !blockedUserIds.contains(post.authorId))
         .toList();
     final timelineHours = _buildTimelineHours(visiblePosts);
     final activeHour = _resolveActiveHour(timelineHours);
@@ -273,11 +219,14 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     );
   }
 
-  void _scheduleVideoPreparation() {
+  void _scheduleVideoPreparation(
+    List<Post> groupPosts,
+    Set<String> blockedUserIds,
+  ) {
     _videoPreparationTimer?.cancel();
     _videoPreparationTimer = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
-      _prepareVideosForCurrentState();
+      _prepareVideosForPosts(groupPosts, blockedUserIds);
     });
   }
 
@@ -510,7 +459,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
       );
       if (!mounted) return;
       setState(() {
-        _blockedUserIds = {..._blockedUserIds, user.id};
+        ref.invalidate(blockedUserIdsProvider);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -607,7 +556,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
         useDiceLayout: _useDiceLayout,
         dayKey: _todayKey,
         textStyleSelection: textStyleSelection,
-        blockedUserIds: _blockedUserIds,
+        blockedUserIds: ref.read(blockedUserIdsProvider).value ?? <String>{},
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -643,6 +592,35 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   //MARK: Screen UI
   @override
   Widget build(BuildContext context) {
+    final blockedUserIdsAsync = ref.watch(blockedUserIdsProvider);
+    final blockedUserIds = blockedUserIdsAsync.value ?? <String>{};
+
+    final postsProvider = groupPostsProvider((
+      groupId: widget.groupId,
+      dayKey: _todayKey,
+    ));
+    final postsAsync = ref.watch(postsProvider);
+
+    ref.listen<AsyncValue<List<Post>>>(postsProvider, (previous, next) {
+      next.whenData((posts) {
+        _groupPosts = posts;
+        _soundOverrideByPostId.removeWhere(
+          (postId, _) => posts.every((post) => post.id != postId),
+        );
+        unawaited(_syncPostAudioVolumes(posts));
+        _scheduleVideoPreparation(posts, blockedUserIds);
+      });
+    });
+
+    ref.listen<AsyncValue<Set<String>>>(blockedUserIdsProvider, (
+      previous,
+      next,
+    ) {
+      next.whenData((blockedUserIds) {
+        _scheduleVideoPreparation(_groupPosts, blockedUserIds);
+      });
+    });
+
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 44,
@@ -674,21 +652,25 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
               );
             }
 
-            if (_postsError != null) {
-              debugPrint('소셜 그룹 포스트 로드 오류: $_postsError');
-              return const Center(
-                child: Text(
-                  "데이터 로드 중 오류가 발생했습니다.",
-                  style: TextStyle(color: Colors.redAccent),
-                ),
-              );
-            }
-
-            if (_isPostsLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            return _buildGroupContent(memberSnapshot.data ?? [], _groupPosts);
+            return postsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) {
+                debugPrint('소셜 그룹 포스트 로드 오류: $error');
+                return const Center(
+                  child: Text(
+                    "데이터 로드 중 오류가 발생했습니다.",
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                );
+              },
+              data: (groupPosts) {
+                return _buildGroupContent(
+                  memberSnapshot.data ?? [],
+                  groupPosts,
+                  blockedUserIds,
+                );
+              },
+            );
           },
         ),
       ),
@@ -749,9 +731,13 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
   }
 
   //MARK: Group Content UI
-  Widget _buildGroupContent(List<AppUser> members, List<Post> groupPosts) {
+  Widget _buildGroupContent(
+    List<AppUser> members,
+    List<Post> groupPosts,
+    Set<String> blockedUserIds,
+  ) {
     final visibleGroupPosts = groupPosts
-        .where((post) => !_blockedUserIds.contains(post.authorId))
+        .where((post) => !blockedUserIds.contains(post.authorId))
         .toList();
     final slotOwnerIds = _activeGroup.effectiveSlotOwnerIds;
     final userById = {for (final member in members) member.id: member};
@@ -790,7 +776,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
               setState(() {
                 _selectedHourOverride = timelineHours[index];
               });
-              _prepareVideosForCurrentState();
+              _prepareVideosForPosts(visibleGroupPosts, blockedUserIds);
             },
             itemBuilder: (context, index) {
               final hour = timelineHours[index];
@@ -805,6 +791,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
                 slotCount: slotCount,
                 preset: preset,
                 viewerTextStyleSelection: viewerTextStyleSelection,
+                blockedUserIds: blockedUserIds,
               );
             },
           ),
@@ -907,6 +894,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     required int slotCount,
     required GroupUiPreset preset,
     required PostTextStyleSelection viewerTextStyleSelection,
+    required Set<String> blockedUserIds,
   }) {
     final layoutSpec = preset.layoutSpec;
     return layoutSpec.useGrid
@@ -918,6 +906,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
             slotCount,
             preset,
             viewerTextStyleSelection,
+            blockedUserIds,
           )
         : _buildVerticalLayout(
             slotOwnerIds,
@@ -927,6 +916,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
             slotCount,
             preset,
             viewerTextStyleSelection,
+            blockedUserIds,
           );
   }
 
@@ -939,6 +929,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     int slotCount,
     GroupUiPreset preset,
     PostTextStyleSelection viewerTextStyleSelection,
+    Set<String> blockedUserIds,
   ) {
     return Column(
       children: List.generate(slotCount, (index) {
@@ -955,6 +946,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
                   selectedHour: selectedHour,
                   preset: preset,
                   viewerTextStyleSelection: viewerTextStyleSelection,
+                  blockedUserIds: blockedUserIds,
                 )
               : _buildInviteSlotCard(
                   slotIndex: index,
@@ -1033,6 +1025,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     int slotCount,
     GroupUiPreset preset,
     PostTextStyleSelection viewerTextStyleSelection,
+    Set<String> blockedUserIds,
   ) {
     final layoutSpec = preset.layoutSpec;
     final gridSlotCount = layoutSpec.fixedSlotCount ?? slotCount;
@@ -1096,6 +1089,7 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
               selectedHour: selectedHour,
               preset: preset,
               viewerTextStyleSelection: viewerTextStyleSelection,
+              blockedUserIds: blockedUserIds,
             );
           },
         );
@@ -1110,8 +1104,9 @@ class _SlotGroupScreenState extends State<SlotGroupScreen> {
     required int selectedHour,
     required GroupUiPreset preset,
     required PostTextStyleSelection viewerTextStyleSelection,
+    required Set<String> blockedUserIds,
   }) {
-    if (_blockedUserIds.contains(user.id)) {
+    if (blockedUserIds.contains(user.id)) {
       return _buildBlockedMemberCard(
         preset: preset,
         selectedHour: selectedHour,
