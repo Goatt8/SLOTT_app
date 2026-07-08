@@ -169,23 +169,24 @@ ____________
 ## 기술적 문제해결 과정
 
 <details>
-<summary><strong>1. post, blockuser 주요 기능 상태관리 Riverpod 적용 </strong></summary>
+<summary><strong>1. Riverpod을 활용한 핵심 기능(Post, BlockUser) 상태 관리 고도화 </strong></summary>
     
 > #### 문제
-> 상태관리 측면에서 state, future, stream을 사용해도 좋지만, 규모있는 앱을 준비하기위해 Riverpod, Bloc, GetX 등 현업에서 유용하게 쓰이고있는 다양한 상태관리에 대한 이해도가 필요했습니다.
+> 기존에는 setState나 위젯별 스트림 관리를 사용해 상태를 처리했지만, 앱의 규모가 커짐에 따라 위젯 트리 전반으로 비즈니스 로직이 파편화되는 문제를 겪었습니다. 서비스의 안정성과 확장성을 위해 일관된 아키텍처와 라이브러리 기반의 상태 관리가 필요했습니다.
 
 ✅ Riverpod 도입 및 적용: Post 및 BlockedUser 등 앱의 핵심 데이터 흐름을 Riverpod으로 통합 관리했습니다.
-유연한 의존성 관리: Provider를 통해 비즈니스 로직을 UI와 완전히 분리하여 유지보수성을 높였습니다.
-컴파일 타임 안전성: 런타임 에러를 방지하고, 직관적인 문법을 통해 팀 단위 협업 시 가독성을 극대화하고자 했습니다.
-확장성: 향후 대규모 트래픽이나 복잡한 상태 변화가 요구될 때, Notifier를 활용하여 비즈니스 로직을 체계적으로 확장하기에 가장 적합한 도구라 판단했습니다.
-
-ProviderScope 적용
-ConsumerStatefulWidget 사용
-StreamProvider.family 사용
-ref.watch 사용
-ref.listen 사용
-AsyncValue loading/error/data 처리
-Firestore stream과 UI 분리
+- 유연한 의존성 관리: Provider를 통해 비즈니스 로직을 UI와 완전히 분리하여 유지보수성을 높였습니다.
+- 컴파일 타임 안전성: 런타임 에러를 방지하고, 직관적인 문법을 통해 팀 단위 협업 시 가독성을 극대화하고자 했습니다.
+- 확장성: 향후 대규모 트래픽이나 복잡한 상태 변화가 요구될 때, Notifier를 활용하여 비즈니스 로직을 체계적으로 확장하기에 가장 적합한 도구라 판단했습니다.
+```
+- ProviderScope 적용
+- ConsumerStatefulWidget 사용
+- StreamProvider.family 사용
+- ref.watch 사용
+- ref.listen 사용
+- AsyncValue loading/error/data 처리
+- Firestore stream과 UI 분리
+```
 
 </details>
 
