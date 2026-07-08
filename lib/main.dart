@@ -9,6 +9,7 @@ import 'package:bababam_app/Service/firestore_service.dart';
 import 'package:bababam_app/Service/push_notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +17,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   CameraAvailabilityService.preload();
 
-  runApp(const SLOTTApp());
+  runApp(const ProviderScope(child: SLOTTApp()));
 }
 
 class SLOTTApp extends StatefulWidget {
