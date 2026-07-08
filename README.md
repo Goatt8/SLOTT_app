@@ -83,7 +83,7 @@ _____________________
 | **Push Notification** | Firebase Cloud Messaging, APNs, Cloud Functions |
 | **Video & Media** | Flutter Camera, Cached Video Player, AVFoundation |
 | **Native Integration** | Flutter MethodChannel, Swift Native Module, CocoaPods |
-| **App Architecture** | Screen / Service / Model / Widget 구조 |
+| **App Architecture** | Riverpod 상태관리 /Screen / Service / Model / Widget 구조 |
 | **Distribution** | Xcode, IPA BUIld, Apple Transporter |
 
 _____________________
@@ -169,7 +169,29 @@ ____________
 ## 기술적 문제해결 과정
 
 <details>
-<summary><strong>1. 그룹 인원수에 따른 동적 슬롯 레이아웃</strong></summary>
+<summary><strong>1. post, blockuser 주요 기능 상태관리 Riverpod 적용 </strong></summary>
+    
+> #### 문제
+> 상태관리 측면에서 state, future, stream을 사용해도 좋지만, 규모있는 앱을 준비하기위해 Riverpod, Bloc, GetX 등 현업에서 유용하게 쓰이고있는 다양한 상태관리에 대한 이해도가 필요했습니다.
+
+✅ Riverpod 도입 및 적용: Post 및 BlockedUser 등 앱의 핵심 데이터 흐름을 Riverpod으로 통합 관리했습니다.
+유연한 의존성 관리: Provider를 통해 비즈니스 로직을 UI와 완전히 분리하여 유지보수성을 높였습니다.
+컴파일 타임 안전성: 런타임 에러를 방지하고, 직관적인 문법을 통해 팀 단위 협업 시 가독성을 극대화하고자 했습니다.
+확장성: 향후 대규모 트래픽이나 복잡한 상태 변화가 요구될 때, Notifier를 활용하여 비즈니스 로직을 체계적으로 확장하기에 가장 적합한 도구라 판단했습니다.
+
+ProviderScope 적용
+ConsumerStatefulWidget 사용
+StreamProvider.family 사용
+ref.watch 사용
+ref.listen 사용
+AsyncValue loading/error/data 처리
+Firestore stream과 UI 분리
+
+</details>
+
+
+<details>
+<summary><strong>2. 그룹 인원수에 따른 동적 슬롯 레이아웃</strong></summary>
     
 > #### 문제
 > SLOTT은 그룹 인원에 따라 2개부터 최대 10개의 영상 슬롯을 한 화면에 표시해야 했습니다. 모든 인원수에 동일한 UI 레이아웃을 적용하면 세로축이 지나치게 작아지거나 빈 공간이 발생했고, 영상의 가독성과 화면 활용도가 떨어졌습니다.
@@ -227,7 +249,7 @@ return layoutSpec.useGrid
 </details>
     
 <details>
-<summary><strong>2. 사용자 목록과 슬롯 소유권을 분리한 다중 슬롯 설계</strong></summary>
+<summary><strong>3. 사용자 목록과 슬롯 소유권을 분리한 다중 슬롯 설계</strong></summary>
 
 > #### 문제
 > 초기에는 그룹의 `memberIds` 배열 순서를 기준으로 사용자의 슬롯 위치를 결정했습니다. 1인 1슬롯
@@ -254,7 +276,7 @@ slotOwnerIds
 </details>
 
 <details>
-<summary><strong>3. 인증 방식 선정 및 확장성 고려</strong></summary>
+<summary><strong>4. 인증 방식 선정 및 확장성 고려</strong></summary>
 
 > #### 문제
 > 회원가입 과정에서 Apple 로그인, 카카오 로그인, Passkey 등 다양한 인증 방식을 함께 제공하는 방안을 검토했습니다. 
@@ -278,7 +300,7 @@ slotOwnerIds
 </details>
 
 <details>
-<summary><strong>4. 영상 로딩 에러 해결</strong></summary>
+<summary><strong>5. 영상 로딩 에러 해결</strong></summary>
 
 > #### 문제
 > 기존에는 시간대마다 컨트롤러를 생성해 필수적으로 영상로딩 렉이 동반되었습니다. 
@@ -300,7 +322,7 @@ slotOwnerIds
 </details>
 
 <details>
-<summary><strong>5. 영상 합성방식 고민</strong></summary>
+<summary><strong>6. 영상 합성방식 고민</strong></summary>
 
 > #### 문제
 > 초기에는 서버 또는 Cloud Functions에서 영상을 합성하는 방식을 고려했습니다.  
