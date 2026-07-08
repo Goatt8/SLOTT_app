@@ -20,7 +20,9 @@
 <img src="https://img.shields.io/badge/Flutter-02569B?style=flat-square&logo=Flutter&logoColor=white">
 <img src="https://img.shields.io/badge/Swift-F05138?style=flat-square&logo=Swift&logoColor=white">
 <img src="https://img.shields.io/badge/Firebase-FFCA28?style=flat-square&logo=Firebase&logoColor=black">
+<img src="https://img.shields.io/badge/Riverpod-46C4F3?style=flat-square&logo=riverpod&logoColor=white">
 </p>
+
 
 </td>
 <td width="40%" align="center" valign="middle">
