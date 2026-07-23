@@ -344,6 +344,30 @@ Swift에서는 네이티브 코드로 전달받아 영상 합성을 담당하도
 
 </details>
 
+<details>
+<summary><strong>7. CI/ CI 테스트 배포 자동화 경험</strong></summary>
+
+> #### 문제
+> 기존에는 iOS 배포를 Xcode Archive, 서명, App Store Connect 업로드, TestFlight 배포까지 수동으로 진행해야 했습니다. 과정이 반복적이고 번거로웠으며, 팀원들과 배포 상태를 공유하거나 동일한 절차로 빌드를 검증하기에도 체계가 부족하다고 느꼈습니다. 그래서 배포 전 검증과 TestFlight 업로드 과정을 Fastlane으로 자동화해 CI/CD 흐름을 구축하고자 했습니다.
+
+✅ 해결 : Fastlane을 도입해 verify(테스트)와 beta(배포 이전까지) 두 개의 lane을 분리했습니다. verify lane에서는 flutter pub get, flutter analyze, flutter test를 실행해 배포 전 기본 검증을 수행하도록 했습니다. beta lane에서는 빌드 번호 증가, iOS archive/export, App Store Connect API Key 인증, TestFlight 업로드까지 자동화했습니다.
+
+```
+fastlane verify
+-> flutter pub get
+-> flutter analyze
+-> flutter test
+
+fastlane beta
+-> increment_build_number
+-> build_app
+-> app_store_connect_api_key
+-> upload_to_testflight
+-> Internal testers 배포
+```
+
+</details>
+
 <br>
 
 
