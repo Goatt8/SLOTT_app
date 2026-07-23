@@ -35,9 +35,15 @@ migrate_working_dir/
 
 # Symbolication related
 app.*.symbols
+ios/*.app.dSYM.zip
+ios/*.dSYM.zip
 
 # Obfuscation related
 app.*.map.json
+
+# iOS build artifacts
+ios/*.ipa
+ios/*.xcarchive
 
 # Android Studio will place build artifacts here
 /android/app/debug
@@ -46,3 +52,6 @@ app.*.map.json
 
 # Test assets
 assets/video/test_video.mp4
+
+# fastlane secrets
+ios/fastlane/AuthKey_*.p8
